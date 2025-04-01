@@ -5,9 +5,29 @@
 
 declare module "sst" {
   export interface Resource {
+    "Backend": {
+      "service": string
+      "type": "sst.aws.Service"
+      "url": string
+    }
+    "Database": {
+      "database": string
+      "host": string
+      "password": string
+      "port": number
+      "type": "sst.aws.Postgres"
+      "username": string
+    }
+    "Frontend": {
+      "type": "sst.aws.StaticSite"
+      "url": string
+    }
     "UserPool": {
       "id": string
       "type": "sst.aws.CognitoUserPool"
+    }
+    "Vpc": {
+      "type": "sst.aws.Vpc"
     }
     "WebClient": {
       "id": string

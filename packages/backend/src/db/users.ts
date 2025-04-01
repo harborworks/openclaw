@@ -1,6 +1,6 @@
 import { users } from "@sparrow-tags/schema";
 import { eq } from "drizzle-orm";
-import { db } from ".";
+import { db } from "./index.js";
 
 export const getUserByCognitoId = async (cognitoId: string) => {
   const userRows = await db

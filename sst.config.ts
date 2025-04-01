@@ -10,12 +10,19 @@ export default $config({
     };
   },
   async run() {
-    const { userPool, userPoolClient } = await import(
-      "./packages/infra/src/auth.js"
-    );
+    const { userPool, userPoolClient } = await import("./infra/auth");
+    await import("./infra/vpc");
+    const { database } = await import("./infra/database");
+    await import("./infra/backend");
+    await import("./infra/frontend");
     return {
       COGNITO_USER_POOL_ID: userPool.id,
       COGNITO_CLIENT_ID: userPoolClient.id,
+      DATABASE_NAME: database.database,
+      DATABASE_HOST: database.host,
+      DATABASE_PORT: database.port.apply((port) => port.toString()),
+      DATABASE_USER: database.username,
+      DATABASE_PASSWORD: database.password,
     };
   },
 });

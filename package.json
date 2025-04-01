@@ -20,6 +20,6 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "deploy": "sst deploy",
-    "dev": "concurrently \"yarn workspace @sparrow-tags/backend dev\" \"yarn workspace @sparrow-tags/frontend dev\" \"yarn workspace @sparrow-tags/schema dev\""
+    "dev": "sst dev"
   }
 }
