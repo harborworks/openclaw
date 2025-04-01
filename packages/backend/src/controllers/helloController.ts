@@ -7,6 +7,7 @@ export const getHello = (_: Request, res: Response, next: NextFunction) => {
       id: 1,
       cognitoId: "123",
       email: "ben@sparrow.dev",
+      superadmin: true,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
