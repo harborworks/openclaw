@@ -14,7 +14,7 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "yarn workspaces run build",
+    "build": "yarn workspace @sparrow-tags/schema build && yarn workspaces run build",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "dev": "concurrently \"yarn workspace @sparrow-tags/backend dev\" \"yarn workspace @sparrow-tags/frontend dev\" \"yarn workspace @sparrow-tags/schema dev\""
