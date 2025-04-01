@@ -27,7 +27,6 @@ declare module "sst" {
       "type": "sst.aws.CognitoUserPool"
     }
     "Vpc": {
-      "bastion": string
       "type": "sst.aws.Vpc"
     }
     "WebClient": {
