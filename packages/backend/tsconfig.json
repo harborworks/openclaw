@@ -2,8 +2,19 @@
   "extends": "@tsconfig/node22/tsconfig.json",
   "compilerOptions": {
     "outDir": "./dist",
-    "rootDir": "./src"
+    "rootDir": "./src",
+    "baseUrl": ".",
+    "paths": {
+      "@sparrow-tags/schema": [
+        "../schema/src"
+      ]
+    }
   },
+  "references": [
+    {
+      "path": "../schema"
+    }
+  ],
   "include": [
     "src/**/*"
   ],

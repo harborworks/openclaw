@@ -1,0 +1,57 @@
+import {
+  index,
+  integer,
+  pgTable,
+  timestamp,
+  unique,
+  uuid,
+  varchar,
+} from "drizzle-orm/pg-core";
+
+const timestamps = {
+  createdAt: timestamp().defaultNow().notNull(),
+  updatedAt: timestamp()
+    .notNull()
+    .defaultNow()
+    .$onUpdate(() => new Date()),
+};
+
+export const users = pgTable(
+  "users",
+  {
+    id: integer().primaryKey().generatedAlwaysAsIdentity(),
+    cognitoId: uuid().notNull().unique(),
+    email: varchar({ length: 255 }).notNull().unique(),
+    ...timestamps,
+  },
+  (table) => {
+    return {
+      cognitoIdIdx: index("cognito_id_idx").on(table.cognitoId),
+    };
+  }
+);
+
+export const orgs = pgTable("orgs", {
+  id: integer().primaryKey().generatedAlwaysAsIdentity(),
+  slug: varchar({ length: 255 }).notNull().unique(),
+  ...timestamps,
+});
+
+export const memberships = pgTable(
+  "memberships",
+  {
+    id: integer().primaryKey().generatedAlwaysAsIdentity(),
+    userId: integer()
+      .references(() => users.id)
+      .notNull(),
+    orgId: integer()
+      .references(() => orgs.id)
+      .notNull(),
+    ...timestamps,
+  },
+  (table) => {
+    return {
+      unq: unique().on(table.userId, table.orgId),
+    };
+  }
+);

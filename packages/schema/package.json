@@ -1,0 +1,19 @@
+{
+  "name": "@sparrow-tags/schema",
+  "version": "1.0.0",
+  "license": "UNLICENSED",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "dependencies": {
+    "drizzle-orm": "^0.41.0",
+    "pg": "^8.14.1"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.11.11"
+  }
+}

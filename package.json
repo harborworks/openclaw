@@ -4,9 +4,16 @@
   "license": "UNLICENSED",
   "private": true,
   "devDependencies": {
-    "@tsconfig/node22": "^22.0.1"
+    "@tsconfig/node22": "^22.0.1",
+    "concurrently": "^9.1.2",
+    "drizzle-kit": "^0.30.6",
+    "sst": "^3.11.21"
   },
   "workspaces": [
     "packages/*"
-  ]
+  ],
+  "scripts": {
+    "build": "yarn workspaces run build",
+    "dev": "concurrently \"yarn workspace @sparrow-tags/backend dev\" \"yarn workspace @sparrow-tags/frontend dev\" \"yarn workspace @sparrow-tags/schema dev\""
+  }
 }
