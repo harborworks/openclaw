@@ -26,6 +26,7 @@
   },
   "scripts": {
     "build": "tsc",
+    "clean": "rm -rf dist && rm -rf node_modules",
     "dev": "bun --watch run src/server.ts",
     "start": "node dist/server.js"
   }
