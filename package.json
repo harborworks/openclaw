@@ -15,7 +15,7 @@
   ],
   "scripts": {
     "build": "yarn workspace @sparrow-tags/schema build && yarn workspaces run build",
-    "clean": "yarn workspaces run clean",
+    "clean": "yarn workspaces run clean && rm -rf node_modules",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "dev": "concurrently \"yarn workspace @sparrow-tags/backend dev\" \"yarn workspace @sparrow-tags/frontend dev\" \"yarn workspace @sparrow-tags/schema dev\""
