@@ -23,7 +23,7 @@ export const users = pgTable(
     id: integer().primaryKey().generatedAlwaysAsIdentity(),
     cognitoId: uuid().notNull().unique(),
     email: varchar({ length: 255 }).notNull().unique(),
-    superadmin: boolean().default(false),
+    superadmin: boolean().default(false).notNull(),
     ...timestamps,
   },
   (table) => {
@@ -49,7 +49,7 @@ export const memberships = pgTable(
     orgId: integer()
       .references(() => orgs.id)
       .notNull(),
-    admin: boolean().default(false),
+    admin: boolean().default(false).notNull(),
     ...timestamps,
   },
   (table) => {

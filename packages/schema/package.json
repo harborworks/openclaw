@@ -11,7 +11,7 @@
   },
   "scripts": {
     "build": "tsc",
-    "clean": "rm -rf dist && rm tsconfig.tsbuildinfo",
+    "clean": "rm -rf dist && rm -f tsconfig.tsbuildinfo",
     "dev": "tsc --watch"
   },
   "devDependencies": {

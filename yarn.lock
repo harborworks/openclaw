@@ -901,6 +901,11 @@
   resolved "https://registry.yarnpkg.com/@tsconfig/node22/-/node22-22.0.1.tgz#27e3ee9b359e31e5b94690bf2bad5a923c1d57d0"
   integrity sha512-VkgOa3n6jvs1p+r3DiwBqeEwGAwEvnVCg/hIjiANl5IEcqP3G0u5m8cBJspe1t9qjZRlZ7WFgqq5bJrGdgAKMg==
 
+"@types/aws-lambda@8.10.148":
+  version "8.10.148"
+  resolved "https://registry.yarnpkg.com/@types/aws-lambda/-/aws-lambda-8.10.148.tgz#3a31fc720670473c4d7de4b03d074e8bd97e36a3"
+  integrity sha512-JL+2cfkY9ODQeE06hOxSFNkafjNk4JRBgY837kpoq1GHDttq2U3BA9IzKOWxS4DLjKoymGB4i9uBrlCkjUl1yg==
+
 "@types/babel__core@^7.20.5":
   version "7.20.5"
   resolved "https://registry.yarnpkg.com/@types/babel__core/-/babel__core-7.20.5.tgz#3df15f27ba85319caa07ba08d0721889bb39c017"
@@ -1225,6 +1230,11 @@ available-typed-arrays@^1.0.7:
   integrity sha512-wvUjBtSGN7+7SjNpq/9M2Tg350UZD3q62IFZLbRAR1bSMlCo1ZaeW+BJ+D090e4hIIZLBcTDWe4Mh4jvUDajzQ==
   dependencies:
     possible-typed-array-names "^1.0.0"
+
+aws-jwt-verify@^5.0.0:
+  version "5.0.0"
+  resolved "https://registry.yarnpkg.com/aws-jwt-verify/-/aws-jwt-verify-5.0.0.tgz#95a70a59dc8cc6c0e7155a8b6500bab4c82d52bc"
+  integrity sha512-FQM5EYEm7AnVJ3oeTpvBZQm7hYnpI067Em1oopHBs7cCNAcw8Aw8NFbojFjkNXifsOzyYe1ks+bg7Q9fMsTZSA==
 
 aws-sdk@2.1692.0:
   version "2.1692.0"
