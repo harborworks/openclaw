@@ -3,18 +3,8 @@
   "compilerOptions": {
     "outDir": "./dist",
     "rootDir": "./src",
-    "baseUrl": ".",
-    "paths": {
-      "@sparrow-tags/schema": [
-        "../schema/src"
-      ]
-    }
+    "baseUrl": "."
   },
-  "references": [
-    {
-      "path": "../schema"
-    }
-  ],
   "include": [
     "src/**/*"
   ],
