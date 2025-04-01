@@ -2,7 +2,7 @@ CREATE TABLE "memberships" (
 	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "memberships_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
 	"user_id" integer NOT NULL,
 	"org_id" integer NOT NULL,
-	"admin" boolean DEFAULT false,
+	"admin" boolean DEFAULT false NOT NULL,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL,
 	CONSTRAINT "memberships_userId_orgId_unique" UNIQUE("user_id","org_id")
@@ -20,7 +20,7 @@ CREATE TABLE "users" (
 	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "users_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
 	"cognito_id" uuid NOT NULL,
 	"email" varchar(255) NOT NULL,
-	"superadmin" boolean DEFAULT false,
+	"superadmin" boolean DEFAULT false NOT NULL,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL,
 	CONSTRAINT "users_cognitoId_unique" UNIQUE("cognito_id"),

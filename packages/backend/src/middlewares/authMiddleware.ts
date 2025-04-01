@@ -42,7 +42,6 @@ export const authMiddleware = async (
     try {
       const result = await verifier.verify(token);
       const user = await db.getUserByCognitoId(result.sub);
-      console.log(user);
       req.user = user;
     } catch (error) {
       console.error("Auth middleware error:", error);

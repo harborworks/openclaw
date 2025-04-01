@@ -1,5 +1,5 @@
 {
-  "id": "516e068e-1bba-4b61-953c-262cd67086c0",
+  "id": "07f97e30-f0de-4508-9d79-ca58d6d41a5e",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -41,7 +41,7 @@
           "name": "admin",
           "type": "boolean",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "default": false
         },
         "created_at": {
@@ -198,7 +198,7 @@
           "name": "superadmin",
           "type": "boolean",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "default": false
         },
         "created_at": {

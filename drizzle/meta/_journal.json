@@ -5,15 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1743524179622,
-      "tag": "0000_curved_misty_knight",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1743536579907,
-      "tag": "0001_mysterious_norman_osborn",
+      "when": 1743543932913,
+      "tag": "0000_mysterious_rawhide_kid",
       "breakpoints": true
     }
   ]
