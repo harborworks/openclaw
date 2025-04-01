@@ -4,13 +4,15 @@
   "license": "UNLICENSED",
   "private": true,
   "dependencies": {
-    "@sparrow-tags/schema": "1.0.0",
+    "@sparrow-tags/schema": "*",
+    "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "drizzle-orm": "^0.41.0",
     "express": "^5.1.0",
     "pg": "^8.14.1"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.17",
     "@types/dotenv": "^8.2.3",
     "@types/express": "^5.0.1",
     "@types/node": "^22.13.14",
