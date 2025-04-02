@@ -1,5 +1,5 @@
 {
-  "name": "@template-app/frontend",
+  "name": "@sparrow-tags/frontend",
   "private": true,
   "version": "0.0.0",
   "type": "module",

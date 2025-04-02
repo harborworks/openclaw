@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "react-oidc-context";
 
 import * as api from "./api";
+import { Navbar } from "./components/Navbar";
 import { Alert, AlertDescription } from "./components/ui/alert";
 import { Button } from "./components/ui/button";
 import {
@@ -12,15 +13,6 @@ import {
   CardTitle,
 } from "./components/ui/card";
 import { Skeleton } from "./components/ui/skeleton";
-
-const handleSignOut = async (auth: any) => {
-  try {
-    await auth.removeUser();
-  } catch (error) {
-    console.error("Error during sign out:", error);
-  }
-  window.location.href = "/";
-};
 
 function App() {
   const auth = useAuth();
@@ -46,37 +38,25 @@ function App() {
     fetchMessage();
   }, [auth.user?.access_token]);
 
-  // Common layout wrapper for both authenticated and unauthenticated states
-  const PageLayout = ({ children }: { children: React.ReactNode }) => (
-    <div className="flex items-center justify-center min-h-screen p-4">
-      <div className="w-full max-w-md">{children}</div>
-    </div>
-  );
+  const MainContent = () => {
+    if (auth.isLoading) {
+      return <Skeleton className="h-[200px] w-full rounded-lg" />;
+    }
 
-  if (auth.isLoading) {
-    return (
-      <PageLayout>
-        <Skeleton className="h-[250px] w-full rounded-lg" />
-      </PageLayout>
-    );
-  }
+    if (auth.error) {
+      console.error("Auth error details:", auth.error);
+      return null;
+    }
 
-  if (auth.error) {
-    console.error("Auth error details:", auth.error);
-    handleSignOut(auth);
-    return null;
-  }
-
-  if (auth.isAuthenticated) {
-    return (
-      <PageLayout>
-        <Card className="w-full">
-          <CardHeader>
+    if (auth.isAuthenticated) {
+      return (
+        <Card className="w-full shadow-md">
+          <CardHeader className="pb-2">
             <CardTitle className="text-center">Authenticated App</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4 min-h-[100px] flex items-center justify-center">
+          <CardContent className="space-y-4 min-h-[80px] flex items-center justify-center px-6">
             {loading ? (
-              <Skeleton className="h-8 w-full" />
+              <Skeleton className="h-6 w-full" />
             ) : error ? (
               <Alert variant="destructive">
                 <AlertDescription>{error}</AlertDescription>
@@ -87,30 +67,38 @@ function App() {
               </div>
             )}
           </CardContent>
-          <CardFooter className="flex justify-center pt-4 pb-6">
-            <Button onClick={() => handleSignOut(auth)}>Sign Out</Button>
+          <CardFooter className="flex justify-center pt-3 pb-4">
+            <Button size="sm" onClick={() => (window.location.href = "/")}>
+              Home
+            </Button>
           </CardFooter>
         </Card>
-      </PageLayout>
-    );
-  }
+      );
+    }
 
-  return (
-    <PageLayout>
-      <Card className="w-full">
-        <CardHeader>
+    return (
+      <Card className="w-full shadow-md">
+        <CardHeader className="pb-2">
           <CardTitle className="text-center">Sign In</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4 min-h-[100px] flex items-center justify-center">
-          <p>Please sign in to continue</p>
+        <CardContent className="space-y-4 min-h-[80px] flex items-center justify-center px-6">
+          <p className="text-center text-muted-foreground">
+            Please sign in to continue
+          </p>
         </CardContent>
-        <CardFooter className="flex justify-center pt-4 pb-6">
-          <Button onClick={() => auth.signinRedirect()} className="w-[120px]">
-            Sign In
-          </Button>
-        </CardFooter>
       </Card>
-    </PageLayout>
+    );
+  };
+
+  return (
+    <div className="flex flex-col min-h-screen bg-slate-50">
+      <Navbar />
+      <div className="flex-1 flex items-center justify-center p-6">
+        <div className="w-full max-w-md">
+          <MainContent />
+        </div>
+      </div>
+    </div>
   );
 }
 

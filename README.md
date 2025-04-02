@@ -16,3 +16,9 @@ Connecting to a database in a private VPC:
 ```bash
 AWS_PROFILE=<profile> torpedo  # See https://github.com/sst/torpedo
 ```
+
+Deploying to prod:
+
+```bash
+AWS_PROFILE=<profile> yarn deploy --stage prod
+```
