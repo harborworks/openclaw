@@ -2,6 +2,27 @@ import { NextFunction, Request, Response } from "express";
 import * as db from "../db";
 import * as cognitoService from "../services/cognitoService";
 
+/**
+ * Get all users
+ * This endpoint is protected by the superadmin middleware
+ */
+export const getAllUsers = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const users = await db.getAllUsers();
+
+    res.status(200).json({
+      success: true,
+      data: users,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const createUser = async (
   req: Request,
   res: Response,
@@ -75,6 +96,63 @@ export const inviteUser = async (
       return;
     }
 
+    next(error);
+  }
+};
+
+/**
+ * Update a user's superadmin status
+ * This endpoint is protected by the superadmin middleware
+ */
+export const updateUserSuperadmin = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { userId } = req.params;
+    const { superadmin } = req.body;
+
+    if (superadmin === undefined) {
+      res.status(400).json({
+        message: "Missing required field: superadmin is required",
+      });
+      return;
+    }
+
+    if (typeof superadmin !== "boolean") {
+      res.status(400).json({
+        message: "Invalid value for superadmin: must be a boolean",
+      });
+      return;
+    }
+
+    // Prevent users from revoking their own superadmin status
+    if (req.user?.id === parseInt(userId) && !superadmin) {
+      res.status(403).json({
+        message: "You cannot revoke your own superadmin status",
+      });
+      return;
+    }
+
+    // First get the user we're trying to modify to check their email
+    const userToUpdate = await db.getUserById(parseInt(userId));
+
+    // Prevent anyone from revoking superadmin status for ben@sparrow.dev
+    if (userToUpdate.email === "ben@sparrow.dev" && !superadmin) {
+      res.status(403).json({
+        message: "Cannot revoke superadmin status for this user",
+      });
+      return;
+    }
+
+    const user = await db.updateUserSuperadmin(parseInt(userId), superadmin);
+
+    res.status(200).json({
+      success: true,
+      data: user,
+    });
+  } catch (error) {
     next(error);
   }
 };

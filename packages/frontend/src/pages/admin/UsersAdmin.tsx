@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "react-oidc-context";
 
 import { toast } from "sonner";
 import * as api from "../../api";
+import { User } from "../../api/users";
 import { Button } from "../../components/ui/button";
 import { Checkbox } from "../../components/ui/checkbox";
 import {
@@ -26,35 +27,38 @@ import {
   TableRow,
 } from "../../components/ui/table";
 
-// Mock data
-const mockUsers = [
-  {
-    id: 1,
-    email: "admin@example.com",
-    superadmin: true,
-    createdAt: "2023-01-01",
-  },
-  {
-    id: 2,
-    email: "user1@example.com",
-    superadmin: false,
-    createdAt: "2023-01-02",
-  },
-  {
-    id: 3,
-    email: "user2@example.com",
-    superadmin: false,
-    createdAt: "2023-01-03",
-  },
-];
-
 export default function UsersAdmin() {
   const auth = useAuth();
-  const [users, setUsers] = useState(mockUsers);
+  const [users, setUsers] = useState<User[]>([]);
   const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
   const [newUser, setNewUser] = useState({ email: "", superadmin: false });
   const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isFetching, setIsFetching] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
+  // Fetch all users
+  useEffect(() => {
+    const fetchUsers = async () => {
+      if (!auth.user?.access_token) return;
+
+      try {
+        setIsFetching(true);
+        setFetchError(null);
+
+        const fetchedUsers = await api.getUsers(auth.user.access_token);
+        setUsers(fetchedUsers);
+      } catch (error: any) {
+        console.error("Error fetching users:", error);
+        setFetchError(error.response?.data?.message || "Failed to fetch users");
+        toast.error("Failed to fetch users");
+      } finally {
+        setIsFetching(false);
+      }
+    };
+
+    fetchUsers();
+  }, [auth.user?.access_token]);
 
   // Handle selection of users
   const toggleUserSelection = (userId: number) => {
@@ -87,16 +91,10 @@ export default function UsersAdmin() {
       // Call the API to invite the user
       await api.inviteUser(auth.user.access_token, newUser.email);
 
-      // Add user to local state for immediate UI update
-      const newId = Math.max(...users.map((u) => u.id), 0) + 1;
-      const user = {
-        id: newId,
-        email: newUser.email,
-        superadmin: newUser.superadmin,
-        createdAt: new Date().toISOString().split("T")[0],
-      };
+      // Refresh the user list
+      const updatedUsers = await api.getUsers(auth.user.access_token);
+      setUsers(updatedUsers);
 
-      setUsers([...users, user]);
       setNewUser({ email: "", superadmin: false });
       setIsAddUserDialogOpen(false);
 
@@ -113,17 +111,73 @@ export default function UsersAdmin() {
 
   // Delete selected users
   const handleDeleteSelected = () => {
+    // This is a stub for now - would need an API endpoint to actually delete users
     setUsers(users.filter((user) => !selectedUsers.includes(user.id)));
     setSelectedUsers([]);
+    toast.success("Users deleted successfully");
   };
 
   // Toggle superadmin status
-  const toggleSuperadmin = (userId: number) => {
-    setUsers(
-      users.map((user) =>
-        user.id === userId ? { ...user, superadmin: !user.superadmin } : user
-      )
-    );
+  const toggleSuperadmin = async (userId: number) => {
+    if (!auth.user?.access_token) {
+      toast.error("You must be authenticated to perform this action");
+      return;
+    }
+
+    // Find the user being modified
+    const userToToggle = users.find((user) => user.id === userId);
+    if (!userToToggle) return;
+
+    // Get the current user's email for comparison
+    const currentUserEmail = auth.user?.profile.email;
+
+    // Check if the user is trying to revoke their own superadmin status
+    if (
+      userToToggle.email === currentUserEmail &&
+      userToToggle.superadmin === true
+    ) {
+      toast.error("You cannot revoke your own superadmin status");
+      return;
+    }
+
+    // Also prevent revoking superadmin status for ben@sparrow.dev
+    if (
+      userToToggle.email === "ben@sparrow.dev" &&
+      userToToggle.superadmin === true
+    ) {
+      toast.error("Cannot revoke superadmin status for this user");
+      return;
+    }
+
+    // The new superadmin status will be the opposite of the current status
+    const newSuperadminStatus = !userToToggle.superadmin;
+
+    try {
+      // Update the user in the backend
+      await api.updateUserSuperadmin(
+        auth.user.access_token,
+        userId,
+        newSuperadminStatus
+      );
+
+      // Update local state on success
+      setUsers(
+        users.map((user) =>
+          user.id === userId
+            ? { ...user, superadmin: newSuperadminStatus }
+            : user
+        )
+      );
+
+      toast.success(
+        `Superadmin status ${newSuperadminStatus ? "granted to" : "revoked from"} ${userToToggle.email}`
+      );
+    } catch (error: any) {
+      console.error("Error updating superadmin status:", error);
+      toast.error(
+        error.response?.data?.message || "Failed to update superadmin status"
+      );
+    }
   };
 
   return (
@@ -195,54 +249,86 @@ export default function UsersAdmin() {
         </div>
       </div>
 
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-12">
-                <Checkbox
-                  checked={
-                    selectedUsers.length === users.length && users.length > 0
-                  }
-                  onCheckedChange={toggleAllSelection}
-                  aria-label="Select all"
-                />
-              </TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Created</TableHead>
-              <TableHead>Superadmin</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {users.map((user) => (
-              <TableRow key={user.id}>
-                <TableCell>
+      {isFetching ? (
+        <div className="flex justify-center py-8">
+          <p>Loading users...</p>
+        </div>
+      ) : fetchError ? (
+        <div className="bg-destructive/10 p-4 rounded-md text-destructive">
+          {fetchError}
+        </div>
+      ) : (
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-12">
                   <Checkbox
-                    checked={selectedUsers.includes(user.id)}
-                    onCheckedChange={() => toggleUserSelection(user.id)}
-                    aria-label={`Select user ${user.email}`}
+                    checked={
+                      selectedUsers.length === users.length && users.length > 0
+                    }
+                    onCheckedChange={toggleAllSelection}
+                    aria-label="Select all"
                   />
-                </TableCell>
-                <TableCell>{user.email}</TableCell>
-                <TableCell>{user.createdAt}</TableCell>
-                <TableCell>
-                  <Switch
-                    checked={user.superadmin}
-                    onCheckedChange={() => toggleSuperadmin(user.id)}
-                    aria-label="Toggle superadmin"
-                  />
-                </TableCell>
-                <TableCell>
-                  <Button variant="ghost" size="sm">
-                    Edit
-                  </Button>
-                </TableCell>
+                </TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Created</TableHead>
+                <TableHead>Superadmin</TableHead>
+                <TableHead>Actions</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+            </TableHeader>
+            <TableBody>
+              {users.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-8">
+                    No users found
+                  </TableCell>
+                </TableRow>
+              ) : (
+                users.map((user) => {
+                  const isCurrentUser = user.email === auth.user?.profile.email;
+                  const isBen = user.email === "ben@sparrow.dev";
+                  const isProtected =
+                    (isCurrentUser || isBen) && user.superadmin;
+
+                  return (
+                    <TableRow key={user.id}>
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedUsers.includes(user.id)}
+                          onCheckedChange={() => toggleUserSelection(user.id)}
+                          aria-label={`Select user ${user.email}`}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        {user.email}
+                        {isCurrentUser && " (you)"}
+                        {isBen && !isCurrentUser && " (protected)"}
+                      </TableCell>
+                      <TableCell>
+                        {new Date(user.createdAt).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>
+                        <Switch
+                          checked={user.superadmin}
+                          onCheckedChange={() => toggleSuperadmin(user.id)}
+                          aria-label="Toggle superadmin"
+                          disabled={isProtected}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Button variant="ghost" size="sm">
+                          Edit
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      )}
     </div>
   );
 }
