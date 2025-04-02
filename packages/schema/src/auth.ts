@@ -3,19 +3,12 @@ import {
   index,
   integer,
   pgTable,
-  timestamp,
   unique,
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
 
-const timestamps = {
-  createdAt: timestamp().defaultNow().notNull(),
-  updatedAt: timestamp()
-    .notNull()
-    .defaultNow()
-    .$onUpdate(() => new Date()),
-};
+import { timestamps } from "./timestamps";
 
 export const users = pgTable(
   "users",

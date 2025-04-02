@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import { useAuth } from "react-oidc-context";
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 
 import * as api from "./api";
 import { Navbar } from "./components/Navbar";
@@ -8,6 +8,8 @@ import { Navbar } from "./components/Navbar";
 // Lazy load page components
 const HomePage = lazy(() => import("./pages/HomePage"));
 const AdminPage = lazy(() => import("./pages/AdminPage"));
+const JobsPage = lazy(() => import("./pages/jobs/JobsPage"));
+const CreateJobPage = lazy(() => import("./pages/jobs/CreateJobPage"));
 
 // Loading component for Suspense fallback
 const PageLoader = () => (
@@ -16,12 +18,17 @@ const PageLoader = () => (
   </div>
 );
 
+// Extended user info type for our app
+interface UserInfo {
+  email: string;
+  superadmin: boolean;
+  orgAdmin: boolean; // Mock property for now
+}
+
 function App() {
   const auth = useAuth();
-  const [userInfo, setUserInfo] = useState<{
-    email: string;
-    superadmin: boolean;
-  } | null>(null);
+  const location = useLocation();
+  const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -34,9 +41,13 @@ function App() {
       try {
         setLoading(true);
         const user = await api.hello(auth.user?.access_token);
+
+        // For development: mock the orgAdmin property
+        // In production, this would come from the backend
         setUserInfo({
           email: user.email,
           superadmin: user.superadmin || false,
+          orgAdmin: true, // Mocked for development
         });
       } catch (err) {
         setError(err instanceof Error ? err.message : "An error occurred");
@@ -47,7 +58,7 @@ function App() {
     fetchUser();
   }, [auth.user?.access_token]);
 
-  // Route guard for admin-only pages
+  // Route guard for admin-only pages (superadmin only)
   const AdminRoute = ({ children }: { children: React.ReactNode }) => {
     if (auth.isLoading || loading) {
       return <div className="flex justify-center p-8">Loading...</div>;
@@ -57,7 +68,26 @@ function App() {
       return <Navigate to="/" replace />;
     }
 
+    // Only allow superadmins for admin routes
     if (!userInfo?.superadmin) {
+      return <Navigate to="/" replace />;
+    }
+
+    return <>{children}</>;
+  };
+
+  // Route guard for jobs pages (org admins or superadmins)
+  const JobsRoute = ({ children }: { children: React.ReactNode }) => {
+    if (auth.isLoading || loading) {
+      return <div className="flex justify-center p-8">Loading...</div>;
+    }
+
+    if (!auth.isAuthenticated) {
+      return <Navigate to="/" replace />;
+    }
+
+    // Allow both superadmins and org admins
+    if (!(userInfo?.superadmin || userInfo?.orgAdmin)) {
       return <Navigate to="/" replace />;
     }
 
@@ -87,6 +117,22 @@ function App() {
                 <AdminRoute>
                   <AdminPage />
                 </AdminRoute>
+              }
+            />
+            <Route
+              path="/jobs"
+              element={
+                <JobsRoute>
+                  <JobsPage />
+                </JobsRoute>
+              }
+            />
+            <Route
+              path="/jobs/create"
+              element={
+                <JobsRoute>
+                  <CreateJobPage />
+                </JobsRoute>
               }
             />
             <Route path="*" element={<Navigate to="/" replace />} />

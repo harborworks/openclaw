@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Button } from "./ui/button";
 
 interface NavbarProps {
-  userInfo: { email: string; superadmin: boolean } | null;
+  userInfo: { email: string; superadmin: boolean; orgAdmin?: boolean } | null;
 }
 
 const handleSignOut = async (auth: any) => {
@@ -32,6 +32,15 @@ export function Navbar({ userInfo }: NavbarProps) {
               className="text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               Admin
+            </Link>
+          )}
+
+          {(userInfo?.orgAdmin || userInfo?.superadmin) && (
+            <Link
+              to="/jobs"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Jobs
             </Link>
           )}
         </div>

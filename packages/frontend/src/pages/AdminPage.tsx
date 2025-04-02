@@ -1,6 +1,8 @@
-import { lazy, Suspense } from "react";
-import { Link, Route, Routes, useLocation } from "react-router-dom";
+import { lazy, Suspense, useEffect, useState } from "react";
+import { useAuth } from "react-oidc-context";
+import { Link, Navigate, Route, Routes, useLocation } from "react-router-dom";
 
+import * as api from "../api";
 import { Tabs, TabsList, TabsTrigger } from "../components/ui/tabs";
 
 // Lazy load admin subpages
@@ -15,15 +17,59 @@ const AdminLoader = () => (
   </div>
 );
 
+interface UserInfo {
+  email: string;
+  superadmin: boolean;
+  orgAdmin: boolean;
+}
+
 export default function AdminPage() {
   const location = useLocation();
+  const auth = useAuth();
   const currentPath = location.pathname;
+  const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      if (!auth.user?.access_token) {
+        setLoading(false);
+        return;
+      }
+      try {
+        setLoading(true);
+        const user = await api.hello(auth.user?.access_token);
+
+        // For development: mock the orgAdmin property
+        setUserInfo({
+          email: user.email,
+          superadmin: user.superadmin || false,
+          orgAdmin: true, // Mocked for development
+        });
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchUser();
+  }, [auth.user?.access_token]);
 
   const getActiveTab = () => {
     if (currentPath.includes("/admin/orgs")) return "orgs";
     if (currentPath.includes("/admin/memberships")) return "memberships";
     return "users";
   };
+
+  // If loading, show loader
+  if (loading) {
+    return <AdminLoader />;
+  }
+
+  // Only superadmins should access this page
+  if (!userInfo?.superadmin) {
+    return <Navigate to="/" replace />;
+  }
 
   return (
     <div className="container mx-auto py-6 space-y-6">
