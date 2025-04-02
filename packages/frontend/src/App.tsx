@@ -1,11 +1,20 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { useAuth } from "react-oidc-context";
 import { Navigate, Route, Routes } from "react-router-dom";
 
 import * as api from "./api";
 import { Navbar } from "./components/Navbar";
-import AdminPage from "./pages/AdminPage";
-import HomePage from "./pages/HomePage";
+
+// Lazy load page components
+const HomePage = lazy(() => import("./pages/HomePage"));
+const AdminPage = lazy(() => import("./pages/AdminPage"));
+
+// Loading component for Suspense fallback
+const PageLoader = () => (
+  <div className="flex justify-center items-center p-8 h-[50vh]">
+    <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+  </div>
+);
 
 function App() {
   const auth = useAuth();
@@ -59,28 +68,30 @@ function App() {
     <div className="flex flex-col min-h-screen bg-slate-50">
       <Navbar userInfo={userInfo} />
       <div className="flex-1">
-        <Routes>
-          <Route
-            path="/"
-            element={
-              <HomePage
-                auth={auth}
-                userInfo={userInfo}
-                loading={loading}
-                error={error}
-              />
-            }
-          />
-          <Route
-            path="/admin/*"
-            element={
-              <AdminRoute>
-                <AdminPage />
-              </AdminRoute>
-            }
-          />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            <Route
+              path="/"
+              element={
+                <HomePage
+                  auth={auth}
+                  userInfo={userInfo}
+                  loading={loading}
+                  error={error}
+                />
+              }
+            />
+            <Route
+              path="/admin/*"
+              element={
+                <AdminRoute>
+                  <AdminPage />
+                </AdminRoute>
+              }
+            />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
       </div>
     </div>
   );

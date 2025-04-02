@@ -1,7 +1,19 @@
+import { lazy, Suspense } from "react";
 import { Link, Route, Routes, useLocation } from "react-router-dom";
 
 import { Tabs, TabsList, TabsTrigger } from "../components/ui/tabs";
-import { MembershipsAdmin, OrgsAdmin, UsersAdmin } from "./admin";
+
+// Lazy load admin subpages
+const UsersAdmin = lazy(() => import("./admin/UsersAdmin"));
+const OrgsAdmin = lazy(() => import("./admin/OrgsAdmin"));
+const MembershipsAdmin = lazy(() => import("./admin/MembershipsAdmin"));
+
+// Loading component
+const AdminLoader = () => (
+  <div className="flex justify-center items-center p-8 h-[30vh]">
+    <div className="animate-spin h-6 w-6 border-4 border-primary border-t-transparent rounded-full"></div>
+  </div>
+);
 
 export default function AdminPage() {
   const location = useLocation();
@@ -34,12 +46,14 @@ export default function AdminPage() {
       </Tabs>
 
       <div className="bg-white p-6 rounded-lg shadow-sm">
-        <Routes>
-          <Route path="/" element={<UsersAdmin />} />
-          <Route path="/users" element={<UsersAdmin />} />
-          <Route path="/orgs" element={<OrgsAdmin />} />
-          <Route path="/memberships" element={<MembershipsAdmin />} />
-        </Routes>
+        <Suspense fallback={<AdminLoader />}>
+          <Routes>
+            <Route path="/" element={<UsersAdmin />} />
+            <Route path="/users" element={<UsersAdmin />} />
+            <Route path="/orgs" element={<OrgsAdmin />} />
+            <Route path="/memberships" element={<MembershipsAdmin />} />
+          </Routes>
+        </Suspense>
       </div>
     </div>
   );

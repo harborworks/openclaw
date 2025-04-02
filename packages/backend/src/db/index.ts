@@ -3,6 +3,7 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import config from "../config";
 import { cert } from "./cert";
+
 export const db = drizzle(
   new Pool({
     host: config.databaseHost,
@@ -19,5 +20,6 @@ export const db = drizzle(
   { casing: "snake_case" }
 );
 
+export * from "./memberships";
 export * from "./orgs";
 export * from "./users";
