@@ -1,102 +1,86 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "react-oidc-context";
+import { Navigate, Route, Routes } from "react-router-dom";
 
 import * as api from "./api";
 import { Navbar } from "./components/Navbar";
-import { Alert, AlertDescription } from "./components/ui/alert";
-import { Button } from "./components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "./components/ui/card";
-import { Skeleton } from "./components/ui/skeleton";
+import AdminPage from "./pages/AdminPage";
+import HomePage from "./pages/HomePage";
 
 function App() {
   const auth = useAuth();
-  const [message, setMessage] = useState("");
+  const [userInfo, setUserInfo] = useState<{
+    email: string;
+    superadmin: boolean;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const fetchMessage = async () => {
+    const fetchUser = async () => {
       if (!auth.user?.access_token) {
+        setLoading(false);
         return;
       }
       try {
         setLoading(true);
         const user = await api.hello(auth.user?.access_token);
-        setMessage(user.email);
+        setUserInfo({
+          email: user.email,
+          superadmin: user.superadmin || false,
+        });
       } catch (err) {
         setError(err instanceof Error ? err.message : "An error occurred");
       } finally {
         setLoading(false);
       }
     };
-    fetchMessage();
+    fetchUser();
   }, [auth.user?.access_token]);
 
-  const MainContent = () => {
-    if (auth.isLoading) {
-      return <Skeleton className="h-[200px] w-full rounded-lg" />;
+  // Route guard for admin-only pages
+  const AdminRoute = ({ children }: { children: React.ReactNode }) => {
+    if (auth.isLoading || loading) {
+      return <div className="flex justify-center p-8">Loading...</div>;
     }
 
-    if (auth.error) {
-      console.error("Auth error details:", auth.error);
-      return null;
+    if (!auth.isAuthenticated) {
+      return <Navigate to="/" replace />;
     }
 
-    if (auth.isAuthenticated) {
-      return (
-        <Card className="w-full shadow-md">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-center">Authenticated App</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4 min-h-[80px] flex items-center justify-center px-6">
-            {loading ? (
-              <Skeleton className="h-6 w-full" />
-            ) : error ? (
-              <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            ) : (
-              <div className="text-center">
-                Welcome, <span className="font-bold">{message}</span>
-              </div>
-            )}
-          </CardContent>
-          <CardFooter className="flex justify-center pt-3 pb-4">
-            <Button size="sm" onClick={() => (window.location.href = "/")}>
-              Home
-            </Button>
-          </CardFooter>
-        </Card>
-      );
+    if (!userInfo?.superadmin) {
+      return <Navigate to="/" replace />;
     }
 
-    return (
-      <Card className="w-full shadow-md">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-center">Sign In</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4 min-h-[80px] flex items-center justify-center px-6">
-          <p className="text-center text-muted-foreground">
-            Please sign in to continue
-          </p>
-        </CardContent>
-      </Card>
-    );
+    return <>{children}</>;
   };
 
   return (
     <div className="flex flex-col min-h-screen bg-slate-50">
-      <Navbar />
-      <div className="flex-1 flex items-center justify-center p-6">
-        <div className="w-full max-w-md">
-          <MainContent />
-        </div>
+      <Navbar userInfo={userInfo} />
+      <div className="flex-1">
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <HomePage
+                auth={auth}
+                userInfo={userInfo}
+                loading={loading}
+                error={error}
+              />
+            }
+          />
+          <Route
+            path="/admin/*"
+            element={
+              <AdminRoute>
+                <AdminPage />
+              </AdminRoute>
+            }
+          />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
       </div>
     </div>
   );
