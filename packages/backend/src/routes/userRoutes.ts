@@ -1,9 +1,9 @@
 import { Router } from "express";
-import * as userController from "../controllers/userController";
+import { createUser } from "../controllers/userController";
 
 const router = Router();
 
 // POST /api/users - Create a new user (from presignup)
-router.post("/", userController.createUser);
+router.post("/", createUser);
 
 export default router;

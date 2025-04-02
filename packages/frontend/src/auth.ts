@@ -1,3 +1,5 @@
+import { WebStorageStateStore } from "oidc-client-ts";
+
 export const cognitoAuthConfig = {
   authority: import.meta.env.VITE_AUTHORITY,
   client_id: import.meta.env.VITE_CLIENT_ID,
@@ -9,5 +11,6 @@ export const cognitoAuthConfig = {
   onSigninCallback: () => {
     window.history.replaceState({}, document.title, window.location.pathname);
   },
-  loadUserInfo: true,
+  revokeTokensOnSignout: false,
+  userStore: new WebStorageStateStore({ store: window.localStorage }),
 };

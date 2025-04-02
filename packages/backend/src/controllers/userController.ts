@@ -10,15 +10,16 @@ export const createUser = async (
     const { cognitoId, email } = req.body;
 
     if (!cognitoId || !email) {
-      return res.status(400).json({
+      res.status(400).json({
         message: "Missing required fields: cognitoId and email are required",
       });
+      return;
     }
 
     // Create the user
     const user = await db.createUser(cognitoId, email);
 
-    return res.status(201).json({
+    res.status(201).json({
       success: true,
       data: user,
     });
