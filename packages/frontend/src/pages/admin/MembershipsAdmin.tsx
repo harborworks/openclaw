@@ -1,5 +1,16 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useAuth } from "react-oidc-context";
+import { toast } from "sonner";
 
+import {
+  createMembership,
+  deleteMembership,
+  getMemberships,
+  updateMembershipAdmin,
+  type Membership,
+} from "../../api/memberships";
+import { getOrgs, type Org } from "../../api/orgs";
+import { getUsers, type User } from "../../api/users";
 import { Button } from "../../components/ui/button";
 import { Checkbox } from "../../components/ui/checkbox";
 import {
@@ -29,27 +40,11 @@ import {
   TableRow,
 } from "../../components/ui/table";
 
-// Mock data
-const mockUsers = [
-  { id: 1, email: "admin@example.com" },
-  { id: 2, email: "user1@example.com" },
-  { id: 3, email: "user2@example.com" },
-];
-
-const mockOrgs = [
-  { id: 1, slug: "acme-corp" },
-  { id: 2, slug: "example-inc" },
-  { id: 3, slug: "test-org" },
-];
-
-const mockMemberships = [
-  { id: 1, userId: 1, orgId: 1, admin: true, createdAt: "2023-01-01" },
-  { id: 2, userId: 2, orgId: 1, admin: false, createdAt: "2023-01-02" },
-  { id: 3, userId: 3, orgId: 2, admin: true, createdAt: "2023-01-03" },
-];
-
 export default function MembershipsAdmin() {
-  const [memberships, setMemberships] = useState(mockMemberships);
+  const auth = useAuth();
+  const [memberships, setMemberships] = useState<Membership[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [orgs, setOrgs] = useState<Org[]>([]);
   const [selectedMemberships, setSelectedMemberships] = useState<number[]>([]);
   const [newMembership, setNewMembership] = useState({
     userId: "",
@@ -57,6 +52,36 @@ export default function MembershipsAdmin() {
     admin: false,
   });
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  // Fetch data on component mount
+  useEffect(() => {
+    if (auth.isAuthenticated) {
+      fetchData();
+    }
+  }, [auth.isAuthenticated]);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const token = auth.user?.access_token || "";
+      const [membershipsData, usersData, orgsData] = await Promise.all([
+        getMemberships(token),
+        getUsers(token),
+        getOrgs(token),
+      ]);
+
+      setMemberships(membershipsData);
+      setUsers(usersData);
+      setOrgs(orgsData);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      toast.error("Failed to load data");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Handle selection of memberships
   const toggleMembershipSelection = (membershipId: number) => {
@@ -79,57 +104,93 @@ export default function MembershipsAdmin() {
   };
 
   // Add new membership
-  const handleAddMembership = () => {
-    const newId = Math.max(...memberships.map((m) => m.id)) + 1;
-    const membership = {
-      id: newId,
-      userId: parseInt(newMembership.userId),
-      orgId: parseInt(newMembership.orgId),
-      admin: newMembership.admin,
-      createdAt: new Date().toISOString().split("T")[0],
-    };
+  const handleAddMembership = async () => {
+    if (!newMembership.userId || !newMembership.orgId) {
+      toast.error("Please select both user and organization");
+      return;
+    }
 
-    setMemberships([...memberships, membership]);
-    setNewMembership({
-      userId: "",
-      orgId: "",
-      admin: false,
-    });
-    setIsAddDialogOpen(false);
+    setLoading(true);
+    try {
+      const token = auth.user?.access_token || "";
+      const created = await createMembership(
+        token,
+        parseInt(newMembership.userId),
+        parseInt(newMembership.orgId),
+        newMembership.admin
+      );
+
+      setMemberships([...memberships, created]);
+      setNewMembership({
+        userId: "",
+        orgId: "",
+        admin: false,
+      });
+      setIsAddDialogOpen(false);
+      toast.success("Membership created successfully");
+    } catch (error: any) {
+      console.error("Error creating membership:", error);
+      if (error.response?.data?.message) {
+        toast.error(error.response.data.message);
+      } else {
+        toast.error("Failed to create membership");
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Delete selected memberships
-  const handleDeleteSelected = () => {
-    setMemberships(
-      memberships.filter(
-        (membership) => !selectedMemberships.includes(membership.id)
-      )
-    );
-    setSelectedMemberships([]);
+  const handleDeleteSelected = async () => {
+    if (selectedMemberships.length === 0) return;
+
+    setDeleteLoading(true);
+    try {
+      const token = auth.user?.access_token || "";
+
+      // Delete memberships sequentially to avoid race conditions
+      for (const id of selectedMemberships) {
+        await deleteMembership(token, id);
+      }
+
+      setMemberships(
+        memberships.filter(
+          (membership) => !selectedMemberships.includes(membership.id)
+        )
+      );
+      setSelectedMemberships([]);
+      toast.success("Selected memberships deleted successfully");
+    } catch (error) {
+      console.error("Error deleting memberships:", error);
+      toast.error("Failed to delete one or more memberships");
+    } finally {
+      setDeleteLoading(false);
+    }
   };
 
   // Toggle admin status
-  const toggleAdmin = (membershipId: number) => {
-    setMemberships(
-      memberships.map((membership) =>
-        membership.id === membershipId
-          ? { ...membership, admin: !membership.admin }
-          : membership
-      )
-    );
+  const toggleAdmin = async (membership: Membership) => {
+    try {
+      const token = auth.user?.access_token || "";
+      const updated = await updateMembershipAdmin(
+        token,
+        membership.id,
+        !membership.admin
+      );
+
+      setMemberships(
+        memberships.map((m) => (m.id === membership.id ? updated : m))
+      );
+      toast.success("Admin status updated successfully");
+    } catch (error) {
+      console.error("Error updating admin status:", error);
+      toast.error("Failed to update admin status");
+    }
   };
 
-  // Helper function to get user email by ID
-  const getUserEmail = (userId: number) => {
-    const user = mockUsers.find((u) => u.id === userId);
-    return user ? user.email : "Unknown";
-  };
-
-  // Helper function to get org slug by ID
-  const getOrgSlug = (orgId: number) => {
-    const org = mockOrgs.find((o) => o.id === orgId);
-    return org ? org.slug : "Unknown";
-  };
+  if (loading && memberships.length === 0) {
+    return <div className="text-center py-8">Loading...</div>;
+  }
 
   return (
     <div className="space-y-4">
@@ -141,8 +202,9 @@ export default function MembershipsAdmin() {
               variant="destructive"
               size="sm"
               onClick={handleDeleteSelected}
+              disabled={deleteLoading}
             >
-              Delete Selected
+              {deleteLoading ? "Deleting..." : "Delete Selected"}
             </Button>
           )}
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
@@ -171,7 +233,7 @@ export default function MembershipsAdmin() {
                       <SelectValue placeholder="Select a user" />
                     </SelectTrigger>
                     <SelectContent>
-                      {mockUsers.map((user) => (
+                      {users.map((user) => (
                         <SelectItem key={user.id} value={user.id.toString()}>
                           {user.email}
                         </SelectItem>
@@ -193,7 +255,7 @@ export default function MembershipsAdmin() {
                       <SelectValue placeholder="Select an organization" />
                     </SelectTrigger>
                     <SelectContent>
-                      {mockOrgs.map((org) => (
+                      {orgs.map((org) => (
                         <SelectItem key={org.id} value={org.id.toString()}>
                           {org.slug}
                         </SelectItem>
@@ -217,9 +279,11 @@ export default function MembershipsAdmin() {
               <DialogFooter>
                 <Button
                   onClick={handleAddMembership}
-                  disabled={!newMembership.userId || !newMembership.orgId}
+                  disabled={
+                    !newMembership.userId || !newMembership.orgId || loading
+                  }
                 >
-                  Add Membership
+                  {loading ? "Adding..." : "Add Membership"}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -231,7 +295,7 @@ export default function MembershipsAdmin() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-12">
+              <TableHead className="w-[5%]">
                 <Checkbox
                   checked={
                     selectedMemberships.length === memberships.length &&
@@ -241,42 +305,71 @@ export default function MembershipsAdmin() {
                   aria-label="Select all"
                 />
               </TableHead>
-              <TableHead>User</TableHead>
-              <TableHead>Organization</TableHead>
-              <TableHead>Created</TableHead>
-              <TableHead>Admin</TableHead>
-              <TableHead>Actions</TableHead>
+              <TableHead className="w-[23%]">User</TableHead>
+              <TableHead className="w-[22%]">Organization</TableHead>
+              <TableHead className="w-[15%]">Admin</TableHead>
+              <TableHead className="w-[15%]">Created</TableHead>
+              <TableHead className="w-[20%]">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {memberships.map((membership) => (
-              <TableRow key={membership.id}>
-                <TableCell>
-                  <Checkbox
-                    checked={selectedMemberships.includes(membership.id)}
-                    onCheckedChange={() =>
-                      toggleMembershipSelection(membership.id)
-                    }
-                    aria-label={`Select membership ${membership.id}`}
-                  />
-                </TableCell>
-                <TableCell>{getUserEmail(membership.userId)}</TableCell>
-                <TableCell>{getOrgSlug(membership.orgId)}</TableCell>
-                <TableCell>{membership.createdAt}</TableCell>
-                <TableCell>
-                  <Switch
-                    checked={membership.admin}
-                    onCheckedChange={() => toggleAdmin(membership.id)}
-                    aria-label="Toggle admin"
-                  />
-                </TableCell>
-                <TableCell>
-                  <Button variant="ghost" size="sm">
-                    Edit
-                  </Button>
+            {memberships.length === 0 ? (
+              <TableRow>
+                <TableCell
+                  colSpan={6}
+                  className="text-center py-6 text-muted-foreground"
+                >
+                  No memberships found
                 </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              memberships.map((membership) => (
+                <TableRow key={membership.id}>
+                  <TableCell>
+                    <Checkbox
+                      checked={selectedMemberships.includes(membership.id)}
+                      onCheckedChange={() =>
+                        toggleMembershipSelection(membership.id)
+                      }
+                      aria-label={`Select membership ${membership.id}`}
+                    />
+                  </TableCell>
+                  <TableCell>{membership.userEmail}</TableCell>
+                  <TableCell>{membership.orgSlug}</TableCell>
+                  <TableCell>
+                    <Switch
+                      checked={membership.admin}
+                      onCheckedChange={() => toggleAdmin(membership)}
+                      aria-label="Toggle admin"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    {new Date(membership.createdAt).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={async () => {
+                        try {
+                          const token = auth.user?.access_token || "";
+                          await deleteMembership(token, membership.id);
+                          setMemberships(
+                            memberships.filter((m) => m.id !== membership.id)
+                          );
+                          toast.success("Membership deleted successfully");
+                        } catch (error) {
+                          console.error("Error deleting membership:", error);
+                          toast.error("Failed to delete membership");
+                        }
+                      }}
+                    >
+                      Delete
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </div>

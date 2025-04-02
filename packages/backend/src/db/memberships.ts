@@ -20,6 +20,28 @@ export const getAllMemberships = async () => {
     .leftJoin(orgs, eq(memberships.orgId, orgs.id));
 };
 
+// Get membership by ID with user and org details
+export const getMembershipWithDetails = async (id: number) => {
+  const result = await db
+    .select({
+      id: memberships.id,
+      userId: memberships.userId,
+      userEmail: users.email,
+      orgId: memberships.orgId,
+      orgSlug: orgs.slug,
+      admin: memberships.admin,
+      createdAt: memberships.createdAt,
+      updatedAt: memberships.updatedAt,
+    })
+    .from(memberships)
+    .leftJoin(users, eq(memberships.userId, users.id))
+    .leftJoin(orgs, eq(memberships.orgId, orgs.id))
+    .where(eq(memberships.id, id))
+    .limit(1);
+
+  return result[0] || null;
+};
+
 // Get membership by ID
 export const getMembershipById = async (id: number) => {
   const result = await db

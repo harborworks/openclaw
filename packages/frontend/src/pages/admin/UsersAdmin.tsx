@@ -338,7 +338,7 @@ export default function UsersAdmin() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-12">
+                <TableHead className="w-[5%]">
                   <Checkbox
                     checked={
                       selectedUsers.length === users.length && users.length > 0
@@ -347,10 +347,10 @@ export default function UsersAdmin() {
                     aria-label="Select all"
                   />
                 </TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead>Super Admin</TableHead>
-                <TableHead>Actions</TableHead>
+                <TableHead className="w-[45%]">Email</TableHead>
+                <TableHead className="w-[15%]">Super Admin</TableHead>
+                <TableHead className="w-[15%]">Created</TableHead>
+                <TableHead className="w-[20%]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -383,15 +383,15 @@ export default function UsersAdmin() {
                         {isBen && !isCurrentUser && " (protected)"}
                       </TableCell>
                       <TableCell>
-                        {new Date(user.createdAt).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell>
                         <Switch
                           checked={user.superadmin}
                           onCheckedChange={() => toggleSuperadmin(user.id)}
                           aria-label="Toggle superadmin"
                           disabled={isProtected}
                         />
+                      </TableCell>
+                      <TableCell>
+                        {new Date(user.createdAt).toLocaleDateString()}
                       </TableCell>
                       <TableCell>
                         <Button

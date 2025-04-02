@@ -29,9 +29,14 @@ export const createMembership = async (req: Request, res: Response) => {
       admin: !!admin,
     });
 
+    // Get the complete membership details with user and org info
+    const membershipWithDetails = await db.getMembershipWithDetails(
+      membership.id
+    );
+
     res.status(201).json({
       message: "Membership created successfully",
-      data: membership,
+      data: membershipWithDetails,
     });
   } catch (error: any) {
     if (error.message.includes("already exists")) {
@@ -63,16 +68,20 @@ export const updateMembershipAdmin = async (req: Request, res: Response) => {
       return;
     }
 
-    const membership = await db.updateMembershipAdmin(id, !!admin);
+    // Update the admin status
+    await db.updateMembershipAdmin(id, !!admin);
 
-    if (!membership) {
+    // Get the complete membership details with user and org info
+    const membershipWithDetails = await db.getMembershipWithDetails(id);
+
+    if (!membershipWithDetails) {
       res.status(404).json({ message: "Membership not found" });
       return;
     }
 
     res.json({
       message: "Membership updated successfully",
-      data: membership,
+      data: membershipWithDetails,
     });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
@@ -90,16 +99,20 @@ export const deleteMembership = async (req: Request, res: Response) => {
       return;
     }
 
-    const membership = await db.deleteMembership(id);
+    // Get the membership details before deleting for the response
+    const membershipToDelete = await db.getMembershipWithDetails(id);
 
-    if (!membership) {
+    if (!membershipToDelete) {
       res.status(404).json({ message: "Membership not found" });
       return;
     }
 
+    // Delete the membership
+    await db.deleteMembership(id);
+
     res.json({
       message: "Membership deleted successfully",
-      data: membership,
+      data: membershipToDelete,
     });
   } catch (error: any) {
     res.status(500).json({ message: error.message });

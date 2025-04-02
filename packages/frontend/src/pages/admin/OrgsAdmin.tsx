@@ -246,7 +246,7 @@ export default function OrgsAdmin() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-12">
+                <TableHead className="w-[5%]">
                   <Checkbox
                     checked={
                       selectedOrgs.length === orgs.length && orgs.length > 0
@@ -255,9 +255,9 @@ export default function OrgsAdmin() {
                     aria-label="Select all"
                   />
                 </TableHead>
-                <TableHead>Slug</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead>Actions</TableHead>
+                <TableHead className="w-[60%]">Slug</TableHead>
+                <TableHead className="w-[15%]">Created</TableHead>
+                <TableHead className="w-[20%]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
