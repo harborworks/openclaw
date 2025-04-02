@@ -7,6 +7,7 @@ interface Config {
   nodeEnv: string;
   userPoolId: string;
   clientId: string;
+  cognitoRegion: string;
   databaseHost: string;
   databaseName: string;
   databasePort: number;
@@ -19,6 +20,7 @@ const config: Config = {
   nodeEnv: process.env.NODE_ENV || "development",
   userPoolId: process.env.COGNITO_USER_POOL_ID!,
   clientId: process.env.COGNITO_CLIENT_ID!,
+  cognitoRegion: process.env.COGNITO_REGION || "us-east-1",
   databaseHost: process.env.DATABASE_HOST!,
   databaseName: process.env.DATABASE_NAME!,
   databasePort: Number(process.env.DATABASE_PORT!),

@@ -4,6 +4,7 @@
   "license": "UNLICENSED",
   "private": true,
   "dependencies": {
+    "@aws-sdk/client-cognito-identity-provider": "^3.777.0",
     "@sparrow-tags/schema": "*",
     "aws-jwt-verify": "^5.0.0",
     "cors": "^2.8.5",

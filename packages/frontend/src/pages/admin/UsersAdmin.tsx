@@ -1,5 +1,8 @@
 import { useState } from "react";
+import { useAuth } from "react-oidc-context";
 
+import { toast } from "sonner";
+import * as api from "../../api";
 import { Button } from "../../components/ui/button";
 import { Checkbox } from "../../components/ui/checkbox";
 import {
@@ -46,10 +49,12 @@ const mockUsers = [
 ];
 
 export default function UsersAdmin() {
+  const auth = useAuth();
   const [users, setUsers] = useState(mockUsers);
   const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
   const [newUser, setNewUser] = useState({ email: "", superadmin: false });
   const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Handle selection of users
   const toggleUserSelection = (userId: number) => {
@@ -70,18 +75,40 @@ export default function UsersAdmin() {
   };
 
   // Add new user
-  const handleAddUser = () => {
-    const newId = Math.max(...users.map((u) => u.id)) + 1;
-    const user = {
-      id: newId,
-      email: newUser.email,
-      superadmin: newUser.superadmin,
-      createdAt: new Date().toISOString().split("T")[0],
-    };
+  const handleAddUser = async () => {
+    if (!auth.user?.access_token) {
+      toast.error("You must be authenticated to perform this action");
+      return;
+    }
 
-    setUsers([...users, user]);
-    setNewUser({ email: "", superadmin: false });
-    setIsAddUserDialogOpen(false);
+    try {
+      setIsLoading(true);
+
+      // Call the API to invite the user
+      await api.inviteUser(auth.user.access_token, newUser.email);
+
+      // Add user to local state for immediate UI update
+      const newId = Math.max(...users.map((u) => u.id), 0) + 1;
+      const user = {
+        id: newId,
+        email: newUser.email,
+        superadmin: newUser.superadmin,
+        createdAt: new Date().toISOString().split("T")[0],
+      };
+
+      setUsers([...users, user]);
+      setNewUser({ email: "", superadmin: false });
+      setIsAddUserDialogOpen(false);
+
+      toast.success(
+        `User invitation sent to ${newUser.email} with temporary password`
+      );
+    } catch (error: any) {
+      console.error("Error inviting user:", error);
+      toast.error(error.response?.data?.message || "Failed to invite user");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Delete selected users
@@ -124,7 +151,8 @@ export default function UsersAdmin() {
               <DialogHeader>
                 <DialogTitle>Add New User</DialogTitle>
                 <DialogDescription>
-                  Add a new user to the system.
+                  Add a new user to the system. An invitation email with a
+                  temporary password will be sent.
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
@@ -155,7 +183,12 @@ export default function UsersAdmin() {
                 </div>
               </div>
               <DialogFooter>
-                <Button onClick={handleAddUser}>Add User</Button>
+                <Button
+                  onClick={handleAddUser}
+                  disabled={isLoading || !newUser.email}
+                >
+                  {isLoading ? "Sending Invitation..." : "Add User"}
+                </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
