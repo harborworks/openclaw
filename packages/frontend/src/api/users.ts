@@ -76,3 +76,24 @@ export const inviteUser = async (
   );
   return response.data;
 };
+
+/**
+ * Delete a user (superadmin only)
+ * @param token JWT token
+ * @param userId ID of the user to delete
+ */
+export const deleteUser = async (
+  token: string,
+  userId: number
+): Promise<{ success: boolean; message: string; data: User }> => {
+  const response = await axios.delete<{
+    success: boolean;
+    message: string;
+    data: User;
+  }>(`${API_URL}/api/users/${userId}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  return response.data;
+};

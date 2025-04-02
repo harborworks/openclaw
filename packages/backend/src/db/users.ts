@@ -64,3 +64,17 @@ export const updateUserSuperadmin = async (
 
   return updatedUser;
 };
+
+// Function to delete a user
+export const deleteUser = async (userId: number) => {
+  const [deletedUser] = await db
+    .delete(users)
+    .where(eq(users.id, userId))
+    .returning();
+
+  if (!deletedUser) {
+    throw new Error("User not found");
+  }
+
+  return deletedUser;
+};

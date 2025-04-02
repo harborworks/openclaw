@@ -1,6 +1,7 @@
 import {
   AdminCreateUserCommand,
   AdminCreateUserCommandOutput,
+  AdminDeleteUserCommand,
   CognitoIdentityProviderClient,
   DeliveryMediumType,
 } from "@aws-sdk/client-cognito-identity-provider";
@@ -42,6 +43,28 @@ export const inviteUser = async (
     return response;
   } catch (error) {
     console.error("Error inviting user to Cognito:", error);
+    throw error;
+  }
+};
+
+/**
+ * Deletes a user from Cognito
+ * @param cognitoId - The Cognito ID of the user to delete
+ */
+export const deleteUserFromCognito = async (
+  cognitoId: string
+): Promise<void> => {
+  const params = {
+    UserPoolId: config.userPoolId,
+    Username: cognitoId,
+  };
+
+  const command = new AdminDeleteUserCommand(params);
+
+  try {
+    await cognitoClient.send(command);
+  } catch (error) {
+    console.error("Error deleting user from Cognito:", error);
     throw error;
   }
 };

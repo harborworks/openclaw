@@ -156,3 +156,67 @@ export const updateUserSuperadmin = async (
     next(error);
   }
 };
+
+/**
+ * Delete a user
+ * This endpoint is protected by the superadmin middleware
+ */
+export const deleteUser = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { userId } = req.params;
+
+    if (!userId || isNaN(parseInt(userId))) {
+      res.status(400).json({
+        message: "Invalid user ID",
+      });
+      return;
+    }
+
+    // Don't allow deleting yourself
+    if (req.user?.id === parseInt(userId)) {
+      res.status(403).json({
+        message: "You cannot delete your own account",
+      });
+      return;
+    }
+
+    // Check if it's a protected user
+    const userToDelete = await db.getUserById(parseInt(userId));
+
+    // Special rule: Don't allow deleting ben@sparrow.dev
+    if (userToDelete.email === "ben@sparrow.dev") {
+      res.status(403).json({
+        message: "Cannot delete this protected user",
+      });
+      return;
+    }
+
+    // Delete the user from Cognito first
+    try {
+      await cognitoService.deleteUserFromCognito(userToDelete.cognitoId);
+    } catch (error) {
+      console.error("Error deleting user from Cognito:", error);
+      // If the user doesn't exist in Cognito, we can still proceed with deleting from our database
+      // Only throw if it's not a user not found error
+      const cognitoError = error as { name?: string };
+      if (cognitoError.name !== "UserNotFoundException") {
+        throw error;
+      }
+    }
+
+    // Delete the user from our database
+    const deletedUser = await db.deleteUser(parseInt(userId));
+
+    res.status(200).json({
+      success: true,
+      message: `User ${deletedUser.email} deleted successfully`,
+      data: deletedUser,
+    });
+  } catch (error) {
+    next(error);
+  }
+};

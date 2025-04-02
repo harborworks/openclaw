@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   createUser,
+  deleteUser,
   getAllUsers,
   inviteUser,
   updateUserSuperadmin,
@@ -20,5 +21,8 @@ router.get("/", requireSuperadmin, getAllUsers);
 
 // PATCH /api/users/:userId/superadmin - Update a user's superadmin status (superadmin only)
 router.patch("/:userId/superadmin", requireSuperadmin, updateUserSuperadmin);
+
+// DELETE /api/users/:userId - Delete a user (superadmin only)
+router.delete("/:userId", requireSuperadmin, deleteUser);
 
 export default router;

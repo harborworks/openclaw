@@ -62,6 +62,20 @@ export default function UsersAdmin() {
 
   // Handle selection of users
   const toggleUserSelection = (userId: number) => {
+    const userToToggle = users.find((user) => user.id === userId);
+
+    // Don't allow selecting protected users
+    if (userToToggle) {
+      const currentUserEmail = auth.user?.profile.email;
+      const isBen = userToToggle.email === "ben@sparrow.dev";
+      const isCurrentUser = userToToggle.email === currentUserEmail;
+
+      if (isBen || isCurrentUser) {
+        toast.error("Cannot select protected users");
+        return;
+      }
+    }
+
     if (selectedUsers.includes(userId)) {
       setSelectedUsers(selectedUsers.filter((id) => id !== userId));
     } else {
@@ -74,7 +88,13 @@ export default function UsersAdmin() {
     if (selectedUsers.length === users.length) {
       setSelectedUsers([]);
     } else {
-      setSelectedUsers(users.map((user) => user.id));
+      // Only select non-protected users
+      const currentUserEmail = auth.user?.profile.email;
+      const selectableUsers = users.filter(
+        (user) =>
+          user.email !== "ben@sparrow.dev" && user.email !== currentUserEmail
+      );
+      setSelectedUsers(selectableUsers.map((user) => user.id));
     }
   };
 
@@ -110,11 +130,49 @@ export default function UsersAdmin() {
   };
 
   // Delete selected users
-  const handleDeleteSelected = () => {
-    // This is a stub for now - would need an API endpoint to actually delete users
-    setUsers(users.filter((user) => !selectedUsers.includes(user.id)));
-    setSelectedUsers([]);
-    toast.success("Users deleted successfully");
+  const handleDeleteSelected = async () => {
+    if (!auth.user?.access_token) {
+      toast.error("You must be authenticated to perform this action");
+      return;
+    }
+
+    // Get the current user and Ben's email for protection checks
+    const currentUserEmail = auth.user?.profile.email;
+    const protectedEmails = ["ben@sparrow.dev"];
+    if (currentUserEmail) protectedEmails.push(currentUserEmail);
+
+    // Filter out protected users from the selection
+    const usersToDelete = users.filter(
+      (user) =>
+        selectedUsers.includes(user.id) && !protectedEmails.includes(user.email)
+    );
+
+    if (usersToDelete.length === 0) {
+      toast.error("No users to delete. Protected users cannot be deleted.");
+      return;
+    }
+
+    try {
+      // Delete users one by one
+      for (const user of usersToDelete) {
+        await api.deleteUser(auth.user.access_token, user.id);
+      }
+
+      // Update local state
+      setUsers(
+        users.filter(
+          (user) =>
+            !selectedUsers.includes(user.id) ||
+            protectedEmails.includes(user.email)
+        )
+      );
+      setSelectedUsers([]);
+
+      toast.success(`${usersToDelete.length} user(s) deleted successfully`);
+    } catch (error: any) {
+      console.error("Error deleting users:", error);
+      toast.error(error.response?.data?.message || "Failed to delete users");
+    }
   };
 
   // Toggle superadmin status
@@ -177,6 +235,24 @@ export default function UsersAdmin() {
       toast.error(
         error.response?.data?.message || "Failed to update superadmin status"
       );
+    }
+  };
+
+  // Delete user
+  const handleDeleteUser = async (userId: number) => {
+    if (!auth.user?.access_token) {
+      toast.error("You must be authenticated to perform this action");
+      return;
+    }
+
+    try {
+      await api.deleteUser(auth.user.access_token, userId);
+      setUsers(users.filter((user) => user.id !== userId));
+      setSelectedUsers(selectedUsers.filter((id) => id !== userId));
+      toast.success("User deleted successfully");
+    } catch (error: any) {
+      console.error("Error deleting user:", error);
+      toast.error(error.response?.data?.message || "Failed to delete user");
     }
   };
 
@@ -273,7 +349,7 @@ export default function UsersAdmin() {
                 </TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Created</TableHead>
-                <TableHead>Superadmin</TableHead>
+                <TableHead>Super Admin</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -298,6 +374,7 @@ export default function UsersAdmin() {
                           checked={selectedUsers.includes(user.id)}
                           onCheckedChange={() => toggleUserSelection(user.id)}
                           aria-label={`Select user ${user.email}`}
+                          disabled={isProtected}
                         />
                       </TableCell>
                       <TableCell>
@@ -317,8 +394,13 @@ export default function UsersAdmin() {
                         />
                       </TableCell>
                       <TableCell>
-                        <Button variant="ghost" size="sm">
-                          Edit
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleDeleteUser(user.id)}
+                          disabled={isProtected || isCurrentUser}
+                        >
+                          Delete
                         </Button>
                       </TableCell>
                     </TableRow>
