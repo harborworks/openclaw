@@ -1,7 +1,15 @@
-import { frontendUrl } from "./urls";
+import { backendUrl, frontendUrl } from "./urls";
 
 export const userPool = new sst.aws.CognitoUserPool("UserPool", {
   usernames: ["email"],
+  triggers: {
+    preSignUp: {
+      environment: {
+        API_URL: backendUrl,
+      },
+      handler: "packages/functions/src/userPreSignUp.handler",
+    },
+  },
   transform: {
     userPool: {
       adminCreateUserConfig: {
