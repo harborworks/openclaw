@@ -17,7 +17,8 @@ export const userPoolClient = userPool.addClient("WebClient", {
   },
 });
 
+const slug = "sparrow-tags";
 new aws.cognito.UserPoolDomain("AuthDomain", {
   userPoolId: userPool.id,
-  domain: `template-app-${$app.stage}`,
+  domain: $app.stage === "prod" ? slug : `${slug}-${$app.stage}`,
 });
