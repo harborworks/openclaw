@@ -2,8 +2,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { X } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { useAuth } from "react-oidc-context";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import * as z from "zod";
+import { createJobForOrg } from "../../api/jobs";
+import { UserMembership } from "../../api/self";
 import { Alert, AlertDescription } from "../../components/ui/alert";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
@@ -46,11 +50,26 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-export default function CreateJobPage() {
+interface CreateJobPageProps {
+  memberships: UserMembership[];
+}
+
+export default function CreateJobPage({ memberships }: CreateJobPageProps) {
   const navigate = useNavigate();
+  const auth = useAuth();
   const [newLabel, setNewLabel] = useState("");
   const [validationError, setValidationError] = useState("");
   const [jsonlPreview, setJsonlPreview] = useState<Array<{ url: string }>>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Extract organizations from memberships
+  const orgs = memberships.map((membership) => ({
+    id: membership.id,
+    slug: membership.slug,
+    createdAt: membership.createdAt,
+    updatedAt: membership.updatedAt,
+    isAdmin: membership.isAdmin,
+  }));
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -68,10 +87,123 @@ export default function CreateJobPage() {
   const tagType = watch("tagType");
   const labels = watch("labels");
 
-  const onSubmit = (data: FormValues) => {
-    console.log("Form submitted:", data);
-    // Submit to backend would go here
-    navigate("/jobs");
+  const onSubmit = async (data: FormValues) => {
+    try {
+      setIsSubmitting(true);
+
+      // Check for auth and token
+      const token = auth.user?.access_token;
+      if (!token) {
+        toast.error("You must be logged in to create a job");
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Check if we have an organization to create the job in
+      if (orgs.length === 0) {
+        toast.error("You don't have access to any organizations");
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Use the first org for now - in a real app, you might add an org selector
+      const orgId = orgs[0].id;
+
+      // Show warning if using fallback organization
+      if (orgs[0].slug === "default-org") {
+        toast.warning("Using default organization for development", {
+          duration: 3000,
+        });
+      }
+
+      // First, create the job
+      const jobData = {
+        name: data.name,
+        instructions: data.instructions || "",
+        dataType: data.dataType,
+        tagType: data.tagType,
+        labels: data.labels,
+      };
+
+      const job = await createJobForOrg(token, orgId, jobData);
+
+      // If we have a file, read it and create tasks for the job
+      if (data.urlsFile) {
+        const reader = new FileReader();
+
+        reader.onload = async (event) => {
+          try {
+            const content = event.target?.result as string;
+            const lines = content.trim().split("\n");
+
+            // Process each line as a task
+            let successCount = 0;
+            let errorCount = 0;
+
+            // Create tasks sequentially to avoid overwhelming the server
+            for (const line of lines) {
+              try {
+                const item = JSON.parse(line);
+
+                if (!item.url) {
+                  errorCount++;
+                  continue;
+                }
+
+                // Create task through API
+                await fetch(
+                  `${import.meta.env.VITE_API_URL}/api/jobs/${job.id}/tasks`,
+                  {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                      Authorization: `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({ url: item.url }),
+                  }
+                );
+
+                successCount++;
+              } catch (err) {
+                errorCount++;
+              }
+            }
+
+            if (errorCount > 0) {
+              toast.warning(
+                `Created job with ${successCount} tasks, but ${errorCount} tasks failed`
+              );
+            } else {
+              toast.success(`Created job with ${successCount} tasks`);
+            }
+
+            // Navigate to jobs page regardless of task creation status
+            navigate("/jobs");
+          } catch (error) {
+            console.error("Error processing file:", error);
+            toast.error("Error processing JSONL file");
+            // Job was created but tasks failed, so still navigate to jobs
+            navigate("/jobs");
+          }
+        };
+
+        reader.onerror = () => {
+          toast.error("Error reading file");
+          // Job was created but tasks failed, so still navigate
+          navigate("/jobs");
+        };
+
+        reader.readAsText(data.urlsFile);
+      } else {
+        // No file, just show success for the job creation
+        toast.success("Job created successfully");
+        navigate("/jobs");
+      }
+    } catch (error) {
+      console.error("Error creating job:", error);
+      toast.error("Failed to create job");
+      setIsSubmitting(false);
+    }
   };
 
   const addLabel = () => {
@@ -138,6 +270,14 @@ export default function CreateJobPage() {
             Set up a new job for data tagging with specific instructions and
             labels.
           </CardDescription>
+          {orgs.length > 0 && (
+            <div className="mt-2 text-sm text-muted-foreground flex items-center">
+              <span>Organization:</span>
+              <Badge variant="outline" className="ml-2">
+                {orgs[0].slug}
+              </Badge>
+            </div>
+          )}
         </CardHeader>
 
         <Form {...form}>
@@ -360,8 +500,8 @@ export default function CreateJobPage() {
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={formState.isSubmitting}>
-                Create Job
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? "Creating..." : "Create Job"}
               </Button>
             </CardFooter>
           </form>

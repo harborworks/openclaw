@@ -67,6 +67,29 @@ export const createJob = async (
 };
 
 /**
+ * Create a new job for a specific organization
+ * @param token JWT token
+ * @param orgId Organization ID
+ * @param jobData Job data to create
+ */
+export const createJobForOrg = async (
+  token: string,
+  orgId: number,
+  jobData: Omit<Job, "id" | "createdAt" | "updatedAt">
+): Promise<Job> => {
+  const response = await axios.post<{ success: boolean; data: Job }>(
+    `${API_URL}/api/orgs/${orgId}/jobs`,
+    jobData,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+  return response.data.data;
+};
+
+/**
  * Update an existing job
  * @param token JWT token
  * @param jobId ID of the job to update

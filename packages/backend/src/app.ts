@@ -6,6 +6,7 @@ import itemRoutes from "./routes/itemRoutes";
 import jobRoutes from "./routes/jobRoutes";
 import membershipRoutes from "./routes/membershipRoutes";
 import orgRoutes from "./routes/orgRoutes";
+import selfRoutes from "./routes/selfRoutes";
 import userRoutes from "./routes/userRoutes";
 
 const app = express();
@@ -19,6 +20,7 @@ app.use("/api/items", itemRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/orgs", orgRoutes);
 app.use("/api/memberships", membershipRoutes);
+app.use("/api/self", selfRoutes);
 app.use("/api", jobRoutes);
 
 // Global error handler (should be after routes)

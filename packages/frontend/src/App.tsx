@@ -3,6 +3,7 @@ import { useAuth } from "react-oidc-context";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 
 import * as api from "./api";
+import { UserMembership } from "./api/self";
 import { Navbar } from "./components/Navbar";
 
 // Lazy load page components
@@ -20,15 +21,16 @@ const PageLoader = () => (
 
 // Extended user info type for our app
 interface UserInfo {
+  id: number;
   email: string;
   superadmin: boolean;
-  orgAdmin: boolean; // Mock property for now
 }
 
 function App() {
   const auth = useAuth();
   const location = useLocation();
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
+  const [memberships, setMemberships] = useState<UserMembership[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -40,14 +42,17 @@ function App() {
       }
       try {
         setLoading(true);
-        const user = await api.hello(auth.user?.access_token);
+        const selfData = await api.getSelf(auth.user?.access_token);
 
-        // Set user info with consistent properties
+        // Set user info
         setUserInfo({
-          email: user.email,
-          superadmin: Boolean(user.superadmin),
-          orgAdmin: true, // Always true for development
+          id: selfData.user.id,
+          email: selfData.user.email,
+          superadmin: Boolean(selfData.user.superadmin),
         });
+
+        // Set memberships
+        setMemberships(selfData.memberships);
       } catch (err) {
         console.error("Error fetching user info:", err);
         setError(err instanceof Error ? err.message : "An error occurred");
@@ -57,6 +62,9 @@ function App() {
     };
     fetchUser();
   }, [auth.user?.access_token]);
+
+  // Check if user is an org admin in any organization
+  const isOrgAdmin = memberships.some((membership) => membership.isAdmin);
 
   // Route guard for admin-only pages (superadmin only)
   const AdminRoute = ({ children }: { children: React.ReactNode }) => {
@@ -87,7 +95,7 @@ function App() {
     }
 
     // Allow both superadmins and org admins
-    if (!(userInfo?.superadmin || userInfo?.orgAdmin)) {
+    if (!(userInfo?.superadmin || isOrgAdmin)) {
       return <Navigate to="/" replace />;
     }
 
@@ -131,7 +139,7 @@ function App() {
               path="/jobs/create"
               element={
                 <JobsRoute>
-                  <CreateJobPage />
+                  <CreateJobPage memberships={memberships} />
                 </JobsRoute>
               }
             />
