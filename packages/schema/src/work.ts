@@ -13,9 +13,9 @@ import { timestamps } from "./timestamps";
 
 export const dataType = pgEnum("data_type", ["image", "video"]);
 export const tagType = pgEnum("tag_type", [
-  "bounding_box",
-  "category",
-  "time_segments",
+  "bounding-boxes",
+  "categories",
+  "time-segments",
 ]);
 
 export const jobs = pgTable("jobs", {

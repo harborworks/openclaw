@@ -4,6 +4,8 @@ const API_URL = import.meta.env.VITE_API_URL;
 
 export interface Job {
   id: number;
+  orgId: number;
+  orgSlug: string;
   name: string;
   dataType: string;
   tagType: string;
@@ -75,7 +77,7 @@ export const createJob = async (
 export const createJobForOrg = async (
   token: string,
   orgId: number,
-  jobData: Omit<Job, "id" | "createdAt" | "updatedAt">
+  jobData: Omit<Job, "id" | "createdAt" | "updatedAt" | "orgId" | "orgSlug">
 ): Promise<Job> => {
   const response = await axios.post<{ success: boolean; data: Job }>(
     `${API_URL}/api/orgs/${orgId}/jobs`,

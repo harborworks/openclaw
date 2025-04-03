@@ -43,7 +43,7 @@ const formSchema = z.object({
   name: z.string().min(3, "Job name must be at least 3 characters"),
   instructions: z.string().optional(),
   dataType: z.enum(["image", "video"]),
-  tagType: z.enum(["bounding_box", "category", "time_segments"]),
+  tagType: z.enum(["bounding-boxes", "categories", "time-segments"]),
   labels: z.array(z.string()).min(1, "At least one label is required"),
   urlsFile: z.instanceof(File).optional(),
 });
@@ -77,14 +77,13 @@ export default function CreateJobPage({ memberships }: CreateJobPageProps) {
       name: "",
       instructions: "",
       dataType: "image",
-      tagType: "bounding_box",
+      tagType: "bounding-boxes",
       labels: [],
     },
   });
 
   const { control, formState, handleSubmit, watch, setValue } = form;
   const dataType = watch("dataType");
-  const tagType = watch("tagType");
   const labels = watch("labels");
 
   const onSubmit = async (data: FormValues) => {
@@ -367,11 +366,11 @@ export default function CreateJobPage({ memberships }: CreateJobPageProps) {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="bounding_box">
-                            Bounding Box
+                          <SelectItem value="bounding-boxes">
+                            Bounding Boxes
                           </SelectItem>
-                          <SelectItem value="category">Category</SelectItem>
-                          <SelectItem value="time_segments">
+                          <SelectItem value="categories">Categories</SelectItem>
+                          <SelectItem value="time-segments">
                             Time Segments
                           </SelectItem>
                         </SelectContent>

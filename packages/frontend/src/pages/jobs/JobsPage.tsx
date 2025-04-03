@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "react-oidc-context";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
-import { Job, getJobs } from "../../api/jobs";
+import { Job, deleteJob, getJobs } from "../../api/jobs";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { Skeleton } from "../../components/ui/skeleton";
@@ -20,6 +20,19 @@ export default function JobsPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const handleDeleteJob = async (jobId: number) => {
+    if (!auth.user?.access_token) return;
+
+    try {
+      await deleteJob(auth.user.access_token, jobId);
+      setJobs(jobs.filter((job) => job.id !== jobId));
+      toast.success("Job deleted successfully");
+    } catch (err) {
+      console.error("Error deleting job:", err);
+      toast.error("Failed to delete job");
+    }
+  };
 
   useEffect(() => {
     const fetchJobs = async () => {
@@ -66,6 +79,7 @@ export default function JobsPage() {
               <TableRow>
                 <TableHead>ID</TableHead>
                 <TableHead>Name</TableHead>
+                <TableHead>Organization</TableHead>
                 <TableHead>Data Type</TableHead>
                 <TableHead>Tag Type</TableHead>
                 <TableHead>Labels</TableHead>
@@ -79,6 +93,9 @@ export default function JobsPage() {
                   <TableRow key={job.id}>
                     <TableCell>{job.id}</TableCell>
                     <TableCell className="font-medium">{job.name}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{job.orgSlug}</Badge>
+                    </TableCell>
                     <TableCell>
                       <Badge
                         variant={
@@ -114,13 +131,11 @@ export default function JobsPage() {
                     </TableCell>
                     <TableCell>
                       <Button
-                        variant="ghost"
+                        variant="destructive"
                         size="sm"
-                        onClick={() => {
-                          // Navigate to job details/edit page
-                        }}
+                        onClick={() => handleDeleteJob(job.id)}
                       >
-                        View
+                        Delete
                       </Button>
                     </TableCell>
                   </TableRow>
