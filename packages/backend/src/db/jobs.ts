@@ -1,4 +1,4 @@
-import { dataType, jobs, tagType, tasks } from "@sparrow-tags/schema";
+import { dataType, jobs, orgs, tagType, tasks } from "@sparrow-tags/schema";
 import { eq } from "drizzle-orm";
 import { db } from "./index.js";
 
@@ -15,8 +15,20 @@ export type CreateJobInput = {
 // Get all jobs for an organization
 export const getJobsByOrgId = async (orgId: number) => {
   return await db
-    .select()
+    .select({
+      id: jobs.id,
+      orgId: jobs.orgId,
+      orgSlug: orgs.slug,
+      name: jobs.name,
+      instructions: jobs.instructions,
+      dataType: jobs.dataType,
+      tagType: jobs.tagType,
+      labels: jobs.labels,
+      createdAt: jobs.createdAt,
+      updatedAt: jobs.updatedAt,
+    })
     .from(jobs)
+    .leftJoin(orgs, eq(jobs.orgId, orgs.id))
     .where(eq(jobs.orgId, orgId))
     .orderBy(jobs.createdAt);
 };
@@ -24,8 +36,20 @@ export const getJobsByOrgId = async (orgId: number) => {
 // Get a job by ID
 export const getJobById = async (jobId: number) => {
   const jobRows = await db
-    .select()
+    .select({
+      id: jobs.id,
+      orgId: jobs.orgId,
+      orgSlug: orgs.slug,
+      name: jobs.name,
+      instructions: jobs.instructions,
+      dataType: jobs.dataType,
+      tagType: jobs.tagType,
+      labels: jobs.labels,
+      createdAt: jobs.createdAt,
+      updatedAt: jobs.updatedAt,
+    })
     .from(jobs)
+    .leftJoin(orgs, eq(jobs.orgId, orgs.id))
     .where(eq(jobs.id, jobId))
     .limit(1);
 

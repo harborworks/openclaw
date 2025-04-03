@@ -1,4 +1,4 @@
-import { dataType, jobs, tagType } from "@sparrow-tags/schema";
+import { dataType, tagType } from "@sparrow-tags/schema";
 import { NextFunction, Request, Response } from "express";
 import * as db from "../db";
 
@@ -31,11 +31,11 @@ export const getAllJobs = async (
       return;
     }
 
-    // Collect all jobs from all user organizations
+    // Collect all jobs from all user organizations with organization information
     const orgIds = userOrgs
       .map((org) => org.id)
       .filter((id): id is number => id !== null);
-    let allJobs: (typeof jobs.$inferSelect)[] = [];
+    let allJobs: Awaited<ReturnType<typeof db.getJobsByOrgId>> = [];
 
     for (const orgId of orgIds) {
       const orgJobs = await db.getJobsByOrgId(orgId);
