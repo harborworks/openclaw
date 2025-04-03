@@ -20,6 +20,7 @@ export const db = drizzle(
   { casing: "snake_case" }
 );
 
+export * from "./jobs";
 export * from "./memberships";
 export * from "./orgs";
 export * from "./users";

@@ -1,0 +1,35 @@
+import { Router } from "express";
+import {
+  createJob,
+  createTask,
+  deleteJob,
+  getJob,
+  getJobs,
+  getJobTasks,
+  updateJob,
+} from "../controllers/jobController";
+
+const router = Router();
+
+// GET /api/orgs/:orgId/jobs - Get all jobs for an organization
+router.get("/orgs/:orgId/jobs", getJobs);
+
+// POST /api/orgs/:orgId/jobs - Create a new job for an organization
+router.post("/orgs/:orgId/jobs", createJob);
+
+// GET /api/jobs/:jobId - Get a specific job
+router.get("/jobs/:jobId", getJob);
+
+// PUT /api/jobs/:jobId - Update a job
+router.put("/jobs/:jobId", updateJob);
+
+// DELETE /api/jobs/:jobId - Delete a job
+router.delete("/jobs/:jobId", deleteJob);
+
+// GET /api/jobs/:jobId/tasks - Get all tasks for a job
+router.get("/jobs/:jobId/tasks", getJobTasks);
+
+// POST /api/jobs/:jobId/tasks - Create a new task for a job
+router.post("/jobs/:jobId/tasks", createTask);
+
+export default router;
