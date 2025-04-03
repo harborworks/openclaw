@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import { useAuth } from "react-oidc-context";
-import { Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { Navigate, Outlet, Route, Routes } from "react-router-dom";
 
 import * as api from "./api";
 import { UserMembership } from "./api/self";
@@ -26,9 +26,8 @@ interface UserInfo {
   superadmin: boolean;
 }
 
-function App() {
+export default function App() {
   const auth = useAuth();
-  const location = useLocation();
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [memberships, setMemberships] = useState<UserMembership[]>([]);
   const [loading, setLoading] = useState(true);
@@ -84,22 +83,11 @@ function App() {
     return <>{children}</>;
   };
 
-  // Route guard for jobs pages (org admins or superadmins)
-  const JobsRoute = ({ children }: { children: React.ReactNode }) => {
-    if (auth.isLoading || loading) {
-      return <div className="flex justify-center p-8">Loading...</div>;
+  const AuthenticatedRoute = () => {
+    if (auth.isLoading) {
+      return null;
     }
-
-    if (!auth.isAuthenticated) {
-      return <Navigate to="/" replace />;
-    }
-
-    // Allow both superadmins and org admins
-    if (!(userInfo?.superadmin || isOrgAdmin)) {
-      return <Navigate to="/" replace />;
-    }
-
-    return <>{children}</>;
+    return auth.isAuthenticated ? <Outlet /> : <Navigate to="/" replace />;
   };
 
   return (
@@ -127,22 +115,13 @@ function App() {
                 </AdminRoute>
               }
             />
-            <Route
-              path="/jobs"
-              element={
-                <JobsRoute>
-                  <JobsPage />
-                </JobsRoute>
-              }
-            />
-            <Route
-              path="/jobs/create"
-              element={
-                <JobsRoute>
-                  <CreateJobPage memberships={memberships} />
-                </JobsRoute>
-              }
-            />
+            <Route path="/jobs" element={<AuthenticatedRoute />}>
+              <Route index element={<JobsPage />} />
+              <Route
+                path="/jobs/create"
+                element={<CreateJobPage memberships={memberships} />}
+              />
+            </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
@@ -150,5 +129,3 @@ function App() {
     </div>
   );
 }
-
-export default App;
