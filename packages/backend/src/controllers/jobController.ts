@@ -1,6 +1,55 @@
-import { dataType, tagType } from "@sparrow-tags/schema";
+import { dataType, jobs, tagType } from "@sparrow-tags/schema";
 import { NextFunction, Request, Response } from "express";
 import * as db from "../db";
+
+/**
+ * Get all jobs for the authenticated user across all of their organizations
+ */
+export const getAllJobs = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    // Check if user is authenticated
+    if (!req.user) {
+      res.status(401).json({
+        message: "Authentication required",
+      });
+      return;
+    }
+
+    // Get all orgs the user is a member of
+    const userOrgs = await db.getUserOrgs(req.user.id);
+
+    if (userOrgs.length === 0) {
+      // User is not a member of any organization
+      res.status(200).json({
+        success: true,
+        data: [],
+      });
+      return;
+    }
+
+    // Collect all jobs from all user organizations
+    const orgIds = userOrgs
+      .map((org) => org.id)
+      .filter((id): id is number => id !== null);
+    let allJobs: (typeof jobs.$inferSelect)[] = [];
+
+    for (const orgId of orgIds) {
+      const orgJobs = await db.getJobsByOrgId(orgId);
+      allJobs = [...allJobs, ...orgJobs];
+    }
+
+    res.status(200).json({
+      success: true,
+      data: allJobs,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
 /**
  * Get all jobs for an organization

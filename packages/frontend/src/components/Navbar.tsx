@@ -18,6 +18,9 @@ const handleSignOut = async (auth: any) => {
 export function Navbar({ userInfo }: NavbarProps) {
   const auth = useAuth();
 
+  // Determine if we should show the jobs tab
+  const showJobsTab = Boolean(userInfo?.superadmin || userInfo?.orgAdmin);
+
   return (
     <nav className="border-b w-full bg-background shadow-sm">
       <div className="container mx-auto px-4 flex h-12 items-center justify-between">
@@ -35,7 +38,7 @@ export function Navbar({ userInfo }: NavbarProps) {
             </Link>
           )}
 
-          {(userInfo?.orgAdmin || userInfo?.superadmin) && (
+          {showJobsTab && (
             <Link
               to="/jobs"
               className="text-sm text-muted-foreground hover:text-foreground transition-colors"

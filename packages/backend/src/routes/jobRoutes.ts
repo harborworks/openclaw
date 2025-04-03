@@ -3,6 +3,7 @@ import {
   createJob,
   createTask,
   deleteJob,
+  getAllJobs,
   getJob,
   getJobs,
   getJobTasks,
@@ -10,6 +11,9 @@ import {
 } from "../controllers/jobController";
 
 const router = Router();
+
+// GET /api/jobs - Get all jobs for the authenticated user
+router.get("/jobs", getAllJobs);
 
 // GET /api/orgs/:orgId/jobs - Get all jobs for an organization
 router.get("/orgs/:orgId/jobs", getJobs);

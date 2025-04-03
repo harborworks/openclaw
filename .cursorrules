@@ -66,3 +66,5 @@ The following shadcn/ui components are available in the `packages/frontend/src/c
 - toggle-group
 - toggle
 - tooltip
+
+**Important:** For toast, please use the `sonner` component, do not implement your own.

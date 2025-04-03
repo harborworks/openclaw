@@ -42,14 +42,14 @@ function App() {
         setLoading(true);
         const user = await api.hello(auth.user?.access_token);
 
-        // For development: mock the orgAdmin property
-        // In production, this would come from the backend
+        // Set user info with consistent properties
         setUserInfo({
           email: user.email,
-          superadmin: user.superadmin || false,
-          orgAdmin: true, // Mocked for development
+          superadmin: Boolean(user.superadmin),
+          orgAdmin: true, // Always true for development
         });
       } catch (err) {
+        console.error("Error fetching user info:", err);
         setError(err instanceof Error ? err.message : "An error occurred");
       } finally {
         setLoading(false);

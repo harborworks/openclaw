@@ -53,6 +53,23 @@ export const getMembershipById = async (id: number) => {
   return result[0] || null;
 };
 
+// Get all organizations that a user is a member of
+export const getUserOrgs = async (userId: number) => {
+  return db
+    .select({
+      id: orgs.id,
+      slug: orgs.slug,
+      membershipId: memberships.id,
+      isAdmin: memberships.admin,
+      createdAt: orgs.createdAt,
+      updatedAt: orgs.updatedAt,
+    })
+    .from(memberships)
+    .leftJoin(orgs, eq(memberships.orgId, orgs.id))
+    .where(eq(memberships.userId, userId))
+    .orderBy(orgs.createdAt);
+};
+
 // Check if membership exists
 export const checkMembershipExists = async (userId: number, orgId: number) => {
   const result = await db
