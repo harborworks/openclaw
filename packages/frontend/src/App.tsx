@@ -62,27 +62,6 @@ export default function App() {
     fetchUser();
   }, [auth.user?.access_token]);
 
-  // Check if user is an org admin in any organization
-  const isOrgAdmin = memberships.some((membership) => membership.isAdmin);
-
-  // Route guard for admin-only pages (superadmin only)
-  const AdminRoute = ({ children }: { children: React.ReactNode }) => {
-    if (auth.isLoading || loading) {
-      return <div className="flex justify-center p-8">Loading...</div>;
-    }
-
-    if (!auth.isAuthenticated) {
-      return <Navigate to="/" replace />;
-    }
-
-    // Only allow superadmins for admin routes
-    if (!userInfo?.superadmin) {
-      return <Navigate to="/" replace />;
-    }
-
-    return <>{children}</>;
-  };
-
   const AuthenticatedRoute = () => {
     if (auth.isLoading) {
       return null;
@@ -107,14 +86,7 @@ export default function App() {
                 />
               }
             />
-            <Route
-              path="/admin/*"
-              element={
-                <AdminRoute>
-                  <AdminPage />
-                </AdminRoute>
-              }
-            />
+            <Route path="/admin/*" element={<AdminPage />} />
             <Route path="/jobs" element={<AuthenticatedRoute />}>
               <Route index element={<JobsPage />} />
               <Route

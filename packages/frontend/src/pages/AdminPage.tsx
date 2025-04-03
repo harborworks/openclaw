@@ -1,6 +1,13 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import { useAuth } from "react-oidc-context";
-import { Link, Navigate, Route, Routes, useLocation } from "react-router-dom";
+import {
+  Link,
+  Navigate,
+  Outlet,
+  Route,
+  Routes,
+  useLocation,
+} from "react-router-dom";
 
 import * as api from "../api";
 import { Tabs, TabsList, TabsTrigger } from "../components/ui/tabs";
@@ -55,6 +62,13 @@ export default function AdminPage() {
     fetchUser();
   }, [auth.user?.access_token]);
 
+  const SuperAdminRoute = () => {
+    if (auth.isLoading || loading) {
+      return null;
+    }
+    return userInfo?.superadmin ? <Outlet /> : <Navigate to="/" replace />;
+  };
+
   const getActiveTab = () => {
     if (currentPath.includes("/admin/orgs")) return "orgs";
     if (currentPath.includes("/admin/memberships")) return "memberships";
@@ -64,11 +78,6 @@ export default function AdminPage() {
   // If loading, show loader
   if (loading) {
     return <AdminLoader />;
-  }
-
-  // Only superadmins should access this page
-  if (!userInfo?.superadmin) {
-    return <Navigate to="/" replace />;
   }
 
   return (
@@ -94,10 +103,12 @@ export default function AdminPage() {
       <div className="bg-white p-6 rounded-lg shadow-sm">
         <Suspense fallback={<AdminLoader />}>
           <Routes>
-            <Route path="/" element={<UsersAdmin />} />
-            <Route path="/users" element={<UsersAdmin />} />
-            <Route path="/orgs" element={<OrgsAdmin />} />
-            <Route path="/memberships" element={<MembershipsAdmin />} />
+            <Route path="/" element={<SuperAdminRoute />}>
+              <Route index element={<UsersAdmin />} />
+              <Route path="/users" element={<UsersAdmin />} />
+              <Route path="/orgs" element={<OrgsAdmin />} />
+              <Route path="/memberships" element={<MembershipsAdmin />} />
+            </Route>
           </Routes>
         </Suspense>
       </div>
