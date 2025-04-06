@@ -46,6 +46,7 @@ const formSchema = z.object({
   tagType: z.enum(["bounding-boxes", "categories", "time-segments"]),
   labels: z.array(z.string()).min(1, "At least one label is required"),
   urlsFile: z.instanceof(File).optional(),
+  organizationId: z.string().min(1, "Organization is required"),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -64,7 +65,7 @@ export default function CreateJobPage({ memberships }: CreateJobPageProps) {
 
   // Extract organizations from memberships
   const orgs = memberships.map((membership) => ({
-    id: membership.id,
+    id: String(membership.id), // Convert to string to ensure type consistency
     slug: membership.slug,
     createdAt: membership.createdAt,
     updatedAt: membership.updatedAt,
@@ -79,6 +80,7 @@ export default function CreateJobPage({ memberships }: CreateJobPageProps) {
       dataType: "image",
       tagType: "bounding-boxes",
       labels: [],
+      organizationId: orgs[0]?.id || "",
     },
   });
 
@@ -105,11 +107,12 @@ export default function CreateJobPage({ memberships }: CreateJobPageProps) {
         return;
       }
 
-      // Use the first org for now - in a real app, you might add an org selector
-      const orgId = orgs[0].id;
+      // Use the selected organization
+      const orgId = parseInt(data.organizationId, 10);
 
       // Show warning if using fallback organization
-      if (orgs[0].slug === "default-org") {
+      const selectedOrg = orgs.find((org) => org.id === data.organizationId);
+      if (selectedOrg?.slug === "default-org") {
         toast.warning("Using default organization for development", {
           duration: 3000,
         });
@@ -282,6 +285,37 @@ export default function CreateJobPage({ memberships }: CreateJobPageProps) {
         <Form {...form}>
           <form onSubmit={handleSubmit(onSubmit)}>
             <CardContent className="space-y-6">
+              <FormField
+                control={control}
+                name="organizationId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Organization</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select organization" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {orgs.map((org) => (
+                          <SelectItem key={org.id} value={org.id}>
+                            {org.slug}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      Select the organization to create the job in
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               <FormField
                 control={control}
                 name="name"
