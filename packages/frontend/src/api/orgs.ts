@@ -85,28 +85,20 @@ export const getUserOrgs = async (token: string): Promise<Org[]> => {
   }
 
   // Extract unique organization IDs from jobs
-  // For testing purposes, if we don't have any real orgs, use a default one
   const orgIds = [...new Set(response.data.data.map((job) => job.orgId))];
 
   if (orgIds.length === 0) {
-    // For development only: provide a default org if none exists
-    return [
-      {
-        id: 1,
-        slug: "default-org",
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-    ];
+    return [];
   }
 
-  // Get details for each organization
-  // In a production environment, we would make API calls to get the actual org details
-  // For now, return a simplified list based on the IDs we found
-  return orgIds.map((id) => ({
-    id,
-    slug: `org-${id}`,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  }));
+  // Get details for each organization from the jobs data
+  return orgIds.map((id) => {
+    const job = response.data.data.find((job) => job.orgId === id);
+    return {
+      id,
+      slug: job?.orgSlug || `org-${id}`, // Fallback to org-{id} if slug is missing
+      createdAt: job?.orgCreatedAt || new Date().toISOString(),
+      updatedAt: job?.orgUpdatedAt || new Date().toISOString(),
+    };
+  });
 };

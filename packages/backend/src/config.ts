@@ -13,6 +13,7 @@ interface Config {
   databasePort: number;
   databaseUser: string;
   databasePassword: string;
+  bucketName: string;
 }
 
 const config: Config = {
@@ -26,6 +27,7 @@ const config: Config = {
   databasePort: Number(process.env.DATABASE_PORT!),
   databaseUser: process.env.DATABASE_USER!,
   databasePassword: process.env.DATABASE_PASSWORD!,
+  bucketName: process.env.BUCKET_NAME!,
 };
 
 export default config;

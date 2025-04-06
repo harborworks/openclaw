@@ -6,7 +6,11 @@ import { useAuth } from "react-oidc-context";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import * as z from "zod";
-import { createJobForOrg } from "../../api/jobs";
+import {
+  createJobForOrg,
+  getJobUploadUrl,
+  uploadFileToS3,
+} from "../../api/jobs";
 import { UserMembership } from "../../api/self";
 import { Alert, AlertDescription } from "../../components/ui/alert";
 import { Badge } from "../../components/ui/badge";
@@ -110,14 +114,6 @@ export default function CreateJobPage({ memberships }: CreateJobPageProps) {
       // Use the selected organization
       const orgId = parseInt(data.organizationId, 10);
 
-      // Show warning if using fallback organization
-      const selectedOrg = orgs.find((org) => org.id === data.organizationId);
-      if (selectedOrg?.slug === "default-org") {
-        toast.warning("Using default organization for development", {
-          duration: 3000,
-        });
-      }
-
       // First, create the job
       const jobData = {
         name: data.name,
@@ -129,73 +125,23 @@ export default function CreateJobPage({ memberships }: CreateJobPageProps) {
 
       const job = await createJobForOrg(token, orgId, jobData);
 
-      // If we have a file, read it and create tasks for the job
+      // If we have a file, upload it to S3
       if (data.urlsFile) {
-        const reader = new FileReader();
+        try {
+          // Get presigned URL
+          const { url, key } = await getJobUploadUrl(token, job.id, orgId);
 
-        reader.onload = async (event) => {
-          try {
-            const content = event.target?.result as string;
-            const lines = content.trim().split("\n");
+          // Upload file to S3
+          await uploadFileToS3(url, data.urlsFile);
 
-            // Process each line as a task
-            let successCount = 0;
-            let errorCount = 0;
-
-            // Create tasks sequentially to avoid overwhelming the server
-            for (const line of lines) {
-              try {
-                const item = JSON.parse(line);
-
-                if (!item.url) {
-                  errorCount++;
-                  continue;
-                }
-
-                // Create task through API
-                await fetch(
-                  `${import.meta.env.VITE_API_URL}/api/jobs/${job.id}/tasks`,
-                  {
-                    method: "POST",
-                    headers: {
-                      "Content-Type": "application/json",
-                      Authorization: `Bearer ${token}`,
-                    },
-                    body: JSON.stringify({ url: item.url }),
-                  }
-                );
-
-                successCount++;
-              } catch (err) {
-                errorCount++;
-              }
-            }
-
-            if (errorCount > 0) {
-              toast.warning(
-                `Created job with ${successCount} tasks, but ${errorCount} tasks failed`
-              );
-            } else {
-              toast.success(`Created job with ${successCount} tasks`);
-            }
-
-            // Navigate to jobs page regardless of task creation status
-            navigate("/jobs");
-          } catch (error) {
-            console.error("Error processing file:", error);
-            toast.error("Error processing JSONL file");
-            // Job was created but tasks failed, so still navigate to jobs
-            navigate("/jobs");
-          }
-        };
-
-        reader.onerror = () => {
-          toast.error("Error reading file");
-          // Job was created but tasks failed, so still navigate
+          toast.success("Job created and file uploaded successfully");
           navigate("/jobs");
-        };
-
-        reader.readAsText(data.urlsFile);
+        } catch (error) {
+          console.error("Error uploading file:", error);
+          toast.error("Failed to upload file");
+          // Job was created but file upload failed, so still navigate
+          navigate("/jobs");
+        }
       } else {
         // No file, just show success for the job creation
         toast.success("Job created successfully");

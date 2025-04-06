@@ -5,6 +5,8 @@
   "private": true,
   "dependencies": {
     "@aws-sdk/client-cognito-identity-provider": "^3.777.0",
+    "@aws-sdk/client-s3": "^3.782.0",
+    "@aws-sdk/s3-request-presigner": "^3.782.0",
     "@sparrow-tags/schema": "*",
     "aws-jwt-verify": "^5.0.0",
     "cors": "^2.8.5",

@@ -9,6 +9,7 @@ import {
   getJobTasks,
   updateJob,
 } from "../controllers/jobController";
+import { generatePresignedUrl } from "../services/s3Service";
 
 const router = Router();
 
@@ -35,5 +36,33 @@ router.get("/jobs/:jobId/tasks", getJobTasks);
 
 // POST /api/jobs/:jobId/tasks - Create a new task for a job
 router.post("/jobs/:jobId/tasks", createTask);
+
+// GET /api/orgs/:orgId/jobs/:jobId/upload-url - Get a presigned URL for uploading a JSONL file
+router.get("/orgs/:orgId/jobs/:jobId/upload-url", async (req, res, next) => {
+  try {
+    const jobId = parseInt(req.params.jobId);
+    const orgId = parseInt(req.params.orgId);
+
+    if (isNaN(jobId) || isNaN(orgId)) {
+      res.status(400).json({
+        message: "Invalid job ID or organization ID",
+      });
+      return;
+    }
+
+    const fileName = `tasks.jsonl`;
+    const presignedUrl = await generatePresignedUrl(orgId, jobId, fileName);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        url: presignedUrl,
+        key: `orgs/${orgId}/jobs/${jobId}/${fileName}`,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
 
 export default router;

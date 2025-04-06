@@ -14,6 +14,11 @@ export interface Job {
   updatedAt: string;
 }
 
+export interface PresignedUrlResponse {
+  url: string;
+  key: string;
+}
+
 /**
  * Get all jobs
  * @param token JWT token
@@ -133,4 +138,64 @@ export const deleteJob = async (
     },
   });
   return response.data;
+};
+
+/**
+ * Get a presigned URL for uploading a JSONL file
+ * @param token JWT token
+ * @param jobId ID of the job
+ * @param orgId Organization ID
+ */
+export const getJobUploadUrl = async (
+  token: string,
+  jobId: number,
+  orgId: number
+): Promise<PresignedUrlResponse> => {
+  const response = await axios.get<{
+    success: boolean;
+    data: PresignedUrlResponse;
+  }>(`${API_URL}/api/orgs/${orgId}/jobs/${jobId}/upload-url`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  return response.data.data;
+};
+
+/**
+ * Upload a file to S3 using a presigned URL
+ * @param url Presigned URL
+ * @param file File to upload
+ */
+export const uploadFileToS3 = async (
+  url: string,
+  file: File | undefined
+): Promise<void> => {
+  if (!file) {
+    throw new Error("No file provided");
+  }
+
+  await axios.put(url, file, {
+    headers: {
+      "Content-Type": "application/x-jsonlines",
+    },
+  });
+};
+
+/**
+ * Create a new task for a job
+ * @param token JWT token
+ * @param jobId ID of the job
+ * @param taskData Task data to create
+ */
+export const createTask = async (
+  token: string,
+  jobId: number,
+  taskData: { url: string; s3Key: string }
+): Promise<void> => {
+  await axios.post(`${API_URL}/api/jobs/${jobId}/tasks`, taskData, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
 };
