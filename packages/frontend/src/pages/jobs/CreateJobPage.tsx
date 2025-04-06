@@ -129,7 +129,7 @@ export default function CreateJobPage({ memberships }: CreateJobPageProps) {
       if (data.urlsFile) {
         try {
           // Get presigned URL
-          const { url, key } = await getJobUploadUrl(token, job.id, orgId);
+          const { url } = await getJobUploadUrl(token, job.id, orgId);
 
           // Upload file to S3
           await uploadFileToS3(url, data.urlsFile);

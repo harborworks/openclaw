@@ -14,7 +14,7 @@ export const generatePresignedUrl = async (
   const key = `orgs/${orgId}/jobs/${jobId}/${fileName}`;
 
   const command = new PutObjectCommand({
-    Bucket: config.bucketName,
+    Bucket: config.tasksBucketName,
     Key: key,
     ContentType: "application/x-jsonlines",
   });

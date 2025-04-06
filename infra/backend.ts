@@ -1,6 +1,6 @@
 import { userPool, userPoolClient } from "./auth";
 import { database } from "./database";
-import { bucket } from "./storage";
+import { tasks } from "./storage";
 import { backendUrl } from "./urls";
 
 import { vpc } from "./vpc";
@@ -33,6 +33,6 @@ export const service = new sst.aws.Service("Backend", {
     DATABASE_PORT: database.port.apply((port) => port.toString()),
     DATABASE_USER: database.username,
     DATABASE_PASSWORD: database.password,
-    BUCKET_NAME: bucket.name,
+    TASKS_BUCKET_NAME: tasks.name,
   },
 });
