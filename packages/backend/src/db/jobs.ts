@@ -1,5 +1,5 @@
 import { dataType, jobs, orgs, tagType, tasks } from "@sparrow-tags/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db } from "./index.js";
 
 // Type for job creation
@@ -58,6 +58,40 @@ export const getJobById = async (jobId: number) => {
   }
 
   return jobRows[0];
+};
+
+// Get all jobs with task statistics
+export const getJobsWithStats = async (orgId?: number) => {
+  let query = `
+    SELECT 
+      j.id,
+      j.name,
+      j.org_id,
+      j.data_type,
+      j.tag_type,
+      j.labels,
+      j.created_at,
+      j.updated_at,
+      o.slug as org_slug,
+      COUNT(t.id) as total_tasks,
+      COUNT(CASE WHEN t.completed_at IS NOT NULL THEN 1 END) as completed_tasks,
+      COUNT(CASE WHEN t.assigned_to_id IS NOT NULL AND t.completed_at IS NULL THEN 1 END) as in_progress_tasks
+    FROM jobs j
+    LEFT JOIN orgs o ON j.org_id = o.id
+    LEFT JOIN tasks t ON j.id = t.job_id
+  `;
+
+  if (orgId !== undefined) {
+    query += ` WHERE j.org_id = ${orgId}`;
+  }
+
+  query += `
+    GROUP BY j.id, o.slug
+    ORDER BY j.created_at DESC
+  `;
+
+  const result = await db.execute(sql.raw(query));
+  return result.rows;
 };
 
 // Create a new job

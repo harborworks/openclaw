@@ -23,4 +23,5 @@ export const db = drizzle(
 export * from "./jobs";
 export * from "./memberships";
 export * from "./orgs";
+export * from "./tasks";
 export * from "./users";

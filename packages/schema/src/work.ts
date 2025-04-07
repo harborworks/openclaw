@@ -1,10 +1,12 @@
 import {
   boolean,
+  index,
   integer,
   jsonb,
   pgEnum,
   pgTable,
   text,
+  timestamp,
   varchar,
 } from "drizzle-orm/pg-core";
 
@@ -31,14 +33,30 @@ export const jobs = pgTable("jobs", {
   ...timestamps,
 });
 
-export const tasks = pgTable("tasks", {
-  id: integer().primaryKey().generatedAlwaysAsIdentity(),
-  jobId: integer()
-    .notNull()
-    .references(() => jobs.id),
-  url: varchar({ length: 255 }).notNull(),
-  ...timestamps,
-});
+export const tasks = pgTable(
+  "tasks",
+  {
+    id: integer().primaryKey().generatedAlwaysAsIdentity(),
+    jobId: integer()
+      .notNull()
+      .references(() => jobs.id),
+    url: varchar({ length: 255 }).notNull(),
+    assignedToId: integer().references(() => users.id),
+    assignedAt: timestamp(),
+    completedAt: timestamp(),
+    ...timestamps,
+  },
+  (table) => {
+    return {
+      jobIdIdx: index("job_id_idx").on(table.jobId),
+      assignmentIdx: index("assignment_idx").on(
+        table.assignedToId,
+        table.completedAt
+      ),
+      assignedAtIdx: index("assigned_at_idx").on(table.assignedAt),
+    };
+  }
+);
 
 export const tags = pgTable("tags", {
   id: integer().primaryKey().generatedAlwaysAsIdentity(),
