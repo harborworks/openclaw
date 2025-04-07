@@ -199,3 +199,29 @@ export const createTask = async (
     },
   });
 };
+
+/**
+ * Get task statistics for a job
+ * @param token JWT token
+ * @param jobId ID of the job to get statistics for
+ */
+export interface JobTaskStats {
+  total: number;
+  completed: number;
+  in_progress: number;
+}
+
+export const getJobTaskStats = async (
+  token: string,
+  jobId: number
+): Promise<JobTaskStats> => {
+  const response = await axios.get<{ success: boolean; data: JobTaskStats }>(
+    `${API_URL}/api/jobs/${jobId}/stats`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+  return response.data.data;
+};

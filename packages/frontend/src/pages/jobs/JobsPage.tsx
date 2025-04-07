@@ -92,7 +92,14 @@ export default function JobsPage() {
                 jobs.map((job) => (
                   <TableRow key={job.id}>
                     <TableCell>{job.id}</TableCell>
-                    <TableCell className="font-medium">{job.name}</TableCell>
+                    <TableCell className="font-medium">
+                      <Link
+                        to={`/jobs/${job.id}`}
+                        className="text-blue-600 hover:underline"
+                      >
+                        {job.name}
+                      </Link>
+                    </TableCell>
                     <TableCell>
                       <Badge variant="outline">{job.orgSlug}</Badge>
                     </TableCell>
@@ -130,13 +137,18 @@ export default function JobsPage() {
                       {new Date(job.createdAt).toLocaleDateString()}
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleDeleteJob(job.id)}
-                      >
-                        Delete
-                      </Button>
+                      <div className="flex space-x-2">
+                        <Button variant="outline" size="sm" asChild>
+                          <Link to={`/jobs/${job.id}`}>View Details</Link>
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleDeleteJob(job.id)}
+                        >
+                          Delete
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))

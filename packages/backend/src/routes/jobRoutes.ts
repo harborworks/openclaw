@@ -7,6 +7,7 @@ import {
   getJob,
   getJobs,
   getJobTasks,
+  getJobTaskStats,
   updateJob,
 } from "../controllers/jobController";
 import { generatePresignedUrl } from "../services/s3Service";
@@ -33,6 +34,9 @@ router.delete("/jobs/:jobId", deleteJob);
 
 // GET /api/jobs/:jobId/tasks - Get all tasks for a job
 router.get("/jobs/:jobId/tasks", getJobTasks);
+
+// GET /api/jobs/:jobId/stats - Get task statistics for a job
+router.get("/jobs/:jobId/stats", getJobTaskStats);
 
 // POST /api/jobs/:jobId/tasks - Create a new task for a job
 router.post("/jobs/:jobId/tasks", createTask);

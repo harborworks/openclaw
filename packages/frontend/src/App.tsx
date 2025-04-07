@@ -11,6 +11,7 @@ const HomePage = lazy(() => import("./pages/HomePage"));
 const AdminPage = lazy(() => import("./pages/AdminPage"));
 const JobsPage = lazy(() => import("./pages/jobs/JobsPage"));
 const CreateJobPage = lazy(() => import("./pages/jobs/CreateJobPage"));
+const JobDetailPage = lazy(() => import("./pages/jobs/JobDetailPage"));
 
 // Loading component for Suspense fallback
 const PageLoader = () => (
@@ -93,6 +94,7 @@ export default function App() {
                 path="/jobs/create"
                 element={<CreateJobPage memberships={memberships} />}
               />
+              <Route path="/jobs/:jobId" element={<JobDetailPage />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

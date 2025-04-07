@@ -367,3 +367,42 @@ export const createTask = async (
     next(error);
   }
 };
+
+/**
+ * Get task statistics for a job
+ */
+export const getJobTaskStats = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const jobId = parseInt(req.params.jobId);
+
+    if (isNaN(jobId)) {
+      res.status(400).json({
+        message: "Invalid job ID",
+      });
+      return;
+    }
+
+    // Check if job exists
+    await db.getJobById(jobId);
+
+    // Get task statistics
+    const stats = await db.getTaskStats(jobId);
+
+    res.status(200).json({
+      success: true,
+      data: stats,
+    });
+  } catch (error: any) {
+    if (error.message === "Job not found") {
+      res.status(404).json({
+        message: error.message,
+      });
+      return;
+    }
+    next(error);
+  }
+};
