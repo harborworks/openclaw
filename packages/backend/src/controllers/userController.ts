@@ -220,3 +220,39 @@ export const deleteUser = async (
     next(error);
   }
 };
+
+/**
+ * Get a user by ID
+ * This endpoint is protected by authentication
+ */
+export const getUserById = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { userId } = req.params;
+
+    if (!userId || isNaN(parseInt(userId))) {
+      res.status(400).json({
+        message: "Invalid user ID",
+      });
+      return;
+    }
+
+    const user = await db.getUserById(parseInt(userId));
+
+    res.status(200).json({
+      success: true,
+      data: user,
+    });
+  } catch (error: any) {
+    if (error.message === "User not found") {
+      res.status(404).json({
+        message: "User not found",
+      });
+      return;
+    }
+    next(error);
+  }
+};

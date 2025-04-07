@@ -3,6 +3,7 @@ import {
   createUser,
   deleteUser,
   getAllUsers,
+  getUserById,
   inviteUser,
   updateUserSuperadmin,
 } from "../controllers/userController";
@@ -18,6 +19,9 @@ router.post("/invite", requireSuperadmin, inviteUser);
 
 // GET /api/users - Get all users (superadmin only)
 router.get("/", requireSuperadmin, getAllUsers);
+
+// GET /api/users/:userId - Get a specific user
+router.get("/:userId", getUserById);
 
 // PATCH /api/users/:userId/superadmin - Update a user's superadmin status (superadmin only)
 router.patch("/:userId/superadmin", requireSuperadmin, updateUserSuperadmin);

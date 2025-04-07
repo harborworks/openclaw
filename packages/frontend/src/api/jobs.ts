@@ -12,6 +12,9 @@ export interface Job {
   labels: string[];
   createdAt: string;
   updatedAt: string;
+  totalTasks?: number;
+  completedTasks?: number;
+  inProgressTasks?: number;
 }
 
 export interface PresignedUrlResponse {
@@ -305,5 +308,44 @@ export const completeTask = async (
       },
     }
   );
+  return response.data.data;
+};
+
+/**
+ * Pagination interface
+ */
+export interface Pagination {
+  page: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+}
+
+/**
+ * Get all tasks for a job with pagination (admin only)
+ * @param token JWT token
+ * @param jobId ID of the job
+ * @param page Page number (1-indexed)
+ * @param pageSize Number of tasks per page
+ * @returns Paginated list of tasks and pagination info
+ */
+export const getAllJobTasks = async (
+  token: string,
+  jobId: number,
+  page: number = 1,
+  pageSize: number = 10
+): Promise<{ tasks: Task[]; pagination: Pagination }> => {
+  const response = await axios.get<{
+    success: boolean;
+    data: {
+      tasks: Task[];
+      pagination: Pagination;
+    };
+  }>(`${API_URL}/api/jobs/${jobId}/all-tasks`, {
+    params: { page, pageSize },
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
   return response.data.data;
 };

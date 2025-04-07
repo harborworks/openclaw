@@ -34,6 +34,26 @@ export const getUsers = async (token: string): Promise<User[]> => {
 };
 
 /**
+ * Get a user by ID
+ * @param token JWT token
+ * @param userId ID of the user to get
+ */
+export const getUserById = async (
+  token: string,
+  userId: number
+): Promise<User> => {
+  const response = await axios.get<{ success: boolean; data: User }>(
+    `${API_URL}/api/users/${userId}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+  return response.data.data;
+};
+
+/**
  * Update a user's superadmin status (superadmin only)
  * @param token JWT token
  * @param userId ID of the user to update

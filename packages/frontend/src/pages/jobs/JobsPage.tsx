@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Job, deleteJob, getJobs } from "../../api/jobs";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
+import { Progress } from "../../components/ui/progress";
 import { Skeleton } from "../../components/ui/skeleton";
 import {
   Table,
@@ -32,6 +33,12 @@ export default function JobsPage() {
       console.error("Error deleting job:", err);
       toast.error("Failed to delete job");
     }
+  };
+
+  // Calculate completion percentage for a job
+  const getCompletionPercentage = (job: Job) => {
+    if (!job.totalTasks || job.totalTasks === 0) return 0;
+    return Math.round(((job.completedTasks || 0) / job.totalTasks) * 100);
   };
 
   useEffect(() => {
@@ -83,6 +90,7 @@ export default function JobsPage() {
                 <TableHead>Data Type</TableHead>
                 <TableHead>Tag Type</TableHead>
                 <TableHead>Labels</TableHead>
+                <TableHead>% Complete</TableHead>
                 <TableHead>Created</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
@@ -117,20 +125,43 @@ export default function JobsPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1 max-w-[200px]">
-                        {job.labels.slice(0, 3).map((label, i) => (
-                          <Badge
-                            key={i}
-                            variant="secondary"
-                            className="text-xs"
-                          >
-                            {label}
-                          </Badge>
-                        ))}
-                        {job.labels.length > 3 && (
+                        {job.labels && Array.isArray(job.labels) ? (
+                          <>
+                            {job.labels.slice(0, 3).map((label, i) => (
+                              <Badge
+                                key={i}
+                                variant="secondary"
+                                className="text-xs"
+                              >
+                                {label}
+                              </Badge>
+                            ))}
+                            {job.labels.length > 3 && (
+                              <Badge variant="secondary" className="text-xs">
+                                +{job.labels.length - 3}
+                              </Badge>
+                            )}
+                          </>
+                        ) : (
                           <Badge variant="secondary" className="text-xs">
-                            +{job.labels.length - 3}
+                            No labels
                           </Badge>
                         )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="space-y-1 w-[100px]">
+                        <div className="text-xs text-right">
+                          {getCompletionPercentage(job)}%
+                        </div>
+                        <Progress
+                          value={getCompletionPercentage(job)}
+                          className="h-2"
+                        />
+                        <div className="text-xs text-muted-foreground">
+                          {job.completedTasks || 0} / {job.totalTasks || 0}{" "}
+                          tasks
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -155,7 +186,7 @@ export default function JobsPage() {
               ) : (
                 <TableRow>
                   <TableCell
-                    colSpan={7}
+                    colSpan={9}
                     className="text-center py-6 text-muted-foreground"
                   >
                     No jobs found. Create your first job to get started.

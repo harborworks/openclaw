@@ -31,20 +31,52 @@ export const getAllJobs = async (
       return;
     }
 
-    // Collect all jobs from all user organizations with organization information
+    // Get jobs with task statistics
+    const jobs = await db.getJobsWithStats();
+
+    // Filter to only include organizations the user is a member of
     const orgIds = userOrgs
       .map((org) => org.id)
       .filter((id): id is number => id !== null);
-    let allJobs: Awaited<ReturnType<typeof db.getJobsByOrgId>> = [];
 
-    for (const orgId of orgIds) {
-      const orgJobs = await db.getJobsByOrgId(orgId);
-      allJobs = [...allJobs, ...orgJobs];
-    }
+    const userJobs = jobs.filter(
+      (job) => job.org_id !== null && orgIds.includes(Number(job.org_id))
+    );
+
+    // Transform the snake_case keys to camelCase for consistent frontend API
+    const transformedJobs = userJobs.map((job) => {
+      // Parse labels if they're a string
+      let parsedLabels: string[] = [];
+      try {
+        if (typeof job.labels === "string") {
+          parsedLabels = JSON.parse(job.labels);
+        } else if (Array.isArray(job.labels)) {
+          parsedLabels = job.labels;
+        }
+      } catch (e) {
+        console.error("Error parsing job labels:", e);
+      }
+
+      return {
+        id: job.id,
+        orgId: job.org_id,
+        orgSlug: job.org_slug,
+        name: job.name,
+        dataType: job.data_type,
+        tagType: job.tag_type,
+        labels: parsedLabels,
+        createdAt: job.created_at,
+        updatedAt: job.updated_at,
+        totalTasks: parseInt(job.total_tasks as unknown as string) || 0,
+        completedTasks: parseInt(job.completed_tasks as unknown as string) || 0,
+        inProgressTasks:
+          parseInt(job.in_progress_tasks as unknown as string) || 0,
+      };
+    });
 
     res.status(200).json({
       success: true,
-      data: allJobs,
+      data: transformedJobs,
     });
   } catch (error) {
     next(error);
@@ -100,9 +132,27 @@ export const getJob = async (
 
     const job = await db.getJobById(jobId);
 
+    // Parse labels if they're a string
+    let parsedLabels: string[] = [];
+    try {
+      if (typeof job.labels === "string") {
+        parsedLabels = JSON.parse(job.labels);
+      } else if (Array.isArray(job.labels)) {
+        parsedLabels = job.labels;
+      }
+    } catch (e) {
+      console.error("Error parsing job labels:", e);
+    }
+
+    // Transform job data
+    const transformedJob = {
+      ...job,
+      labels: parsedLabels,
+    };
+
     res.status(200).json({
       success: true,
-      data: job,
+      data: transformedJob,
     });
   } catch (error: any) {
     if (error.message === "Job not found") {
@@ -562,6 +612,64 @@ export const completeTaskController = async (
     res.status(200).json({
       success: true,
       data: completedTask,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Get all tasks for a job with pagination (admin only)
+ */
+export const getAllJobTasks = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const jobId = parseInt(req.params.jobId);
+    const page = parseInt(req.query.page as string) || 1;
+    const pageSize = parseInt(req.query.pageSize as string) || 10;
+    const userId = req.user?.id;
+
+    if (isNaN(jobId)) {
+      res.status(400).json({
+        message: "Invalid job ID",
+      });
+      return;
+    }
+
+    if (!userId) {
+      res.status(401).json({
+        message: "Unauthorized",
+      });
+      return;
+    }
+
+    // Get the job to check organization
+    const job = await db.getJobById(jobId);
+
+    // Check if user is an admin or superadmin
+    const userOrgs = await db.getUserOrgs(userId);
+    const isOrgAdmin = userOrgs.some(
+      (org) => org.id === job.orgId && org.isAdmin
+    );
+    const isSuperAdmin = req.user?.superadmin === true;
+
+    if (!isOrgAdmin && !isSuperAdmin) {
+      res.status(403).json({
+        message:
+          "Permission denied. Only organization admins or superadmins can view all tasks.",
+      });
+      return;
+    }
+
+    // Get paginated tasks
+    const result = await db.getPaginatedTasks(jobId, page, pageSize);
+
+    res.status(200).json({
+      success: true,
+      data: result,
     });
   } catch (error) {
     next(error);

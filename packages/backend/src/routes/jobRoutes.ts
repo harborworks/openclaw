@@ -5,6 +5,7 @@ import {
   createTask,
   deleteJob,
   getAllJobs,
+  getAllJobTasks,
   getJob,
   getJobs,
   getJobTasks,
@@ -37,6 +38,9 @@ router.delete("/jobs/:jobId", deleteJob);
 
 // GET /api/jobs/:jobId/tasks - Get all tasks for a job
 router.get("/jobs/:jobId/tasks", getJobTasks);
+
+// GET /api/jobs/:jobId/all-tasks - Get all tasks for a job with pagination (admin only)
+router.get("/jobs/:jobId/all-tasks", getAllJobTasks);
 
 // GET /api/jobs/:jobId/stats - Get task statistics for a job
 router.get("/jobs/:jobId/stats", getJobTaskStats);

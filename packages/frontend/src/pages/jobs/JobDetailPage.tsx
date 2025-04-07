@@ -9,6 +9,7 @@ import {
   getJobTaskStats,
   getNextAvailableTask,
 } from "../../api/jobs";
+import { getSelf } from "../../api/self";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import {
@@ -30,6 +31,8 @@ export default function JobDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isLoadingNextTask, setIsLoadingNextTask] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
   useEffect(() => {
     const fetchJobAndStats = async () => {
@@ -53,6 +56,18 @@ export default function JobDetailPage() {
         // Fetch task statistics
         const stats = await getJobTaskStats(auth.user.access_token, jobIdNum);
         setTaskStats(stats);
+
+        // Check if user has admin rights
+        const selfData = await getSelf(auth.user.access_token);
+        const isSuperAdmin = Boolean(selfData.user.superadmin);
+        setIsSuperAdmin(isSuperAdmin);
+
+        // Check if user is an admin of this job's organization
+        // UserMembership extends Org, so id is the organization id
+        const isOrgAdmin = selfData.memberships.some(
+          (membership) => membership.id === jobData.orgId && membership.isAdmin
+        );
+        setIsAdmin(isOrgAdmin || isSuperAdmin);
       } catch (err) {
         console.error("Error fetching job details:", err);
         setError("Failed to fetch job details");
@@ -64,12 +79,6 @@ export default function JobDetailPage() {
 
     fetchJobAndStats();
   }, [auth.user?.access_token, jobId]);
-
-  // Calculate completion percentage
-  const completionPercentage =
-    taskStats && taskStats.total > 0
-      ? Math.round((taskStats.completed / taskStats.total) * 100)
-      : 0;
 
   // Function to get the next available task
   const handleNextTask = async () => {
@@ -107,17 +116,38 @@ export default function JobDetailPage() {
     }
   };
 
+  // Handle viewing all tasks
+  const handleViewAllTasks = () => {
+    if (!jobId) return;
+    navigate(`/jobs/${jobId}/all-tasks`);
+  };
+
+  // Calculate completion percentage
+  const completionPercentage =
+    taskStats && taskStats.total > 0
+      ? Math.round((taskStats.completed / taskStats.total) * 100)
+      : 0;
+
   return (
     <div className="container mx-auto py-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <Button variant="outline" onClick={() => navigate("/jobs")}>
-          Back to Jobs
-        </Button>
-        {job && taskStats && taskStats.total > taskStats.completed && (
-          <Button onClick={handleNextTask} disabled={isLoadingNextTask}>
-            {isLoadingNextTask ? "Loading..." : "Next Available Task"}
+      <div className="flex flex-col space-y-2">
+        <div className="flex justify-between items-center">
+          <Button variant="outline" onClick={() => navigate("/jobs")}>
+            Back to Jobs
           </Button>
-        )}
+          <div className="space-x-2 flex">
+            {isAdmin && (
+              <Button variant="outline" onClick={handleViewAllTasks}>
+                View All Tasks
+              </Button>
+            )}
+            {job && taskStats && taskStats.total > taskStats.completed && (
+              <Button onClick={handleNextTask} disabled={isLoadingNextTask}>
+                {isLoadingNextTask ? "Loading..." : "Next Available Task"}
+              </Button>
+            )}
+          </div>
+        </div>
       </div>
 
       {isLoading ? (

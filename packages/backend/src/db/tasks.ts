@@ -102,3 +102,46 @@ export const getTaskById = async (taskId: number) => {
 
   return result.length > 0 ? result[0] : null;
 };
+
+/**
+ * Gets paginated tasks for a job
+ *
+ * @param jobId The ID of the job to get tasks for
+ * @param page Page number (1-indexed)
+ * @param pageSize Number of tasks per page
+ * @returns Paginated list of tasks and total count
+ */
+export const getPaginatedTasks = async (
+  jobId: number,
+  page: number = 1,
+  pageSize: number = 10
+) => {
+  const offset = (page - 1) * pageSize;
+
+  // Get tasks with pagination
+  const tasksList = await db
+    .select()
+    .from(tasks)
+    .where(eq(tasks.jobId, jobId))
+    .orderBy(tasks.id)
+    .limit(pageSize)
+    .offset(offset);
+
+  // Get total count
+  const countResult = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(tasks)
+    .where(eq(tasks.jobId, jobId));
+
+  const totalCount = countResult[0]?.count || 0;
+
+  return {
+    tasks: tasksList,
+    pagination: {
+      page,
+      pageSize,
+      totalCount,
+      totalPages: Math.ceil(totalCount / pageSize),
+    },
+  };
+};
