@@ -1,5 +1,5 @@
 import { dataType, jobs, orgs, tagType, tasks } from "@sparrow-tags/schema";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { db } from "./index.js";
 
 // Type for job creation
@@ -76,13 +76,7 @@ export const getJobById = async (jobId: number) => {
     })
     .from(jobs)
     .leftJoin(orgs, eq(jobs.orgId, orgs.id))
-    .where(
-      and(
-        eq(jobs.id, jobId),
-        eq((jobs as any).deletedAt, null),
-        eq((jobs as any).deletedById, null)
-      )
-    )
+    .where(and(eq(jobs.id, jobId), isNull(jobs.deletedById)))
     .limit(1);
 
   if (jobRows.length === 0) {
@@ -113,7 +107,7 @@ export const getJobsWithStats = async (orgId?: number) => {
     FROM jobs j
     LEFT JOIN orgs o ON j.org_id = o.id
     LEFT JOIN tasks t ON j.id = t.job_id
-    WHERE j.deleted_at IS NULL AND j.deleted_by_id IS NULL
+    WHERE j.deleted_by_id IS NULL
   `;
 
   if (orgId !== undefined) {
@@ -190,10 +184,7 @@ export const deleteJob = async (jobId: number, userId: number) => {
   console.log(existingJob[0]);
 
   // Check if the job has already been deleted
-  if (
-    existingJob[0].deletedById !== null ||
-    existingJob[0].deletedAt !== null
-  ) {
+  if (existingJob[0].deletedById !== null) {
     throw new Error("Job already deleted");
   }
 
@@ -215,7 +206,7 @@ export const getTasksByJobId = async (jobId: number) => {
   return await db
     .select()
     .from(tasks)
-    .where(eq(tasks.jobId, jobId))
+    .where(and(eq(tasks.jobId, jobId), eq((tasks as any).deletedById, null)))
     .orderBy(tasks.createdAt);
 };
 

@@ -128,12 +128,12 @@ export default function OrgsAdmin() {
       setSelectedOrgs([]);
 
       toast.success(
-        `${selectedOrgs.length} organization(s) deleted successfully`
+        `${selectedOrgs.length} organization(s) archived successfully`
       );
     } catch (error: any) {
       console.error("Error deleting organizations:", error);
       toast.error(
-        error.response?.data?.message || "Failed to delete organizations"
+        error.response?.data?.message || "Failed to archive organizations"
       );
     }
   };
@@ -149,11 +149,11 @@ export default function OrgsAdmin() {
       await api.deleteOrg(auth.user.access_token, orgId);
       setOrgs(orgs.filter((org) => org.id !== orgId));
       setSelectedOrgs(selectedOrgs.filter((id) => id !== orgId));
-      toast.success("Organization deleted successfully");
+      toast.success("Organization archived successfully");
     } catch (error: any) {
       console.error("Error deleting organization:", error);
       toast.error(
-        error.response?.data?.message || "Failed to delete organization"
+        error.response?.data?.message || "Failed to archive organization"
       );
     }
   };
@@ -175,7 +175,7 @@ export default function OrgsAdmin() {
               size="sm"
               onClick={handleDeleteSelected}
             >
-              Delete Selected
+              Archive Selected
             </Button>
           )}
           <Dialog
@@ -287,7 +287,7 @@ export default function OrgsAdmin() {
                         size="sm"
                         onClick={() => handleDeleteOrg(org.id)}
                       >
-                        Delete
+                        Archive
                       </Button>
                     </TableCell>
                   </TableRow>

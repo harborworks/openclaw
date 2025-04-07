@@ -91,7 +91,15 @@ export const updateMembershipAdmin = async (req: Request, res: Response) => {
 // Delete a membership
 export const deleteMembership = async (req: Request, res: Response) => {
   try {
+    const deletedById = req.user?.id;
     const { membershipId } = req.params;
+
+    if (!deletedById || isNaN(deletedById)) {
+      res.status(400).json({
+        message: "Invalid deletedById",
+      });
+      return;
+    }
 
     const id = parseInt(membershipId);
     if (isNaN(id)) {
@@ -108,7 +116,7 @@ export const deleteMembership = async (req: Request, res: Response) => {
     }
 
     // Delete the membership
-    await db.deleteMembership(id);
+    await db.deleteMembership(id, deletedById);
 
     res.json({
       message: "Membership deleted successfully",

@@ -1,5 +1,5 @@
 import { memberships, orgs, users } from "@sparrow-tags/schema";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { db } from ".";
 
 // Get all memberships with user and org details
@@ -17,7 +17,8 @@ export const getAllMemberships = async () => {
     })
     .from(memberships)
     .leftJoin(users, eq(memberships.userId, users.id))
-    .leftJoin(orgs, eq(memberships.orgId, orgs.id));
+    .leftJoin(orgs, eq(memberships.orgId, orgs.id))
+    .where(isNull(memberships.deletedById));
 };
 
 // Get membership by ID with user and org details
@@ -36,7 +37,7 @@ export const getMembershipWithDetails = async (id: number) => {
     .from(memberships)
     .leftJoin(users, eq(memberships.userId, users.id))
     .leftJoin(orgs, eq(memberships.orgId, orgs.id))
-    .where(eq(memberships.id, id))
+    .where(and(eq(memberships.id, id), isNull(memberships.deletedById)))
     .limit(1);
 
   return result[0] || null;
@@ -47,7 +48,7 @@ export const getMembershipById = async (id: number) => {
   const result = await db
     .select()
     .from(memberships)
-    .where(eq(memberships.id, id))
+    .where(and(eq(memberships.id, id), isNull(memberships.deletedById)))
     .limit(1);
 
   return result[0] || null;
@@ -66,7 +67,13 @@ export const getUserOrgs = async (userId: number) => {
     })
     .from(memberships)
     .leftJoin(orgs, eq(memberships.orgId, orgs.id))
-    .where(eq(memberships.userId, userId))
+    .where(
+      and(
+        eq(memberships.userId, userId),
+        isNull(memberships.deletedById),
+        isNull(orgs.deletedById)
+      )
+    )
     .orderBy(orgs.createdAt);
 };
 
@@ -75,7 +82,13 @@ export const checkMembershipExists = async (userId: number, orgId: number) => {
   const result = await db
     .select({ id: memberships.id })
     .from(memberships)
-    .where(and(eq(memberships.userId, userId), eq(memberships.orgId, orgId)))
+    .where(
+      and(
+        eq(memberships.userId, userId),
+        eq(memberships.orgId, orgId),
+        isNull(memberships.deletedById)
+      )
+    )
     .limit(1);
 
   return Boolean(result.length);
@@ -140,9 +153,13 @@ export const updateMembershipAdmin = async (id: number, admin: boolean) => {
 };
 
 // Delete a membership
-export const deleteMembership = async (id: number) => {
+export const deleteMembership = async (id: number, deletedById: number) => {
   const result = await db
-    .delete(memberships)
+    .update(memberships)
+    .set({
+      deletedById,
+      deletedAt: new Date(),
+    })
     .where(eq(memberships.id, id))
     .returning();
 

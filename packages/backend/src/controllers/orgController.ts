@@ -81,7 +81,15 @@ export const deleteOrg = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    const deletedById = req.user?.id;
     const { orgId } = req.params;
+
+    if (!deletedById || isNaN(deletedById)) {
+      res.status(400).json({
+        message: "Invalid deletedById",
+      });
+      return;
+    }
 
     if (!orgId || isNaN(parseInt(orgId))) {
       res.status(400).json({
@@ -91,7 +99,7 @@ export const deleteOrg = async (
     }
 
     // Delete the org
-    const deletedOrg = await db.deleteOrg(parseInt(orgId));
+    const deletedOrg = await db.deleteOrg(parseInt(orgId), deletedById);
 
     res.status(200).json({
       success: true,

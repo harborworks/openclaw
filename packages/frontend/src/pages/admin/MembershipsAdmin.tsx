@@ -140,7 +140,7 @@ export default function MembershipsAdmin() {
     }
   };
 
-  // Delete selected memberships
+  // Archive selected memberships
   const handleDeleteSelected = async () => {
     if (selectedMemberships.length === 0) return;
 
@@ -148,7 +148,7 @@ export default function MembershipsAdmin() {
     try {
       const token = auth.user?.access_token || "";
 
-      // Delete memberships sequentially to avoid race conditions
+      // Archive memberships sequentially to avoid race conditions
       for (const id of selectedMemberships) {
         await deleteMembership(token, id);
       }
@@ -159,10 +159,10 @@ export default function MembershipsAdmin() {
         )
       );
       setSelectedMemberships([]);
-      toast.success("Selected memberships deleted successfully");
+      toast.success("Selected memberships archived successfully");
     } catch (error) {
-      console.error("Error deleting memberships:", error);
-      toast.error("Failed to delete one or more memberships");
+      console.error("Error archiving memberships:", error);
+      toast.error("Failed to archive one or more memberships");
     } finally {
       setDeleteLoading(false);
     }
@@ -204,7 +204,7 @@ export default function MembershipsAdmin() {
               onClick={handleDeleteSelected}
               disabled={deleteLoading}
             >
-              {deleteLoading ? "Deleting..." : "Delete Selected"}
+              {deleteLoading ? "Archiving..." : "Archive Selected"}
             </Button>
           )}
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
@@ -357,14 +357,14 @@ export default function MembershipsAdmin() {
                           setMemberships(
                             memberships.filter((m) => m.id !== membership.id)
                           );
-                          toast.success("Membership deleted successfully");
+                          toast.success("Membership archived successfully");
                         } catch (error) {
-                          console.error("Error deleting membership:", error);
-                          toast.error("Failed to delete membership");
+                          console.error("Error archiving membership:", error);
+                          toast.error("Failed to archive membership");
                         }
                       }}
                     >
-                      Delete
+                      Archive
                     </Button>
                   </TableCell>
                 </TableRow>

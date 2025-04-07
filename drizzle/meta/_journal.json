@@ -36,6 +36,27 @@
       "when": 1744059550669,
       "tag": "0004_big_crystal",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1744062385107,
+      "tag": "0005_windy_the_hood",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1744062706909,
+      "tag": "0006_brown_eternals",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1744064138364,
+      "tag": "0007_gigantic_ares",
+      "breakpoints": true
     }
   ]
 }

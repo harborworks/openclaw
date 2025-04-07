@@ -148,7 +148,7 @@ export default function UsersAdmin() {
     );
 
     if (usersToDelete.length === 0) {
-      toast.error("No users to delete. Protected users cannot be deleted.");
+      toast.error("No users to archive. Protected users cannot be archived.");
       return;
     }
 
@@ -168,10 +168,10 @@ export default function UsersAdmin() {
       );
       setSelectedUsers([]);
 
-      toast.success(`${usersToDelete.length} user(s) deleted successfully`);
+      toast.success(`${usersToDelete.length} user(s) archived successfully`);
     } catch (error: any) {
-      console.error("Error deleting users:", error);
-      toast.error(error.response?.data?.message || "Failed to delete users");
+      console.error("Error archiving users:", error);
+      toast.error(error.response?.data?.message || "Failed to archive users");
     }
   };
 
@@ -249,10 +249,10 @@ export default function UsersAdmin() {
       await api.deleteUser(auth.user.access_token, userId);
       setUsers(users.filter((user) => user.id !== userId));
       setSelectedUsers(selectedUsers.filter((id) => id !== userId));
-      toast.success("User deleted successfully");
+      toast.success("User archived successfully");
     } catch (error: any) {
-      console.error("Error deleting user:", error);
-      toast.error(error.response?.data?.message || "Failed to delete user");
+      console.error("Error archiving user:", error);
+      toast.error(error.response?.data?.message || "Failed to archive user");
     }
   };
 
@@ -267,7 +267,7 @@ export default function UsersAdmin() {
               size="sm"
               onClick={handleDeleteSelected}
             >
-              Delete Selected
+              Archive Selected
             </Button>
           )}
           <Dialog
@@ -400,7 +400,7 @@ export default function UsersAdmin() {
                           onClick={() => handleDeleteUser(user.id)}
                           disabled={isProtected || isCurrentUser}
                         >
-                          Delete
+                          Archive
                         </Button>
                       </TableCell>
                     </TableRow>

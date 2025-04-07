@@ -1,12 +1,12 @@
 import { users } from "@sparrow-tags/schema";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { db } from "./index.js";
 
 export const getUserById = async (userId: number) => {
   const userRows = await db
     .select()
     .from(users)
-    .where(eq(users.id, userId))
+    .where(and(eq(users.id, userId), isNull(users.deletedById)))
     .limit(1);
   if (userRows.length === 0) {
     throw new Error("User not found");
@@ -19,7 +19,7 @@ export const getUserByCognitoId = async (cognitoId: string) => {
   const userRows = await db
     .select()
     .from(users)
-    .where(eq(users.cognitoId, cognitoId))
+    .where(and(eq(users.cognitoId, cognitoId), isNull(users.deletedById)))
     .limit(1);
   if (userRows.length === 0) {
     throw new Error("User not found");
@@ -30,7 +30,11 @@ export const getUserByCognitoId = async (cognitoId: string) => {
 
 // Function to get all users
 export const getAllUsers = async () => {
-  return await db.select().from(users).orderBy(users.createdAt);
+  return await db
+    .select()
+    .from(users)
+    .where(isNull(users.deletedById))
+    .orderBy(users.createdAt);
 };
 
 // Function to create a new non-superadmin user
@@ -66,15 +70,19 @@ export const updateUserSuperadmin = async (
 };
 
 // Function to delete a user
-export const deleteUser = async (userId: number) => {
-  const [deletedUser] = await db
-    .delete(users)
+export const deleteUser = async (userId: number, deletedById: number) => {
+  const [updatedUser] = await db
+    .update(users)
+    .set({
+      deletedById,
+      deletedAt: new Date(),
+    })
     .where(eq(users.id, userId))
     .returning();
 
-  if (!deletedUser) {
+  if (!updatedUser) {
     throw new Error("User not found");
   }
 
-  return deletedUser;
+  return updatedUser;
 };

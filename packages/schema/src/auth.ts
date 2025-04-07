@@ -1,14 +1,16 @@
+import { relations } from "drizzle-orm";
 import {
   boolean,
   index,
   integer,
   pgTable,
+  timestamp,
   unique,
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
 
-import { timestamps } from "./timestamps";
+import { deleted, timestamps } from "./helpers";
 
 export const users = pgTable(
   "users",
@@ -17,6 +19,8 @@ export const users = pgTable(
     cognitoId: uuid().notNull().unique(),
     email: varchar({ length: 255 }).notNull().unique(),
     superadmin: boolean().default(false).notNull(),
+    deletedById: integer(),
+    deletedAt: timestamp(),
     ...timestamps,
   },
   (table) => {
@@ -26,9 +30,17 @@ export const users = pgTable(
   }
 );
 
+export const usersRelations = relations(users, ({ one }) => ({
+  deletedBy: one(users, {
+    fields: [users.deletedById],
+    references: [users.id],
+  }),
+}));
+
 export const orgs = pgTable("orgs", {
   id: integer().primaryKey().generatedAlwaysAsIdentity(),
   slug: varchar({ length: 255 }).notNull().unique(),
+  ...deleted,
   ...timestamps,
 });
 
@@ -43,6 +55,7 @@ export const memberships = pgTable(
       .references(() => orgs.id)
       .notNull(),
     admin: boolean().default(false).notNull(),
+    ...deleted,
     ...timestamps,
   },
   (table) => {

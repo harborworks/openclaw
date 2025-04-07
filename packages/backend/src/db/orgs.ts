@@ -1,5 +1,5 @@
 import { orgs } from "@sparrow-tags/schema";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { db } from "./index.js";
 
 // Function to get an organization by ID
@@ -7,7 +7,7 @@ export const getOrgById = async (orgId: number) => {
   const orgRows = await db
     .select()
     .from(orgs)
-    .where(eq(orgs.id, orgId))
+    .where(and(eq(orgs.id, orgId), isNull(orgs.deletedById)))
     .limit(1);
 
   if (orgRows.length === 0) {
@@ -19,7 +19,11 @@ export const getOrgById = async (orgId: number) => {
 
 // Function to get all organizations
 export const getAllOrgs = async () => {
-  return await db.select().from(orgs).orderBy(orgs.createdAt);
+  return await db
+    .select()
+    .from(orgs)
+    .where(isNull(orgs.deletedById))
+    .orderBy(orgs.createdAt);
 };
 
 // Function to create a new organization
@@ -28,7 +32,7 @@ export const createOrg = async (slug: string) => {
   const existingOrgs = await db
     .select()
     .from(orgs)
-    .where(eq(orgs.slug, slug))
+    .where(and(eq(orgs.slug, slug), isNull(orgs.deletedById)))
     .limit(1);
 
   if (existingOrgs.length > 0) {
@@ -46,15 +50,19 @@ export const createOrg = async (slug: string) => {
 };
 
 // Function to delete an organization
-export const deleteOrg = async (orgId: number) => {
-  const [deletedOrg] = await db
-    .delete(orgs)
+export const deleteOrg = async (orgId: number, deletedById: number) => {
+  const [updatedOrg] = await db
+    .update(orgs)
+    .set({
+      deletedById,
+      deletedAt: new Date(),
+    })
     .where(eq(orgs.id, orgId))
     .returning();
 
-  if (!deletedOrg) {
+  if (!updatedOrg) {
     throw new Error("Organization not found");
   }
 
-  return deletedOrg;
+  return updatedOrg;
 };

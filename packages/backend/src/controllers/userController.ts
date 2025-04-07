@@ -167,7 +167,15 @@ export const deleteUser = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    const deletedById = req.user?.id;
     const { userId } = req.params;
+
+    if (!deletedById || isNaN(deletedById)) {
+      res.status(400).json({
+        message: "Invalid deletedById",
+      });
+      return;
+    }
 
     if (!userId || isNaN(parseInt(userId))) {
       res.status(400).json({
@@ -209,7 +217,7 @@ export const deleteUser = async (
     }
 
     // Delete the user from our database
-    const deletedUser = await db.deleteUser(parseInt(userId));
+    const deletedUser = await db.deleteUser(parseInt(userId), deletedById);
 
     res.status(200).json({
       success: true,

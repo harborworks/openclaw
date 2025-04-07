@@ -11,7 +11,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 import { orgs, users } from "./auth";
-import { timestamps } from "./timestamps";
+import { deleted, timestamps } from "./helpers";
 
 export const dataType = pgEnum("data_type", ["image", "video"]);
 export const tagType = pgEnum("tag_type", [
@@ -30,8 +30,7 @@ export const jobs = pgTable("jobs", {
   dataType: dataType("data_type").notNull(),
   tagType: tagType("tag_type").notNull(),
   labels: jsonb().notNull(),
-  deletedById: integer().references(() => users.id),
-  deletedAt: timestamp(),
+  ...deleted,
   ...timestamps,
 });
 
@@ -46,6 +45,7 @@ export const tasks = pgTable(
     assignedToId: integer().references(() => users.id),
     assignedAt: timestamp(),
     completedAt: timestamp(),
+    ...deleted,
     ...timestamps,
   },
   (table) => {
@@ -71,5 +71,6 @@ export const tags = pgTable("tags", {
   tagType: tagType("tag_type").notNull(),
   isPrediction: boolean().notNull().default(false),
   values: jsonb().notNull(),
+  ...deleted,
   ...timestamps,
 });

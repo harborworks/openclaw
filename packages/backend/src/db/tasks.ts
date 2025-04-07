@@ -1,5 +1,5 @@
 import { tasks } from "@sparrow-tags/schema";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { db } from "./index.js";
 
 /**
@@ -20,6 +20,7 @@ export const getNextAvailableTask = async (userId: number, jobId: number) => {
         (assigned_to_id IS NULL OR assigned_at < NOW() - INTERVAL '30 minutes')
         AND completed_at IS NULL
         AND job_id = ${jobId}
+        AND deleted_by_id IS NULL
   `;
 
   // Complete the query with ordering and locking
@@ -82,6 +83,7 @@ export const getTaskStats = async (jobId: number) => {
       COUNT(CASE WHEN completed_at IS NOT NULL THEN 1 END) as completed
     FROM tasks
     WHERE job_id = ${jobId}
+    AND deleted_by_id IS NULL
   `);
 
   return result.rows[0];
@@ -97,7 +99,7 @@ export const getTaskById = async (taskId: number) => {
   const result = await db
     .select()
     .from(tasks)
-    .where(eq(tasks.id, taskId))
+    .where(and(eq(tasks.id, taskId), isNull(tasks.deletedById)))
     .limit(1);
 
   return result.length > 0 ? result[0] : null;
@@ -122,7 +124,7 @@ export const getPaginatedTasks = async (
   const tasksList = await db
     .select()
     .from(tasks)
-    .where(eq(tasks.jobId, jobId))
+    .where(and(eq(tasks.jobId, jobId), isNull(tasks.deletedById)))
     .orderBy(tasks.id)
     .limit(pageSize)
     .offset(offset);
@@ -131,7 +133,7 @@ export const getPaginatedTasks = async (
   const countResult = await db
     .select({ count: sql<number>`count(*)` })
     .from(tasks)
-    .where(eq(tasks.jobId, jobId));
+    .where(and(eq(tasks.jobId, jobId), isNull(tasks.deletedById)));
 
   const totalCount = countResult[0]?.count || 0;
 
