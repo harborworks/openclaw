@@ -225,3 +225,85 @@ export const getJobTaskStats = async (
   );
   return response.data.data;
 };
+
+/**
+ * Interface for task data
+ */
+export interface Task {
+  id: number;
+  jobId: number;
+  url: string;
+  assignedToId: number | null;
+  assignedAt: string | null;
+  completedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Get the next available task for a job
+ * @param token JWT token
+ * @param jobId ID of the job
+ * @returns The next available task or throws an error if none available
+ */
+export const getNextAvailableTask = async (
+  token: string,
+  jobId: number
+): Promise<Task> => {
+  const response = await axios.get<{ success: boolean; data: Task }>(
+    `${API_URL}/api/jobs/${jobId}/next-task`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+  return response.data.data;
+};
+
+/**
+ * Get a specific task by ID
+ * @param token JWT token
+ * @param jobId ID of the job
+ * @param taskId ID of the task
+ * @returns The task or throws an error if not found
+ */
+export const getTask = async (
+  token: string,
+  jobId: number,
+  taskId: number
+): Promise<Task> => {
+  const response = await axios.get<{ success: boolean; data: Task }>(
+    `${API_URL}/api/jobs/${jobId}/tasks/${taskId}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+  return response.data.data;
+};
+
+/**
+ * Complete a task
+ * @param token JWT token
+ * @param jobId ID of the job
+ * @param taskId ID of the task to complete
+ * @returns The completed task
+ */
+export const completeTask = async (
+  token: string,
+  jobId: number,
+  taskId: number
+): Promise<Task> => {
+  const response = await axios.post<{ success: boolean; data: Task }>(
+    `${API_URL}/api/jobs/${jobId}/tasks/${taskId}/complete`,
+    {},
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+  return response.data.data;
+};

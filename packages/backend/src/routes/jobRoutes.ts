@@ -1,5 +1,6 @@
 import { Router } from "express";
 import {
+  completeTaskController,
   createJob,
   createTask,
   deleteJob,
@@ -8,6 +9,8 @@ import {
   getJobs,
   getJobTasks,
   getJobTaskStats,
+  getNextAvailableTask,
+  getTaskById,
   updateJob,
 } from "../controllers/jobController";
 import { generatePresignedUrl } from "../services/s3Service";
@@ -37,6 +40,15 @@ router.get("/jobs/:jobId/tasks", getJobTasks);
 
 // GET /api/jobs/:jobId/stats - Get task statistics for a job
 router.get("/jobs/:jobId/stats", getJobTaskStats);
+
+// GET /api/jobs/:jobId/next-task - Get the next available task for a job
+router.get("/jobs/:jobId/next-task", getNextAvailableTask);
+
+// GET /api/jobs/:jobId/tasks/:taskId - Get a specific task
+router.get("/jobs/:jobId/tasks/:taskId", getTaskById);
+
+// POST /api/jobs/:jobId/tasks/:taskId/complete - Complete a task
+router.post("/jobs/:jobId/tasks/:taskId/complete", completeTaskController);
 
 // POST /api/jobs/:jobId/tasks - Create a new task for a job
 router.post("/jobs/:jobId/tasks", createTask);

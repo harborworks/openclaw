@@ -2,7 +2,13 @@ import { useEffect, useState } from "react";
 import { useAuth } from "react-oidc-context";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
-import { Job, JobTaskStats, getJob, getJobTaskStats } from "../../api/jobs";
+import {
+  Job,
+  JobTaskStats,
+  getJob,
+  getJobTaskStats,
+  getNextAvailableTask,
+} from "../../api/jobs";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import {
@@ -23,6 +29,7 @@ export default function JobDetailPage() {
   const [taskStats, setTaskStats] = useState<JobTaskStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isLoadingNextTask, setIsLoadingNextTask] = useState(false);
 
   useEffect(() => {
     const fetchJobAndStats = async () => {
@@ -64,12 +71,53 @@ export default function JobDetailPage() {
       ? Math.round((taskStats.completed / taskStats.total) * 100)
       : 0;
 
+  // Function to get the next available task
+  const handleNextTask = async () => {
+    if (!auth.user?.access_token || !jobId) return;
+
+    try {
+      setIsLoadingNextTask(true);
+
+      // Parse jobId to number
+      const jobIdNum = parseInt(jobId, 10);
+      if (isNaN(jobIdNum)) {
+        toast.error("Invalid job ID");
+        return;
+      }
+
+      // Get the next available task
+      const nextTask = await getNextAvailableTask(
+        auth.user.access_token,
+        jobIdNum
+      );
+
+      // Navigate to the task page
+      navigate(`/jobs/${jobId}/tasks/${nextTask.id}`);
+    } catch (err: any) {
+      console.error("Error getting next task:", err);
+
+      // Show appropriate error message
+      if (err.response?.status === 404) {
+        toast.error("No available tasks found");
+      } else {
+        toast.error("Failed to get next task");
+      }
+    } finally {
+      setIsLoadingNextTask(false);
+    }
+  };
+
   return (
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex justify-between items-center">
         <Button variant="outline" onClick={() => navigate("/jobs")}>
           Back to Jobs
         </Button>
+        {job && taskStats && taskStats.total > taskStats.completed && (
+          <Button onClick={handleNextTask} disabled={isLoadingNextTask}>
+            {isLoadingNextTask ? "Loading..." : "Next Available Task"}
+          </Button>
+        )}
       </div>
 
       {isLoading ? (

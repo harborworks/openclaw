@@ -406,3 +406,164 @@ export const getJobTaskStats = async (
     next(error);
   }
 };
+
+/**
+ * Get the next available task for a job
+ */
+export const getNextAvailableTask = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const jobId = parseInt(req.params.jobId);
+    const userId = req.user?.id;
+
+    if (isNaN(jobId)) {
+      res.status(400).json({
+        message: "Invalid job ID",
+      });
+      return;
+    }
+
+    if (!userId) {
+      res.status(401).json({
+        message: "Unauthorized",
+      });
+      return;
+    }
+
+    const task = await db.getNextAvailableTask(userId, jobId);
+
+    if (!task) {
+      res.status(404).json({
+        message: "No available tasks found",
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      data: task,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Get a specific task by ID
+ */
+export const getTaskById = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const jobId = parseInt(req.params.jobId);
+    const taskId = parseInt(req.params.taskId);
+
+    if (isNaN(jobId) || isNaN(taskId)) {
+      res.status(400).json({
+        message: "Invalid job ID or task ID",
+      });
+      return;
+    }
+
+    // Get the task - first we need a function to get a task by ID in the db layer
+    const task = await db.getTaskById(taskId);
+
+    if (!task) {
+      res.status(404).json({
+        message: "Task not found",
+      });
+      return;
+    }
+
+    // Verify the task belongs to the job
+    if (task.jobId !== jobId) {
+      res.status(400).json({
+        message: "Task does not belong to the specified job",
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      data: task,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Complete a task
+ */
+export const completeTaskController = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const jobId = parseInt(req.params.jobId);
+    const taskId = parseInt(req.params.taskId);
+    const userId = req.user?.id;
+
+    if (isNaN(jobId) || isNaN(taskId)) {
+      res.status(400).json({
+        message: "Invalid job ID or task ID",
+      });
+      return;
+    }
+
+    if (!userId) {
+      res.status(401).json({
+        message: "Unauthorized",
+      });
+      return;
+    }
+
+    // Get the task to verify it exists and belongs to the job
+    const task = await db.getTaskById(taskId);
+
+    if (!task) {
+      res.status(404).json({
+        message: "Task not found",
+      });
+      return;
+    }
+
+    if (task.jobId !== jobId) {
+      res.status(400).json({
+        message: "Task does not belong to the specified job",
+      });
+      return;
+    }
+
+    // Check if task is assigned to this user
+    if (task.assignedToId !== userId) {
+      res.status(403).json({
+        message: "Task is not assigned to you",
+      });
+      return;
+    }
+
+    // Complete the task
+    const completedTask = await db.completeTask(taskId, userId);
+
+    if (!completedTask) {
+      res.status(500).json({
+        message: "Failed to complete task",
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      data: completedTask,
+    });
+  } catch (error) {
+    next(error);
+  }
+};

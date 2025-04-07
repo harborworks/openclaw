@@ -1,4 +1,5 @@
-import { sql } from "drizzle-orm";
+import { tasks } from "@sparrow-tags/schema";
+import { eq, sql } from "drizzle-orm";
 import { db } from "./index.js";
 
 /**
@@ -84,4 +85,20 @@ export const getTaskStats = async (jobId: number) => {
   `);
 
   return result.rows[0];
+};
+
+/**
+ * Gets a task by ID
+ *
+ * @param taskId The ID of the task to retrieve
+ * @returns The task or null if not found
+ */
+export const getTaskById = async (taskId: number) => {
+  const result = await db
+    .select()
+    .from(tasks)
+    .where(eq(tasks.id, taskId))
+    .limit(1);
+
+  return result.length > 0 ? result[0] : null;
 };
