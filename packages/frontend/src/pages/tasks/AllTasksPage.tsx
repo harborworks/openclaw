@@ -44,7 +44,6 @@ export default function AllTasksPage() {
   const [job, setJob] = useState<Job | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [pagination, setPagination] = useState<Pagination | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [userMap, setUserMap] = useState<UserMap>({});
@@ -81,7 +80,6 @@ export default function AllTasksPage() {
 
       setTasks(taskData);
       setPagination(paginationData);
-      setCurrentPage(page);
 
       // Fetch user information for assigned users
       await fetchUserEmails(taskData);

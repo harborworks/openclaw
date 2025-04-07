@@ -32,7 +32,6 @@ export default function JobDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [isLoadingNextTask, setIsLoadingNextTask] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
   useEffect(() => {
     const fetchJobAndStats = async () => {
@@ -57,13 +56,10 @@ export default function JobDetailPage() {
         const stats = await getJobTaskStats(auth.user.access_token, jobIdNum);
         setTaskStats(stats);
 
-        // Check if user has admin rights
-        const selfData = await getSelf(auth.user.access_token);
-        const isSuperAdmin = Boolean(selfData.user.superadmin);
-        setIsSuperAdmin(isSuperAdmin);
-
         // Check if user is an admin of this job's organization
         // UserMembership extends Org, so id is the organization id
+        const selfData = await getSelf(auth.user.access_token);
+        const isSuperAdmin = Boolean(selfData.user.superadmin);
         const isOrgAdmin = selfData.memberships.some(
           (membership) => membership.id === jobData.orgId && membership.isAdmin
         );
