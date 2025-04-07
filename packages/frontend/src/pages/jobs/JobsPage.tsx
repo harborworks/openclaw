@@ -3,6 +3,17 @@ import { useAuth } from "react-oidc-context";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { Job, deleteJob, getJobs } from "../../api/jobs";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "../../components/ui/alert-dialog";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { Progress } from "../../components/ui/progress";
@@ -26,12 +37,38 @@ export default function JobsPage() {
     if (!auth.user?.access_token) return;
 
     try {
-      await deleteJob(auth.user.access_token, jobId);
-      setJobs(jobs.filter((job) => job.id !== jobId));
-      toast.success("Job deleted successfully");
-    } catch (err) {
-      console.error("Error deleting job:", err);
-      toast.error("Failed to delete job");
+      const result = await deleteJob(auth.user.access_token, jobId);
+      // Update the local state to reflect the job as archived
+      setJobs(
+        jobs.map((job) =>
+          job.id === jobId
+            ? {
+                ...job,
+                deletedById: result.data.deletedById,
+                deletedAt: result.data.deletedAt,
+              }
+            : job
+        )
+      );
+      toast.success("Job archived successfully");
+    } catch (err: any) {
+      console.error("Error archiving job:", err);
+      // Check if this is a "Job already deleted" error
+      if (err.response?.data?.message === "Job already deleted") {
+        toast.error("This job has already been archived");
+
+        // Refresh jobs list to ensure UI is in sync with server state
+        if (auth.user?.access_token) {
+          try {
+            const fetchedJobs = await getJobs(auth.user.access_token);
+            setJobs(fetchedJobs);
+          } catch (refreshErr) {
+            console.error("Error refreshing jobs:", refreshErr);
+          }
+        }
+      } else {
+        toast.error("Failed to archive job");
+      }
     }
   };
 
@@ -61,6 +98,12 @@ export default function JobsPage() {
 
     fetchJobs();
   }, [auth.user?.access_token]);
+
+  // Filter out soft-deleted jobs in the UI
+  // We need to verify the job doesn't have a deletedAt timestamp
+  const activeJobs = jobs.filter(
+    (job) => !job.deletedAt && job.deletedById === null
+  );
 
   return (
     <div className="container mx-auto py-6 space-y-6">
@@ -96,8 +139,8 @@ export default function JobsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {jobs.length > 0 ? (
-                jobs.map((job) => (
+              {activeJobs.length > 0 ? (
+                activeJobs.map((job) => (
                   <TableRow key={job.id}>
                     <TableCell>{job.id}</TableCell>
                     <TableCell className="font-medium">
@@ -172,13 +215,34 @@ export default function JobsPage() {
                         <Button variant="outline" size="sm" asChild>
                           <Link to={`/jobs/${job.id}`}>View Details</Link>
                         </Button>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => handleDeleteJob(job.id)}
-                        >
-                          Delete
-                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="destructive" size="sm">
+                              Archive
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>
+                                Are you sure you want to archive this job?
+                              </AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This job will be archived and will no longer
+                                appear in the jobs list. All associated tasks
+                                will remain in the database but will not be
+                                accessible.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDeleteJob(job.id)}
+                              >
+                                Archive Job
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </div>
                     </TableCell>
                   </TableRow>

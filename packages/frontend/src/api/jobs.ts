@@ -12,6 +12,8 @@ export interface Job {
   labels: string[];
   createdAt: string;
   updatedAt: string;
+  deletedById?: number | null;
+  deletedAt?: string | null;
   totalTasks?: number;
   completedTasks?: number;
   inProgressTasks?: number;

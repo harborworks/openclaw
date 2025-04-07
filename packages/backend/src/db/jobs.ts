@@ -1,5 +1,5 @@
 import { dataType, jobs, orgs, tagType, tasks } from "@sparrow-tags/schema";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { db } from "./index.js";
 
 // Type for job creation
@@ -12,8 +12,24 @@ export type CreateJobInput = {
   labels: string[];
 };
 
+// Extended job type including the soft delete fields
+interface JobWithSoftDelete {
+  id: number;
+  orgId: number;
+  name: string | null;
+  instructions: string | null;
+  dataType: (typeof dataType.enumValues)[number];
+  tagType: (typeof tagType.enumValues)[number];
+  labels: unknown;
+  deletedById: number | null;
+  deletedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 // Get all jobs for an organization
 export const getJobsByOrgId = async (orgId: number) => {
+  // Because TypeScript doesn't recognize the new columns yet, we use type assertions
   return await db
     .select({
       id: jobs.id,
@@ -26,10 +42,18 @@ export const getJobsByOrgId = async (orgId: number) => {
       labels: jobs.labels,
       createdAt: jobs.createdAt,
       updatedAt: jobs.updatedAt,
+      deletedById: (jobs as any).deletedById,
+      deletedAt: (jobs as any).deletedAt,
     })
     .from(jobs)
     .leftJoin(orgs, eq(jobs.orgId, orgs.id))
-    .where(eq(jobs.orgId, orgId))
+    .where(
+      and(
+        eq(jobs.orgId, orgId),
+        eq((jobs as any).deletedAt, null),
+        eq((jobs as any).deletedById, null)
+      )
+    )
     .orderBy(jobs.createdAt);
 };
 
@@ -47,10 +71,18 @@ export const getJobById = async (jobId: number) => {
       labels: jobs.labels,
       createdAt: jobs.createdAt,
       updatedAt: jobs.updatedAt,
+      deletedById: (jobs as any).deletedById,
+      deletedAt: (jobs as any).deletedAt,
     })
     .from(jobs)
     .leftJoin(orgs, eq(jobs.orgId, orgs.id))
-    .where(eq(jobs.id, jobId))
+    .where(
+      and(
+        eq(jobs.id, jobId),
+        eq((jobs as any).deletedAt, null),
+        eq((jobs as any).deletedById, null)
+      )
+    )
     .limit(1);
 
   if (jobRows.length === 0) {
@@ -72,6 +104,8 @@ export const getJobsWithStats = async (orgId?: number) => {
       j.labels,
       j.created_at,
       j.updated_at,
+      j.deleted_by_id,
+      j.deleted_at,
       o.slug as org_slug,
       COUNT(t.id) as total_tasks,
       COUNT(CASE WHEN t.completed_at IS NOT NULL THEN 1 END) as completed_tasks,
@@ -79,10 +113,11 @@ export const getJobsWithStats = async (orgId?: number) => {
     FROM jobs j
     LEFT JOIN orgs o ON j.org_id = o.id
     LEFT JOIN tasks t ON j.id = t.job_id
+    WHERE j.deleted_at IS NULL AND j.deleted_by_id IS NULL
   `;
 
   if (orgId !== undefined) {
-    query += ` WHERE j.org_id = ${orgId}`;
+    query += ` AND j.org_id = ${orgId}`;
   }
 
   query += `
@@ -139,16 +174,38 @@ export const updateJob = async (
   return updatedJob;
 };
 
-// Delete a job
-export const deleteJob = async (jobId: number) => {
-  const [deletedJob] = await db
-    .delete(jobs)
+// Delete a job (soft delete)
+export const deleteJob = async (jobId: number, userId: number) => {
+  // Verify the job exists and is not already deleted
+  const existingJob = (await db
+    .select()
+    .from(jobs)
     .where(eq(jobs.id, jobId))
-    .returning();
+    .limit(1)) as JobWithSoftDelete[];
 
-  if (!deletedJob) {
+  if (existingJob.length === 0) {
     throw new Error("Job not found");
   }
+
+  console.log(existingJob[0]);
+
+  // Check if the job has already been deleted
+  if (
+    existingJob[0].deletedById !== null ||
+    existingJob[0].deletedAt !== null
+  ) {
+    throw new Error("Job already deleted");
+  }
+
+  // Soft delete by updating deletedById and deletedAt
+  const [deletedJob] = await db
+    .update(jobs)
+    .set({
+      deletedById: userId,
+      deletedAt: new Date(),
+    } as any) // Using 'as any' to bypass TypeScript checks temporarily
+    .where(eq(jobs.id, jobId))
+    .returning();
 
   return deletedJob;
 };

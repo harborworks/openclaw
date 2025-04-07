@@ -30,6 +30,8 @@ export const jobs = pgTable("jobs", {
   dataType: dataType("data_type").notNull(),
   tagType: tagType("tag_type").notNull(),
   labels: jsonb().notNull(),
+  deletedById: integer().references(() => users.id),
+  deletedAt: timestamp(),
   ...timestamps,
 });
 

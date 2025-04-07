@@ -67,6 +67,8 @@ export const getAllJobs = async (
         labels: parsedLabels,
         createdAt: job.created_at,
         updatedAt: job.updated_at,
+        deletedById: job.deleted_by_id || null,
+        deletedAt: job.deleted_at || null,
         totalTasks: parseInt(job.total_tasks as unknown as string) || 0,
         completedTasks: parseInt(job.completed_tasks as unknown as string) || 0,
         inProgressTasks:
@@ -148,6 +150,8 @@ export const getJob = async (
     const transformedJob = {
       ...job,
       labels: parsedLabels,
+      deletedById: job.deletedById || null,
+      deletedAt: job.deletedAt || null,
     };
 
     res.status(200).json({
@@ -315,6 +319,7 @@ export const deleteJob = async (
 ): Promise<void> => {
   try {
     const jobId = parseInt(req.params.jobId);
+    const userId = req.user?.id;
 
     if (isNaN(jobId)) {
       res.status(400).json({
@@ -323,8 +328,15 @@ export const deleteJob = async (
       return;
     }
 
-    // Delete the job
-    const deletedJob = await db.deleteJob(jobId);
+    if (!userId) {
+      res.status(401).json({
+        message: "Unauthorized",
+      });
+      return;
+    }
+
+    // Soft delete the job
+    const deletedJob = await db.deleteJob(jobId, userId);
 
     res.status(200).json({
       success: true,
@@ -334,6 +346,12 @@ export const deleteJob = async (
   } catch (error: any) {
     if (error.message === "Job not found") {
       res.status(404).json({
+        message: error.message,
+      });
+      return;
+    }
+    if (error.message === "Job already deleted") {
+      res.status(400).json({
         message: error.message,
       });
       return;
