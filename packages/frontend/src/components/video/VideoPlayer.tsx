@@ -1,5 +1,5 @@
 import Hls from "hls.js";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import videojs from "video.js";
 import "video.js/dist/video-js.css";
 
@@ -31,11 +31,30 @@ const VideoPlayer = ({
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
 
   // Calculate actual aspect ratio from props or use default
-  const videoAspectRatio = aspectRatio || `${width}:${height}`;
+  const videoAspectRatio = aspectRatio || "16:9";
   const numericAspectRatio = aspectRatio
     ? parseFloat(aspectRatio.split(":")[0]) /
       parseFloat(aspectRatio.split(":")[1])
     : width / height;
+
+  // Add CSS to hide volume/mute controls, picture-in-picture and fullscreen toggle
+  useLayoutEffect(() => {
+    const style = document.createElement("style");
+    style.innerHTML = `
+      .video-js .vjs-mute-control, 
+      .video-js .vjs-volume-menu-button,
+      .video-js .vjs-volume-panel,
+      .video-js .vjs-picture-in-picture-control,
+      .video-js .vjs-fullscreen-control {
+        display: none !important;
+      }
+    `;
+    document.head.appendChild(style);
+
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
 
   useEffect(() => {
     // Measure container size on mount and resize
@@ -84,10 +103,20 @@ const VideoPlayer = ({
         responsive: true,
         preload: "auto",
         poster,
-        aspectRatio: videoAspectRatio, // Format is already "width:height" as string
+        aspectRatio: videoAspectRatio, // Format is width:height as string
+        controlBar: {
+          volumePanel: { inline: false, vertical: true, disabled: true },
+          muteToggle: false,
+          pictureInPictureToggle: false,
+          fullscreenToggle: false,
+        },
+        muted: true, // Always mute the video
       };
 
       playerRef.current = videojs(videoElement, options);
+
+      // Ensure the player is muted
+      playerRef.current.muted(true);
     }
 
     // Check if browser supports HLS natively
