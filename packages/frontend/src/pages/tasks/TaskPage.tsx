@@ -6,6 +6,13 @@ import { Task, completeTask, getTask } from "../../api/jobs";
 import { getUserById } from "../../api/users";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "../../components/ui/card";
+import { Separator } from "../../components/ui/separator";
 import { Skeleton } from "../../components/ui/skeleton";
 import VideoPlayer from "../../components/video/VideoPlayer";
 
@@ -124,13 +131,7 @@ export default function TaskPage() {
   };
 
   return (
-    <div className="container mx-auto py-4 space-y-4">
-      <div className="flex justify-between items-center mb-4">
-        <Button variant="outline" onClick={() => navigate(`/jobs/${jobId}`)}>
-          Back to Job
-        </Button>
-      </div>
-
+    <div className="container mx-auto py-4">
       {isLoading ? (
         <div className="space-y-4">
           <Skeleton className="h-8 w-1/3" />
@@ -139,57 +140,94 @@ export default function TaskPage() {
       ) : error ? (
         <div className="text-center py-6 text-red-500">{error}</div>
       ) : task ? (
-        <div className="space-y-4">
-          {/* Task info header outside the card */}
-          <div className="flex justify-between items-center">
-            <div>
-              <h2 className="text-2xl font-bold">Task #{task.id}</h2>
-              <div className="text-muted-foreground">Job ID: {task.jobId}</div>
-              <div className="mt-1 flex items-center gap-2">
-                <span>Status: {getTaskStatus()}</span>
-                {task.assignedToId && (
-                  <span className="ml-4">
-                    Assigned to:{" "}
-                    {isLoadingUser ? (
-                      <Skeleton className="h-4 w-24 inline-block" />
-                    ) : (
-                      assignedUserEmail
-                    )}
-                  </span>
-                )}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Main content area */}
+          <div className="lg:col-span-9 space-y-6">
+            {/* Video player container with aspect ratio */}
+            <div className="w-full bg-gray-50 rounded-lg overflow-hidden min-h-[70vh] flex items-center justify-center">
+              {isVideoUrl(task.url) ? (
+                <div className="relative w-full aspect-video max-h-[70vh]">
+                  <VideoPlayer
+                    src={`https://cors-anywhere-zq.herokuapp.com/${task.url}`}
+                    controls={true}
+                    className="absolute inset-0 w-full h-full"
+                  />
+                </div>
+              ) : (
+                <img
+                  src={task.url}
+                  alt="Task content"
+                  className="max-h-[70vh] object-contain"
+                />
+              )}
+            </div>
+
+            <Separator />
+
+            {/* Navigation buttons in a single row */}
+            <div className="flex justify-between items-center px-2">
+              <Button
+                variant="outline"
+                onClick={() => navigate(`/jobs/${jobId}`)}
+              >
+                Back to Job
+              </Button>
+
+              <div className="space-x-2">
+                <Button
+                  variant="ghost"
+                  onClick={() => navigate(`/jobs/${jobId}`)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleCompleteTask}
+                  disabled={isCompletingTask}
+                >
+                  {isCompletingTask ? "Completing..." : "Complete Task"}
+                </Button>
               </div>
             </div>
           </div>
 
-          {/* Video player container */}
-          <div className="my-8 w-full">
-            {isVideoUrl(task.url) ? (
-              <VideoPlayer
-                src={`https://cors-anywhere-zq.herokuapp.com/${task.url}`}
-                controls={true}
-                width={800}
-                height={450}
-                className="mx-auto"
-              />
-            ) : (
-              <div className="flex justify-center">
-                <img
-                  src={task.url}
-                  alt="Task content"
-                  className="max-h-[600px] object-contain"
-                />
-              </div>
-            )}
-          </div>
+          {/* Sidebar with task metadata */}
+          <div className="lg:col-span-3">
+            <Card className="sticky top-4">
+              <CardHeader>
+                <CardTitle>Task Details</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <div className="text-sm text-muted-foreground">Task ID</div>
+                  <div className="font-medium">#{task.id}</div>
+                </div>
 
-          {/* Footer buttons */}
-          <div className="flex justify-end space-x-2 mt-4">
-            <Button variant="ghost" onClick={() => navigate(`/jobs/${jobId}`)}>
-              Cancel
-            </Button>
-            <Button onClick={handleCompleteTask} disabled={isCompletingTask}>
-              {isCompletingTask ? "Completing..." : "Complete Task"}
-            </Button>
+                <div>
+                  <div className="text-sm text-muted-foreground">Job ID</div>
+                  <div className="font-medium">#{task.jobId}</div>
+                </div>
+
+                <div>
+                  <div className="text-sm text-muted-foreground">Status</div>
+                  <div>{getTaskStatus()}</div>
+                </div>
+
+                {task.assignedToId && (
+                  <div>
+                    <div className="text-sm text-muted-foreground">
+                      Assigned to
+                    </div>
+                    <div>
+                      {isLoadingUser ? (
+                        <Skeleton className="h-4 w-24" />
+                      ) : (
+                        assignedUserEmail
+                      )}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
         </div>
       ) : (
