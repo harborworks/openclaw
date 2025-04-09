@@ -1,5 +1,5 @@
 import Hls from "hls.js";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import videojs from "video.js";
 import "video.js/dist/video-js.css";
 
@@ -11,6 +11,7 @@ interface VideoPlayerProps {
   controls?: boolean;
   autoplay?: boolean;
   className?: string;
+  aspectRatio?: string; // Optional custom aspect ratio as string (e.g. "16:9")
 }
 
 const VideoPlayer = ({
@@ -21,11 +22,53 @@ const VideoPlayer = ({
   controls = true,
   autoplay = false,
   className = "",
+  aspectRatio,
 }: VideoPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const playerRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
+
+  // Calculate actual aspect ratio from props or use default
+  const videoAspectRatio = aspectRatio || `${width}:${height}`;
+  const numericAspectRatio = aspectRatio
+    ? parseFloat(aspectRatio.split(":")[0]) /
+      parseFloat(aspectRatio.split(":")[1])
+    : width / height;
+
+  useEffect(() => {
+    // Measure container size on mount and resize
+    const updateContainerSize = () => {
+      if (!containerRef.current) return;
+
+      // Get parent element dimensions
+      const parent = containerRef.current.parentElement;
+      if (!parent) return;
+
+      const parentWidth = parent.clientWidth;
+      const parentHeight = parent.clientHeight || window.innerHeight;
+
+      setContainerSize({ width: parentWidth, height: parentHeight });
+    };
+
+    // Initial measurement
+    updateContainerSize();
+
+    // Set up resize observer for parent element size changes
+    const resizeObserver = new ResizeObserver(updateContainerSize);
+    if (containerRef.current?.parentElement) {
+      resizeObserver.observe(containerRef.current.parentElement);
+    }
+
+    // Also listen for window resize events
+    window.addEventListener("resize", updateContainerSize);
+
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener("resize", updateContainerSize);
+    };
+  }, []);
 
   useEffect(() => {
     if (!videoRef.current) return;
@@ -41,13 +84,10 @@ const VideoPlayer = ({
         responsive: true,
         preload: "auto",
         poster,
-        width,
-        height,
+        aspectRatio: videoAspectRatio, // Format is already "width:height" as string
       };
 
       playerRef.current = videojs(videoElement, options);
-
-      console.log("Video player initialized with width:", width);
     }
 
     // Check if browser supports HLS natively
@@ -118,15 +158,55 @@ const VideoPlayer = ({
         playerRef.current = null;
       }
     };
-  }, [src, controls, autoplay, poster, width, height]);
+  }, [src, controls, autoplay, poster, videoAspectRatio]);
+
+  // Calculate dimensions to fit container while maintaining aspect ratio
+  const calculateOptimalDimensions = () => {
+    const { width: maxWidth, height: maxHeight } = containerSize;
+
+    if (maxWidth === 0 || maxHeight === 0) {
+      // Default dimensions if container size is not yet available
+      return { width: "100%", height: "auto" };
+    }
+
+    // Calculate dimensions based on aspect ratio constraints
+    const heightByWidth = maxWidth / numericAspectRatio;
+    const widthByHeight = maxHeight * numericAspectRatio;
+
+    if (heightByWidth <= maxHeight) {
+      // Width is the limiting factor
+      return { width: maxWidth, height: heightByWidth };
+    } else {
+      // Height is the limiting factor
+      return { width: widthByHeight, height: maxHeight };
+    }
+  };
+
+  const optimalDimensions = calculateOptimalDimensions();
 
   return (
     <div
       ref={containerRef}
       className={`relative ${className}`}
-      style={{ width: `${width}px`, maxWidth: "100%", margin: "0 auto" }}
+      style={{
+        width:
+          typeof optimalDimensions.width === "number"
+            ? `${optimalDimensions.width}px`
+            : optimalDimensions.width,
+        height:
+          typeof optimalDimensions.height === "number"
+            ? `${optimalDimensions.height}px`
+            : optimalDimensions.height,
+        maxWidth: "100%",
+        maxHeight: "100%",
+        margin: "0 auto",
+      }}
     >
-      <div data-vjs-player className="video-js-container">
+      <div
+        data-vjs-player
+        className="video-js-container"
+        style={{ width: "100%", height: "100%" }}
+      >
         <video ref={videoRef} className="video-js vjs-big-play-centered" />
       </div>
       <canvas
