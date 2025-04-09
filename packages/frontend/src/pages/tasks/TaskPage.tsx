@@ -6,15 +6,8 @@ import { Task, completeTask, getTask } from "../../api/jobs";
 import { getUserById } from "../../api/users";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "../../components/ui/card";
 import { Skeleton } from "../../components/ui/skeleton";
+import VideoPlayer from "../../components/video/VideoPlayer";
 
 export default function TaskPage() {
   const { jobId, taskId } = useParams<{ jobId: string; taskId: string }>();
@@ -98,6 +91,11 @@ export default function TaskPage() {
     }
   };
 
+  // Check if the task URL is a video (HLS/m3u8)
+  const isVideoUrl = (url: string) => {
+    return url.includes(".m3u8");
+  };
+
   const handleCompleteTask = async () => {
     if (!auth.user?.access_token || !jobId || !taskId || !task) return;
 
@@ -126,8 +124,8 @@ export default function TaskPage() {
   };
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="container mx-auto py-4 space-y-4">
+      <div className="flex justify-between items-center mb-4">
         <Button variant="outline" onClick={() => navigate(`/jobs/${jobId}`)}>
           Back to Job
         </Button>
@@ -141,49 +139,58 @@ export default function TaskPage() {
       ) : error ? (
         <div className="text-center py-6 text-red-500">{error}</div>
       ) : task ? (
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-2xl">Task #{task.id}</CardTitle>
-              <CardDescription>
-                Job ID: {task.jobId}
-                <div className="mt-2 flex items-center gap-2">
-                  <span>Status: {getTaskStatus()}</span>
-                  {task.assignedToId && (
-                    <span className="ml-4">
-                      Assigned to:{" "}
-                      {isLoadingUser ? (
-                        <Skeleton className="h-4 w-24 inline-block" />
-                      ) : (
-                        assignedUserEmail
-                      )}
-                    </span>
-                  )}
-                </div>
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Task content goes here - will depend on task type */}
+        <div className="space-y-4">
+          {/* Task info header outside the card */}
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-2xl font-bold">Task #{task.id}</h2>
+              <div className="text-muted-foreground">Job ID: {task.jobId}</div>
+              <div className="mt-1 flex items-center gap-2">
+                <span>Status: {getTaskStatus()}</span>
+                {task.assignedToId && (
+                  <span className="ml-4">
+                    Assigned to:{" "}
+                    {isLoadingUser ? (
+                      <Skeleton className="h-4 w-24 inline-block" />
+                    ) : (
+                      assignedUserEmail
+                    )}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Video player container */}
+          <div className="my-8 w-full">
+            {isVideoUrl(task.url) ? (
+              <VideoPlayer
+                src={`https://cors-anywhere-zq.herokuapp.com/${task.url}`}
+                controls={true}
+                width={800}
+                height={450}
+                className="mx-auto"
+              />
+            ) : (
               <div className="flex justify-center">
                 <img
                   src={task.url}
                   alt="Task content"
-                  className="max-h-[600px] object-contain rounded-md border border-gray-200 shadow-sm"
+                  className="max-h-[600px] object-contain"
                 />
               </div>
-            </CardContent>
-            <CardFooter className="flex justify-end space-x-2">
-              <Button
-                variant="ghost"
-                onClick={() => navigate(`/jobs/${jobId}`)}
-              >
-                Cancel
-              </Button>
-              <Button onClick={handleCompleteTask} disabled={isCompletingTask}>
-                {isCompletingTask ? "Completing..." : "Complete Task"}
-              </Button>
-            </CardFooter>
-          </Card>
+            )}
+          </div>
+
+          {/* Footer buttons */}
+          <div className="flex justify-end space-x-2 mt-4">
+            <Button variant="ghost" onClick={() => navigate(`/jobs/${jobId}`)}>
+              Cancel
+            </Button>
+            <Button onClick={handleCompleteTask} disabled={isCompletingTask}>
+              {isCompletingTask ? "Completing..." : "Complete Task"}
+            </Button>
+          </div>
         </div>
       ) : (
         <div className="text-center py-6 text-muted-foreground">
