@@ -1,8 +1,11 @@
+import { zodResolver } from "@hookform/resolvers/zod";
 import { PlusIcon } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
 import { useAuth } from "react-oidc-context";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
+import * as z from "zod";
 import { Task, completeTask, getTask } from "../../api/jobs";
 import { getUserById } from "../../api/users";
 import { Badge } from "../../components/ui/badge";
@@ -13,9 +16,36 @@ import {
   CardHeader,
   CardTitle,
 } from "../../components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "../../components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "../../components/ui/form";
+import { Input } from "../../components/ui/input";
 import { Separator } from "../../components/ui/separator";
 import { Skeleton } from "../../components/ui/skeleton";
+import { Slider } from "../../components/ui/slider";
 import VideoPlayer from "../../components/video/VideoPlayer";
+
+// Schema for time segment tag
+const timeSegmentTagSchema = z.object({
+  label: z.string().min(1, "Label is required"),
+  timeRange: z.array(z.number()).length(2),
+});
+
+type TimeSegmentTagFormValues = z.infer<typeof timeSegmentTagSchema>;
 
 export default function TaskPage() {
   const { jobId, taskId } = useParams<{ jobId: string; taskId: string }>();
@@ -29,6 +59,20 @@ export default function TaskPage() {
   const [isLoadingUser, setIsLoadingUser] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isCompletingTask, setIsCompletingTask] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [videoDuration, setVideoDuration] = useState(0);
+  const [tags, setTags] = useState<
+    Array<{ label: string; start: number; end: number }>
+  >([]);
+
+  // Form for creating time segment tags
+  const form = useForm<TimeSegmentTagFormValues>({
+    resolver: zodResolver(timeSegmentTagSchema),
+    defaultValues: {
+      label: "",
+      timeRange: [0, 100],
+    },
+  });
 
   useEffect(() => {
     const fetchTask = async () => {
@@ -131,6 +175,47 @@ export default function TaskPage() {
     }
   };
 
+  // Convert slider percentage to actual video time in seconds
+  const percentToSeconds = (percent: number) => {
+    return (percent / 100) * videoDuration;
+  };
+
+  // Convert actual video time to slider percentage
+  const secondsToPercent = (seconds: number) => {
+    if (!videoDuration) return 0;
+    return (seconds / videoDuration) * 100;
+  };
+
+  // Format seconds as MM:SS
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+  };
+
+  // Handle form submission
+  const onSubmit = (values: TimeSegmentTagFormValues) => {
+    const [startPercent, endPercent] = values.timeRange;
+    const startTime = percentToSeconds(startPercent);
+    const endTime = percentToSeconds(endPercent);
+
+    // Add the new tag
+    setTags([
+      ...tags,
+      {
+        label: values.label,
+        start: startTime,
+        end: endTime,
+      },
+    ]);
+
+    // Reset form and close dialog
+    form.reset();
+    setOpen(false);
+
+    toast.success(`Tag "${values.label}" created successfully`);
+  };
+
   return (
     <div className="container mx-auto py-4">
       {isLoading ? (
@@ -152,6 +237,12 @@ export default function TaskPage() {
                     src={`https://cors-anywhere-zq.herokuapp.com/${task.url}`}
                     controls={true}
                     className="absolute inset-0 w-full h-full"
+                    onLoadedMetadata={(
+                      e: React.SyntheticEvent<HTMLVideoElement>
+                    ) => {
+                      const video = e.currentTarget;
+                      setVideoDuration(video.duration);
+                    }}
                   />
                 </div>
               ) : (
@@ -233,12 +324,100 @@ export default function TaskPage() {
             <Card className="mt-4">
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Tags</CardTitle>
-                <Button variant="ghost" size="sm">
-                  <PlusIcon className="h-4 w-4" />
-                  <span className="sr-only">Add tag</span>
-                </Button>
+                <Dialog open={open} onOpenChange={setOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="ghost" size="sm">
+                      <PlusIcon className="h-4 w-4" />
+                      <span className="sr-only">Add tag</span>
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                      <DialogTitle>Create Time Segment Tag</DialogTitle>
+                      <DialogDescription>
+                        Set the start and end times for this tag.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <Form {...form}>
+                      <form
+                        onSubmit={form.handleSubmit(onSubmit as any)}
+                        className="space-y-4"
+                      >
+                        <FormField
+                          control={form.control}
+                          name="timeRange"
+                          render={({ field }) => (
+                            <FormItem className="space-y-4">
+                              <FormLabel>Time Range</FormLabel>
+                              <div className="pt-4">
+                                <Slider
+                                  defaultValue={field.value}
+                                  max={100}
+                                  step={0.1}
+                                  value={field.value}
+                                  onValueChange={field.onChange}
+                                  className="mb-2"
+                                />
+                              </div>
+                              <div className="flex justify-between text-sm text-muted-foreground">
+                                <div>
+                                  Start:{" "}
+                                  {formatTime(percentToSeconds(field.value[0]))}
+                                </div>
+                                <div>
+                                  End:{" "}
+                                  {formatTime(percentToSeconds(field.value[1]))}
+                                </div>
+                              </div>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="label"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Label</FormLabel>
+                              <FormControl>
+                                <Input
+                                  placeholder="Enter tag label"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <DialogFooter>
+                          <Button type="submit">Create Tag</Button>
+                        </DialogFooter>
+                      </form>
+                    </Form>
+                  </DialogContent>
+                </Dialog>
               </CardHeader>
-              <CardContent>{/* Tag content will go here */}</CardContent>
+              <CardContent>
+                {tags.length === 0 ? (
+                  <div className="text-sm text-muted-foreground">
+                    No tags created yet
+                  </div>
+                ) : (
+                  <ul className="space-y-2">
+                    {tags.map((tag, index) => (
+                      <li
+                        key={index}
+                        className="flex justify-between items-center text-sm"
+                      >
+                        <span className="font-medium">{tag.label}</span>
+                        <span className="text-muted-foreground">
+                          {formatTime(tag.start)} - {formatTime(tag.end)}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </CardContent>
             </Card>
           </div>
         </div>

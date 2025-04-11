@@ -12,6 +12,7 @@ interface VideoPlayerProps {
   autoplay?: boolean;
   className?: string;
   aspectRatio?: string; // Optional custom aspect ratio as string (e.g. "16:9")
+  onLoadedMetadata?: (e: React.SyntheticEvent<HTMLVideoElement>) => void;
 }
 
 const VideoPlayer = ({
@@ -23,6 +24,7 @@ const VideoPlayer = ({
   autoplay = false,
   className = "",
   aspectRatio,
+  onLoadedMetadata,
 }: VideoPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -94,6 +96,11 @@ const VideoPlayer = ({
 
     // Initialize video.js player
     const videoElement = videoRef.current;
+
+    // Add loadedmetadata event listener if provided
+    if (onLoadedMetadata) {
+      videoElement.addEventListener("loadedmetadata", onLoadedMetadata as any);
+    }
 
     if (!playerRef.current) {
       const options = {
@@ -177,17 +184,32 @@ const VideoPlayer = ({
       // Clean up event listener
       return () => {
         window.removeEventListener("resize", updateCanvasSize);
+
+        // Remove the loadedmetadata event listener
+        if (onLoadedMetadata) {
+          videoElement.removeEventListener(
+            "loadedmetadata",
+            onLoadedMetadata as any
+          );
+        }
       };
     }
 
     // Clean up the player on unmount
     return () => {
+      if (onLoadedMetadata && videoElement) {
+        videoElement.removeEventListener(
+          "loadedmetadata",
+          onLoadedMetadata as any
+        );
+      }
+
       if (playerRef.current) {
         playerRef.current.dispose();
         playerRef.current = null;
       }
     };
-  }, [src, controls, autoplay, poster, videoAspectRatio]);
+  }, [src, controls, autoplay, poster, videoAspectRatio, onLoadedMetadata]);
 
   // Calculate dimensions to fit container while maintaining aspect ratio
   const calculateOptimalDimensions = () => {
