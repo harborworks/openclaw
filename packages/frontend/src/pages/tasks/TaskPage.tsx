@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PlusIcon, TrashIcon } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useAuth } from "react-oidc-context";
 import { useNavigate, useParams } from "react-router-dom";
@@ -26,15 +26,6 @@ import {
   CardTitle,
 } from "../../components/ui/card";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "../../components/ui/dialog";
-import {
   Form,
   FormControl,
   FormField,
@@ -44,6 +35,15 @@ import {
 } from "../../components/ui/form";
 import { Input } from "../../components/ui/input";
 import { Separator } from "../../components/ui/separator";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "../../components/ui/sheet";
 import { Skeleton } from "../../components/ui/skeleton";
 import { Slider } from "../../components/ui/slider";
 import VideoPlayer from "../../components/video/VideoPlayer";
@@ -77,6 +77,7 @@ export default function TaskPage() {
   const [jobLabels, setJobLabels] = useState<string[]>([]);
   const [jobTagType, setJobTagType] = useState<string>("");
   const [isDeletingTag, setIsDeletingTag] = useState<number | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   // Form for creating time segment tags
   const form = useForm<TimeSegmentTagFormValues>({
@@ -243,6 +244,59 @@ export default function TaskPage() {
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
+  // Seek video to a specific time
+  const seekVideoToTime = (seconds: number) => {
+    if (videoRef.current) {
+      videoRef.current.currentTime = seconds;
+    }
+  };
+
+  // Handle slider change
+  const handleTimeRangeChange = (values: number[]) => {
+    // Update the form value
+    form.setValue("timeRange", values);
+
+    // Seek video to the start time
+    const startTimeSeconds = percentToSeconds(values[0]);
+    seekVideoToTime(startTimeSeconds);
+  };
+
+  // Get current video time and convert to percentage for slider
+  const getCurrentVideoTime = () => {
+    if (!videoRef.current) return 0;
+    return secondsToPercent(videoRef.current.currentTime);
+  };
+
+  // Set start time to current video position
+  const setStartFromVideo = () => {
+    if (!videoRef.current) return;
+
+    const currentPercent = getCurrentVideoTime();
+    const [_, endPercent] = form.getValues("timeRange");
+
+    // Make sure start is not after end
+    if (currentPercent < endPercent) {
+      form.setValue("timeRange", [currentPercent, endPercent]);
+    } else {
+      toast.error("Start time must be before end time");
+    }
+  };
+
+  // Set end time to current video position
+  const setEndFromVideo = () => {
+    if (!videoRef.current) return;
+
+    const currentPercent = getCurrentVideoTime();
+    const [startPercent, _] = form.getValues("timeRange");
+
+    // Make sure end is not before start
+    if (currentPercent > startPercent) {
+      form.setValue("timeRange", [startPercent, currentPercent]);
+    } else {
+      toast.error("End time must be after start time");
+    }
+  };
+
   // Handle form submission
   const onSubmit = async (values: TimeSegmentTagFormValues) => {
     if (!auth.user?.access_token || !jobId || !taskId || !task) return;
@@ -335,6 +389,7 @@ export default function TaskPage() {
               {isVideoUrl(task.url) ? (
                 <div className="relative w-full aspect-video max-h-[70vh]">
                   <VideoPlayer
+                    ref={videoRef}
                     src={`https://cors-anywhere-zq.herokuapp.com/${task.url}`}
                     controls={true}
                     className="absolute inset-0 w-full h-full"
@@ -425,24 +480,28 @@ export default function TaskPage() {
             <Card className="mt-4">
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Tags</CardTitle>
-                <Dialog open={open} onOpenChange={setOpen}>
-                  <DialogTrigger asChild>
+                <Sheet open={open} onOpenChange={setOpen}>
+                  <SheetTrigger asChild>
                     <Button variant="ghost" size="sm">
                       <PlusIcon className="h-4 w-4" />
                       <span className="sr-only">Add tag</span>
                     </Button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-[425px]">
-                    <DialogHeader>
-                      <DialogTitle>Create Time Segment Tag</DialogTitle>
-                      <DialogDescription>
+                  </SheetTrigger>
+                  <SheetContent
+                    side="right"
+                    className="sm:max-w-[400px] p-6"
+                    hideOverlay={true}
+                  >
+                    <SheetHeader className="mb-6">
+                      <SheetTitle>Create Time Segment Tag</SheetTitle>
+                      <SheetDescription>
                         Set the start and end times for this tag.
-                      </DialogDescription>
-                    </DialogHeader>
+                      </SheetDescription>
+                    </SheetHeader>
                     <Form {...form}>
                       <form
                         onSubmit={form.handleSubmit(onSubmit as any)}
-                        className="space-y-4"
+                        className="space-y-4 mt-4"
                       >
                         <FormField
                           control={form.control}
@@ -456,7 +515,10 @@ export default function TaskPage() {
                                   max={100}
                                   step={0.1}
                                   value={field.value}
-                                  onValueChange={field.onChange}
+                                  onValueChange={(values) => {
+                                    field.onChange(values);
+                                    handleTimeRangeChange(values);
+                                  }}
                                   className="mb-2"
                                 />
                               </div>
@@ -469,6 +531,32 @@ export default function TaskPage() {
                                   End:{" "}
                                   {formatTime(percentToSeconds(field.value[1]))}
                                 </div>
+                              </div>
+                              <div className="flex justify-between">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() =>
+                                    seekVideoToTime(
+                                      percentToSeconds(field.value[0])
+                                    )
+                                  }
+                                >
+                                  Jump to Start
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() =>
+                                    seekVideoToTime(
+                                      percentToSeconds(field.value[1])
+                                    )
+                                  }
+                                >
+                                  Jump to End
+                                </Button>
                               </div>
                               <FormMessage />
                             </FormItem>
@@ -510,15 +598,19 @@ export default function TaskPage() {
                             </FormItem>
                           )}
                         />
-                        <DialogFooter>
-                          <Button type="submit" disabled={isSavingTag}>
+                        <SheetFooter>
+                          <Button
+                            type="submit"
+                            disabled={isSavingTag}
+                            className="w-full"
+                          >
                             {isSavingTag ? "Creating..." : "Create Tag"}
                           </Button>
-                        </DialogFooter>
+                        </SheetFooter>
                       </form>
                     </Form>
-                  </DialogContent>
-                </Dialog>
+                  </SheetContent>
+                </Sheet>
               </CardHeader>
               <CardContent>
                 {isLoadingTags ? (
