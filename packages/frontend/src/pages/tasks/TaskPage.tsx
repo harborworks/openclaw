@@ -35,15 +35,6 @@ import {
 } from "../../components/ui/form";
 import { Input } from "../../components/ui/input";
 import { Separator } from "../../components/ui/separator";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "../../components/ui/sheet";
 import { Skeleton } from "../../components/ui/skeleton";
 import { Slider } from "../../components/ui/slider";
 import VideoPlayer from "../../components/video/VideoPlayer";
@@ -72,6 +63,7 @@ export default function TaskPage() {
   const [error, setError] = useState<string | null>(null);
   const [isCompletingTask, setIsCompletingTask] = useState(false);
   const [open, setOpen] = useState(false);
+  const [showTagEditor, setShowTagEditor] = useState(false);
   const [videoDuration, setVideoDuration] = useState(0);
   const [tags, setTags] = useState<TimeSegmentTag[]>([]);
   const [jobLabels, setJobLabels] = useState<string[]>([]);
@@ -339,7 +331,7 @@ export default function TaskPage() {
 
       // Reset form and close dialog
       form.reset();
-      setOpen(false);
+      setShowTagEditor(false);
 
       toast.success(`Tag "${values.label}" created successfully`);
     } catch (err) {
@@ -409,6 +401,152 @@ export default function TaskPage() {
                 />
               )}
             </div>
+
+            {/* Floating Tag Editor */}
+            {showTagEditor && (
+              <div className="fixed bottom-4 right-4 bg-white rounded-lg shadow-lg border p-4 w-[400px] z-10">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="font-medium">Create Time Segment Tag</h3>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowTagEditor(false)}
+                    className="h-8 w-8 p-0"
+                  >
+                    <span className="sr-only">Close</span>✕
+                  </Button>
+                </div>
+                <Form {...form}>
+                  <form
+                    onSubmit={form.handleSubmit(onSubmit as any)}
+                    className="space-y-4"
+                  >
+                    <FormField
+                      control={form.control}
+                      name="timeRange"
+                      render={({ field }) => (
+                        <FormItem className="space-y-4">
+                          <FormLabel>Time Range</FormLabel>
+                          <div className="flex justify-between">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={setStartFromVideo}
+                            >
+                              Set Start to Current
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={setEndFromVideo}
+                            >
+                              Set End to Current
+                            </Button>
+                          </div>
+                          <div className="pt-4">
+                            <Slider
+                              defaultValue={field.value}
+                              max={100}
+                              step={0.1}
+                              value={field.value}
+                              onValueChange={(values) => {
+                                field.onChange(values);
+                                handleTimeRangeChange(values);
+                              }}
+                              className="mb-2"
+                            />
+                          </div>
+                          <div className="flex justify-between text-sm text-muted-foreground">
+                            <div>
+                              Start:{" "}
+                              {formatTime(percentToSeconds(field.value[0]))}
+                            </div>
+                            <div>
+                              End:{" "}
+                              {formatTime(percentToSeconds(field.value[1]))}
+                            </div>
+                          </div>
+                          <div className="flex justify-between">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                seekVideoToTime(
+                                  percentToSeconds(field.value[0])
+                                )
+                              }
+                            >
+                              Jump to Start
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                seekVideoToTime(
+                                  percentToSeconds(field.value[1])
+                                )
+                              }
+                            >
+                              Jump to End
+                            </Button>
+                          </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="label"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Label</FormLabel>
+                          {jobLabels.length > 0 ? (
+                            <div className="grid grid-cols-2 gap-2">
+                              {jobLabels.map((label) => (
+                                <Button
+                                  key={label}
+                                  type="button"
+                                  variant={
+                                    field.value === label
+                                      ? "default"
+                                      : "outline"
+                                  }
+                                  onClick={() => field.onChange(label)}
+                                  className="justify-start"
+                                >
+                                  {label}
+                                </Button>
+                              ))}
+                            </div>
+                          ) : (
+                            <FormControl>
+                              <Input placeholder="Enter tag label" {...field} />
+                            </FormControl>
+                          )}
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setShowTagEditor(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button type="submit" disabled={isSavingTag}>
+                        {isSavingTag ? "Creating..." : "Create Tag"}
+                      </Button>
+                    </div>
+                  </form>
+                </Form>
+              </div>
+            )}
 
             <Separator />
 
@@ -480,155 +618,14 @@ export default function TaskPage() {
             <Card className="mt-4">
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Tags</CardTitle>
-                <Sheet open={open} onOpenChange={setOpen}>
-                  <SheetTrigger asChild>
-                    <Button variant="ghost" size="sm">
-                      <PlusIcon className="h-4 w-4" />
-                      <span className="sr-only">Add tag</span>
-                    </Button>
-                  </SheetTrigger>
-                  <SheetContent
-                    side="right"
-                    className="sm:max-w-[400px] p-6"
-                    hideOverlay={true}
-                  >
-                    <SheetHeader className="mb-6">
-                      <SheetTitle>Create Time Segment Tag</SheetTitle>
-                      <SheetDescription>
-                        Set the start and end times for this tag.
-                      </SheetDescription>
-                    </SheetHeader>
-                    <Form {...form}>
-                      <form
-                        onSubmit={form.handleSubmit(onSubmit as any)}
-                        className="space-y-4 mt-4"
-                      >
-                        <FormField
-                          control={form.control}
-                          name="timeRange"
-                          render={({ field }) => (
-                            <FormItem className="space-y-4">
-                              <FormLabel>Time Range</FormLabel>
-                              <div className="flex justify-between">
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={setStartFromVideo}
-                                >
-                                  Set Start to Current
-                                </Button>
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={setEndFromVideo}
-                                >
-                                  Set End to Current
-                                </Button>
-                              </div>
-                              <div className="pt-4">
-                                <Slider
-                                  defaultValue={field.value}
-                                  max={100}
-                                  step={0.1}
-                                  value={field.value}
-                                  onValueChange={(values) => {
-                                    field.onChange(values);
-                                    handleTimeRangeChange(values);
-                                  }}
-                                  className="mb-2"
-                                />
-                              </div>
-                              <div className="flex justify-between text-sm text-muted-foreground">
-                                <div>
-                                  Start:{" "}
-                                  {formatTime(percentToSeconds(field.value[0]))}
-                                </div>
-                                <div>
-                                  End:{" "}
-                                  {formatTime(percentToSeconds(field.value[1]))}
-                                </div>
-                              </div>
-                              <div className="flex justify-between">
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() =>
-                                    seekVideoToTime(
-                                      percentToSeconds(field.value[0])
-                                    )
-                                  }
-                                >
-                                  Jump to Start
-                                </Button>
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() =>
-                                    seekVideoToTime(
-                                      percentToSeconds(field.value[1])
-                                    )
-                                  }
-                                >
-                                  Jump to End
-                                </Button>
-                              </div>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="label"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Label</FormLabel>
-                              {jobLabels.length > 0 ? (
-                                <div className="grid grid-cols-2 gap-2">
-                                  {jobLabels.map((label) => (
-                                    <Button
-                                      key={label}
-                                      type="button"
-                                      variant={
-                                        field.value === label
-                                          ? "default"
-                                          : "outline"
-                                      }
-                                      onClick={() => field.onChange(label)}
-                                      className="justify-start"
-                                    >
-                                      {label}
-                                    </Button>
-                                  ))}
-                                </div>
-                              ) : (
-                                <FormControl>
-                                  <Input
-                                    placeholder="Enter tag label"
-                                    {...field}
-                                  />
-                                </FormControl>
-                              )}
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <SheetFooter>
-                          <Button
-                            type="submit"
-                            disabled={isSavingTag}
-                            className="w-full"
-                          >
-                            {isSavingTag ? "Creating..." : "Create Tag"}
-                          </Button>
-                        </SheetFooter>
-                      </form>
-                    </Form>
-                  </SheetContent>
-                </Sheet>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowTagEditor(true)}
+                >
+                  <PlusIcon className="h-4 w-4" />
+                  <span className="sr-only">Add tag</span>
+                </Button>
               </CardHeader>
               <CardContent>
                 {isLoadingTags ? (
