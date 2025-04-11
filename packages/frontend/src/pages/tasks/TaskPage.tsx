@@ -35,6 +35,7 @@ import {
   FormMessage,
 } from "../../components/ui/form";
 import { Input } from "../../components/ui/input";
+import { ScrollArea } from "../../components/ui/scroll-area";
 import { Separator } from "../../components/ui/separator";
 import { Skeleton } from "../../components/ui/skeleton";
 import { Slider } from "../../components/ui/slider";
@@ -351,11 +352,10 @@ export default function TaskPage() {
       setShowTagEditor(false);
       setEditingTag(null);
 
-      toast.success(
-        `Tag "${values.label}" ${editingTag ? "updated" : "created"} successfully`
-      );
+      // Remove the success toast
     } catch (err) {
       console.error(`Error ${editingTag ? "updating" : "creating"} tag:`, err);
+      // Keep error toast as it's important for user feedback on failures
       toast.error(`Failed to ${editingTag ? "update" : "create"} tag`);
     } finally {
       setIsSavingTag(false);
@@ -392,9 +392,10 @@ export default function TaskPage() {
       // Update the tags list by removing the deleted tag
       setTags(tags.filter((tag) => tag.id !== tagId));
 
-      toast.success("Tag deleted successfully");
+      // Remove the success toast
     } catch (err) {
       console.error("Error deleting tag:", err);
+      // Keep error toast as it's important for user feedback on failures
       toast.error("Failed to delete tag");
     } finally {
       setIsDeletingTag(null);
@@ -694,49 +695,51 @@ export default function TaskPage() {
                     No tags created yet
                   </div>
                 ) : (
-                  <ul className="space-y-2">
-                    {tags.map((tag) => (
-                      <li
-                        key={tag.id}
-                        className="flex justify-between items-center text-sm border-b pb-2"
-                      >
-                        <div className="flex flex-col">
-                          <span className="font-medium">
-                            {tag.values.label}
-                          </span>
-                          <span className="text-muted-foreground">
-                            {formatTime(tag.values.start)} -{" "}
-                            {formatTime(tag.values.end)}
-                          </span>
-                        </div>
-                        <div className="flex space-x-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEditTag(tag)}
-                            className="h-8 w-8 p-0"
-                          >
-                            <PencilIcon className="h-4 w-4 text-blue-500" />
-                            <span className="sr-only">Edit tag</span>
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteTag(tag.id as number)}
-                            disabled={isDeletingTag === tag.id}
-                            className="h-8 w-8 p-0"
-                          >
-                            {isDeletingTag === tag.id ? (
-                              <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                            ) : (
-                              <TrashIcon className="h-4 w-4 text-red-500" />
-                            )}
-                            <span className="sr-only">Delete tag</span>
-                          </Button>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
+                  <ScrollArea className="h-[300px]">
+                    <ul className="space-y-2 pr-4">
+                      {tags.map((tag) => (
+                        <li
+                          key={tag.id}
+                          className="flex justify-between items-center text-sm border-b pb-2"
+                        >
+                          <div className="flex flex-col">
+                            <span className="font-medium">
+                              {tag.values.label}
+                            </span>
+                            <span className="text-muted-foreground">
+                              {formatTime(tag.values.start)} -{" "}
+                              {formatTime(tag.values.end)}
+                            </span>
+                          </div>
+                          <div className="flex space-x-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEditTag(tag)}
+                              className="h-8 w-8 p-0"
+                            >
+                              <PencilIcon className="h-4 w-4 text-blue-500" />
+                              <span className="sr-only">Edit tag</span>
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteTag(tag.id as number)}
+                              disabled={isDeletingTag === tag.id}
+                              className="h-8 w-8 p-0"
+                            >
+                              {isDeletingTag === tag.id ? (
+                                <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                              ) : (
+                                <TrashIcon className="h-4 w-4 text-red-500" />
+                              )}
+                              <span className="sr-only">Delete tag</span>
+                            </Button>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </ScrollArea>
                 )}
               </CardContent>
             </Card>
