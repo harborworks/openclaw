@@ -31,7 +31,7 @@ const VideoPlayer = forwardRef(
       width = 640,
       height = 360,
       controls = true,
-      autoplay = false,
+      autoplay = true,
       className = "",
       aspectRatio,
       onLoadedMetadata,
@@ -54,15 +54,10 @@ const VideoPlayer = forwardRef(
         parseFloat(aspectRatio.split(":")[1])
       : width / height;
 
-    // Add CSS to hide volume/mute controls, picture-in-picture and fullscreen toggle
     useLayoutEffect(() => {
       const style = document.createElement("style");
       style.innerHTML = `
-      .video-js .vjs-mute-control, 
-      .video-js .vjs-volume-menu-button,
-      .video-js .vjs-volume-panel,
-      .video-js .vjs-picture-in-picture-control,
-      .video-js .vjs-fullscreen-control {
+      .vjs-big-play-button {
         display: none !important;
       }
     `;

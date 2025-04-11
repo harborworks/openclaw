@@ -509,6 +509,24 @@ export default function TaskPage() {
                           render={({ field }) => (
                             <FormItem className="space-y-4">
                               <FormLabel>Time Range</FormLabel>
+                              <div className="flex justify-between">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={setStartFromVideo}
+                                >
+                                  Set Start to Current
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={setEndFromVideo}
+                                >
+                                  Set End to Current
+                                </Button>
+                              </div>
                               <div className="pt-4">
                                 <Slider
                                   defaultValue={field.value}
