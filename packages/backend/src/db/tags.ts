@@ -10,6 +10,12 @@ export type CreateTagInput = {
   isPrediction?: boolean;
 };
 
+export type UpdateTagInput = {
+  tagId: number;
+  updatedById: number;
+  values: any; // The updated tag values stored as JSON
+};
+
 export type TimeSegmentTagValues = {
   label: string;
   start: number;
@@ -64,6 +70,30 @@ export const getTagsByTaskId = async (taskId: number) => {
     deletedById: tag.deletedById || null,
     deletedAt: tag.deletedAt || null,
   }));
+};
+
+/**
+ * Update an existing tag
+ * @param data Tag data to update
+ * @returns The updated tag or null if not found
+ */
+export const updateTag = async (data: UpdateTagInput) => {
+  // Update the tag with new values
+  const [updatedTag] = await db
+    .update(tags)
+    .set({
+      values: data.values,
+      updatedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(tags.id, data.tagId),
+        isNull(tags.deletedAt) // Only update tags that haven't been deleted
+      )
+    )
+    .returning();
+
+  return updatedTag || null;
 };
 
 /**

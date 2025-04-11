@@ -925,3 +925,82 @@ export const deleteTagController = async (
     next(error);
   }
 };
+
+/**
+ * Update an existing tag
+ * @param req Request object
+ * @param res Response object
+ * @param next Next function
+ */
+export const updateTagController = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    // Check if user is authenticated
+    if (!req.user) {
+      res.status(401).json({
+        message: "Authentication required",
+      });
+      return;
+    }
+
+    const tagId = parseInt(req.params.tagId);
+    if (isNaN(tagId)) {
+      res.status(400).json({
+        message: "Invalid tag ID",
+      });
+      return;
+    }
+
+    // Get the tag data from the request body
+    const { values, tagType: tagTypeValue } = req.body;
+
+    if (!values) {
+      res.status(400).json({
+        message: "Missing required field: values",
+      });
+      return;
+    }
+
+    if (!tagTypeValue || !tagType.enumValues.includes(tagTypeValue)) {
+      res.status(400).json({
+        message: `Invalid tagType. Must be one of: ${tagType.enumValues.join(", ")}`,
+      });
+      return;
+    }
+
+    // Update the tag
+    const updatedTag = await db.updateTag({
+      tagId,
+      updatedById: req.user.id,
+      values,
+    });
+
+    if (!updatedTag) {
+      res.status(404).json({
+        message: "Tag not found",
+      });
+      return;
+    }
+
+    // Return the updated tag
+    res.status(200).json({
+      success: true,
+      data: {
+        id: updatedTag.id,
+        taskId: updatedTag.taskId,
+        createdById: updatedTag.createdById,
+        tagType: updatedTag.tagType,
+        isPrediction: updatedTag.isPrediction,
+        values: updatedTag.values,
+        createdAt: updatedTag.createdAt,
+        updatedAt: updatedTag.updatedAt,
+      },
+      message: "Tag updated successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
+};

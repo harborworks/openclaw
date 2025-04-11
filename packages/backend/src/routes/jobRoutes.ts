@@ -17,6 +17,7 @@ import {
   getTaskById,
   getTaskTagsController,
   updateJob,
+  updateTagController,
 } from "../controllers/jobController";
 import { generatePresignedUrl } from "../services/s3Service";
 
@@ -72,6 +73,9 @@ router.post("/jobs/:jobId/tasks/:taskId/tags", createTagController);
 
 // DELETE /api/tags/:tagId - Delete a tag
 router.delete("/tags/:tagId", deleteTagController);
+
+// PUT /api/tags/:tagId - Update a tag
+router.put("/tags/:tagId", updateTagController);
 
 // GET /api/orgs/:orgId/jobs/:jobId/upload-url - Get a presigned URL for uploading a JSONL file
 router.get("/orgs/:orgId/jobs/:jobId/upload-url", async (req, res, next) => {

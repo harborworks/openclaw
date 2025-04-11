@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { PlusIcon, TrashIcon } from "lucide-react";
+import { PencilIcon, PlusIcon, TrashIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useAuth } from "react-oidc-context";
@@ -15,6 +15,7 @@ import {
   getJobLabels,
   getTask,
   getTaskTags,
+  updateTag,
 } from "../../api/jobs";
 import { getUserById } from "../../api/users";
 import { Badge } from "../../components/ui/badge";
@@ -64,6 +65,7 @@ export default function TaskPage() {
   const [isCompletingTask, setIsCompletingTask] = useState(false);
   const [open, setOpen] = useState(false);
   const [showTagEditor, setShowTagEditor] = useState(false);
+  const [editingTag, setEditingTag] = useState<TimeSegmentTag | null>(null);
   const [videoDuration, setVideoDuration] = useState(0);
   const [tags, setTags] = useState<TimeSegmentTag[]>([]);
   const [jobLabels, setJobLabels] = useState<string[]>([]);
@@ -318,28 +320,64 @@ export default function TaskPage() {
         },
       };
 
-      // Save to the server
-      const createdTag = await createTag(
-        auth.user.access_token,
-        jobIdNum,
-        taskIdNum,
-        tagData
-      );
+      if (editingTag) {
+        // Edit existing tag
+        const updatedTag = await updateTag(
+          auth.user.access_token,
+          editingTag.id as number,
+          tagData
+        );
 
-      // Add the new tag to the list
-      setTags([...tags, createdTag]);
+        // Update the tags list
+        const updatedTags = tags.map((tag) =>
+          tag.id === editingTag.id ? updatedTag : tag
+        );
+        setTags(updatedTags);
+      } else {
+        // Create new tag
+        const createdTag = await createTag(
+          auth.user.access_token,
+          jobIdNum,
+          taskIdNum,
+          tagData
+        );
+
+        // Add the new tag to the list
+        setTags([...tags, createdTag]);
+      }
 
       // Reset form and close dialog
       form.reset();
       setShowTagEditor(false);
+      setEditingTag(null);
 
-      toast.success(`Tag "${values.label}" created successfully`);
+      toast.success(
+        `Tag "${values.label}" ${editingTag ? "updated" : "created"} successfully`
+      );
     } catch (err) {
-      console.error("Error creating tag:", err);
-      toast.error("Failed to create tag");
+      console.error(`Error ${editingTag ? "updating" : "creating"} tag:`, err);
+      toast.error(`Failed to ${editingTag ? "update" : "create"} tag`);
     } finally {
       setIsSavingTag(false);
     }
+  };
+
+  // Handle editing a tag
+  const handleEditTag = (tag: TimeSegmentTag) => {
+    // Convert start/end times back to slider percentages
+    const startPercent = secondsToPercent(tag.values.start);
+    const endPercent = secondsToPercent(tag.values.end);
+
+    // Set form values
+    form.setValue("label", tag.values.label);
+    form.setValue("timeRange", [startPercent, endPercent]);
+
+    // Set editing state
+    setEditingTag(tag);
+    setShowTagEditor(true);
+
+    // Seek video to the start of the tag
+    seekVideoToTime(tag.values.start);
   };
 
   // Handle tag deletion
@@ -361,6 +399,162 @@ export default function TaskPage() {
     } finally {
       setIsDeletingTag(null);
     }
+  };
+
+  // Floating Tag Editor UI
+  const renderTagEditor = () => {
+    return (
+      <div className="fixed bottom-4 right-4 bg-white rounded-lg shadow-lg border p-4 w-[400px] z-10">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="font-medium">
+            {editingTag ? "Edit Time Segment Tag" : "Create Time Segment Tag"}
+          </h3>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setShowTagEditor(false);
+              setEditingTag(null);
+              form.reset();
+            }}
+            className="h-8 w-8 p-0"
+          >
+            <span className="sr-only">Close</span>✕
+          </Button>
+        </div>
+        <Form {...form}>
+          <form
+            onSubmit={form.handleSubmit(onSubmit as any)}
+            className="space-y-4"
+          >
+            <FormField
+              control={form.control}
+              name="timeRange"
+              render={({ field }) => (
+                <FormItem className="space-y-4">
+                  <FormLabel>Time Range</FormLabel>
+                  <div className="flex justify-between">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={setStartFromVideo}
+                    >
+                      Set Start to Current
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={setEndFromVideo}
+                    >
+                      Set End to Current
+                    </Button>
+                  </div>
+                  <div className="pt-4">
+                    <Slider
+                      defaultValue={field.value}
+                      max={100}
+                      step={0.1}
+                      value={field.value}
+                      onValueChange={(values) => {
+                        field.onChange(values);
+                        handleTimeRangeChange(values);
+                      }}
+                      className="mb-2"
+                    />
+                  </div>
+                  <div className="flex justify-between text-sm text-muted-foreground">
+                    <div>
+                      Start: {formatTime(percentToSeconds(field.value[0]))}
+                    </div>
+                    <div>
+                      End: {formatTime(percentToSeconds(field.value[1]))}
+                    </div>
+                  </div>
+                  <div className="flex justify-between">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        seekVideoToTime(percentToSeconds(field.value[0]))
+                      }
+                    >
+                      Jump to Start
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        seekVideoToTime(percentToSeconds(field.value[1]))
+                      }
+                    >
+                      Jump to End
+                    </Button>
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="label"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Label</FormLabel>
+                  {jobLabels.length > 0 ? (
+                    <div className="grid grid-cols-2 gap-2">
+                      {jobLabels.map((label) => (
+                        <Button
+                          key={label}
+                          type="button"
+                          variant={
+                            field.value === label ? "default" : "outline"
+                          }
+                          onClick={() => field.onChange(label)}
+                          className="justify-start"
+                        >
+                          {label}
+                        </Button>
+                      ))}
+                    </div>
+                  ) : (
+                    <FormControl>
+                      <Input placeholder="Enter tag label" {...field} />
+                    </FormControl>
+                  )}
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setShowTagEditor(false);
+                  setEditingTag(null);
+                  form.reset();
+                }}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isSavingTag}>
+                {isSavingTag
+                  ? editingTag
+                    ? "Updating..."
+                    : "Creating..."
+                  : editingTag
+                    ? "Update Tag"
+                    : "Create Tag"}
+              </Button>
+            </div>
+          </form>
+        </Form>
+      </div>
+    );
   };
 
   return (
@@ -403,150 +597,7 @@ export default function TaskPage() {
             </div>
 
             {/* Floating Tag Editor */}
-            {showTagEditor && (
-              <div className="fixed bottom-4 right-4 bg-white rounded-lg shadow-lg border p-4 w-[400px] z-10">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="font-medium">Create Time Segment Tag</h3>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowTagEditor(false)}
-                    className="h-8 w-8 p-0"
-                  >
-                    <span className="sr-only">Close</span>✕
-                  </Button>
-                </div>
-                <Form {...form}>
-                  <form
-                    onSubmit={form.handleSubmit(onSubmit as any)}
-                    className="space-y-4"
-                  >
-                    <FormField
-                      control={form.control}
-                      name="timeRange"
-                      render={({ field }) => (
-                        <FormItem className="space-y-4">
-                          <FormLabel>Time Range</FormLabel>
-                          <div className="flex justify-between">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={setStartFromVideo}
-                            >
-                              Set Start to Current
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={setEndFromVideo}
-                            >
-                              Set End to Current
-                            </Button>
-                          </div>
-                          <div className="pt-4">
-                            <Slider
-                              defaultValue={field.value}
-                              max={100}
-                              step={0.1}
-                              value={field.value}
-                              onValueChange={(values) => {
-                                field.onChange(values);
-                                handleTimeRangeChange(values);
-                              }}
-                              className="mb-2"
-                            />
-                          </div>
-                          <div className="flex justify-between text-sm text-muted-foreground">
-                            <div>
-                              Start:{" "}
-                              {formatTime(percentToSeconds(field.value[0]))}
-                            </div>
-                            <div>
-                              End:{" "}
-                              {formatTime(percentToSeconds(field.value[1]))}
-                            </div>
-                          </div>
-                          <div className="flex justify-between">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() =>
-                                seekVideoToTime(
-                                  percentToSeconds(field.value[0])
-                                )
-                              }
-                            >
-                              Jump to Start
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() =>
-                                seekVideoToTime(
-                                  percentToSeconds(field.value[1])
-                                )
-                              }
-                            >
-                              Jump to End
-                            </Button>
-                          </div>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="label"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Label</FormLabel>
-                          {jobLabels.length > 0 ? (
-                            <div className="grid grid-cols-2 gap-2">
-                              {jobLabels.map((label) => (
-                                <Button
-                                  key={label}
-                                  type="button"
-                                  variant={
-                                    field.value === label
-                                      ? "default"
-                                      : "outline"
-                                  }
-                                  onClick={() => field.onChange(label)}
-                                  className="justify-start"
-                                >
-                                  {label}
-                                </Button>
-                              ))}
-                            </div>
-                          ) : (
-                            <FormControl>
-                              <Input placeholder="Enter tag label" {...field} />
-                            </FormControl>
-                          )}
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => setShowTagEditor(false)}
-                      >
-                        Cancel
-                      </Button>
-                      <Button type="submit" disabled={isSavingTag}>
-                        {isSavingTag ? "Creating..." : "Create Tag"}
-                      </Button>
-                    </div>
-                  </form>
-                </Form>
-              </div>
-            )}
+            {showTagEditor && renderTagEditor()}
 
             <Separator />
 
@@ -621,7 +672,11 @@ export default function TaskPage() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setShowTagEditor(true)}
+                  onClick={() => {
+                    setEditingTag(null);
+                    form.reset();
+                    setShowTagEditor(true);
+                  }}
                 >
                   <PlusIcon className="h-4 w-4" />
                   <span className="sr-only">Add tag</span>
@@ -654,19 +709,31 @@ export default function TaskPage() {
                             {formatTime(tag.values.end)}
                           </span>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeleteTag(tag.id as number)}
-                          disabled={isDeletingTag === tag.id}
-                          className="h-8 w-8 p-0"
-                        >
-                          {isDeletingTag === tag.id ? (
-                            <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                          ) : (
-                            <TrashIcon className="h-4 w-4 text-red-500" />
-                          )}
-                        </Button>
+                        <div className="flex space-x-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEditTag(tag)}
+                            className="h-8 w-8 p-0"
+                          >
+                            <PencilIcon className="h-4 w-4 text-blue-500" />
+                            <span className="sr-only">Edit tag</span>
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteTag(tag.id as number)}
+                            disabled={isDeletingTag === tag.id}
+                            className="h-8 w-8 p-0"
+                          >
+                            {isDeletingTag === tag.id ? (
+                              <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                            ) : (
+                              <TrashIcon className="h-4 w-4 text-red-500" />
+                            )}
+                            <span className="sr-only">Delete tag</span>
+                          </Button>
+                        </div>
                       </li>
                     ))}
                   </ul>

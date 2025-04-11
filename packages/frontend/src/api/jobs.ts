@@ -468,3 +468,34 @@ export const deleteTag = async (
   });
   return response.data.data;
 };
+
+/**
+ * Update a tag
+ * @param token JWT token
+ * @param tagId ID of the tag to update
+ * @param tagData Tag data to update
+ * @returns The updated tag
+ */
+export const updateTag = async (
+  token: string,
+  tagId: number,
+  tagData: {
+    tagType: string;
+    values: {
+      label: string;
+      start: number;
+      end: number;
+    };
+  }
+): Promise<TimeSegmentTag> => {
+  const response = await axios.put<{
+    success: boolean;
+    data: TimeSegmentTag;
+    message: string;
+  }>(`${API_URL}/api/tags/${tagId}`, tagData, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  return response.data.data;
+};
