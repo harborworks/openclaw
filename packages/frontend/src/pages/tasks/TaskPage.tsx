@@ -6,7 +6,15 @@ import { useAuth } from "react-oidc-context";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import * as z from "zod";
-import { Task, completeTask, getJobLabels, getTask } from "../../api/jobs";
+import {
+  Task,
+  TimeSegmentTag,
+  completeTask,
+  createTag,
+  getJobLabels,
+  getTask,
+  getTaskTags,
+} from "../../api/jobs";
 import { getUserById } from "../../api/users";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
@@ -58,14 +66,15 @@ export default function TaskPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingUser, setIsLoadingUser] = useState(false);
   const [isLoadingLabels, setIsLoadingLabels] = useState(false);
+  const [isLoadingTags, setIsLoadingTags] = useState(false);
+  const [isSavingTag, setIsSavingTag] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isCompletingTask, setIsCompletingTask] = useState(false);
   const [open, setOpen] = useState(false);
   const [videoDuration, setVideoDuration] = useState(0);
-  const [tags, setTags] = useState<
-    Array<{ label: string; start: number; end: number }>
-  >([]);
+  const [tags, setTags] = useState<TimeSegmentTag[]>([]);
   const [jobLabels, setJobLabels] = useState<string[]>([]);
+  const [jobTagType, setJobTagType] = useState<string>("");
 
   // Form for creating time segment tags
   const form = useForm<TimeSegmentTagFormValues>({
@@ -103,6 +112,9 @@ export default function TaskPage() {
         // Fetch job labels
         await fetchJobLabels(jobIdNum);
 
+        // Fetch task tags
+        await fetchTaskTags(jobIdNum, taskIdNum);
+
         // If task is assigned, fetch user information
         if (taskData.assignedToId) {
           await fetchUserEmail(taskData.assignedToId);
@@ -127,10 +139,26 @@ export default function TaskPage() {
     try {
       const response = await getJobLabels(auth.user.access_token, jobId);
       setJobLabels(response.labels);
+      setJobTagType(response.tagType);
     } catch (err) {
       console.error("Error fetching job labels:", err);
     } finally {
       setIsLoadingLabels(false);
+    }
+  };
+
+  // Fetch task tags
+  const fetchTaskTags = async (jobId: number, taskId: number) => {
+    if (!auth.user?.access_token) return;
+
+    setIsLoadingTags(true);
+    try {
+      const tagsData = await getTaskTags(auth.user.access_token, jobId, taskId);
+      setTags(tagsData);
+    } catch (err) {
+      console.error("Error fetching task tags:", err);
+    } finally {
+      setIsLoadingTags(false);
     }
   };
 
@@ -214,26 +242,56 @@ export default function TaskPage() {
   };
 
   // Handle form submission
-  const onSubmit = (values: TimeSegmentTagFormValues) => {
-    const [startPercent, endPercent] = values.timeRange;
-    const startTime = percentToSeconds(startPercent);
-    const endTime = percentToSeconds(endPercent);
+  const onSubmit = async (values: TimeSegmentTagFormValues) => {
+    if (!auth.user?.access_token || !jobId || !taskId || !task) return;
 
-    // Add the new tag
-    setTags([
-      ...tags,
-      {
-        label: values.label,
-        start: startTime,
-        end: endTime,
-      },
-    ]);
+    const jobIdNum = parseInt(jobId, 10);
+    const taskIdNum = parseInt(taskId, 10);
 
-    // Reset form and close dialog
-    form.reset();
-    setOpen(false);
+    if (isNaN(jobIdNum) || isNaN(taskIdNum)) {
+      toast.error("Invalid job ID or task ID");
+      return;
+    }
 
-    toast.success(`Tag "${values.label}" created successfully`);
+    setIsSavingTag(true);
+
+    try {
+      const [startPercent, endPercent] = values.timeRange;
+      const startTime = percentToSeconds(startPercent);
+      const endTime = percentToSeconds(endPercent);
+
+      // Create the tag data
+      const tagData = {
+        tagType: jobTagType || "time-segments",
+        values: {
+          label: values.label,
+          start: startTime,
+          end: endTime,
+        },
+      };
+
+      // Save to the server
+      const createdTag = await createTag(
+        auth.user.access_token,
+        jobIdNum,
+        taskIdNum,
+        tagData
+      );
+
+      // Add the new tag to the list
+      setTags([...tags, createdTag]);
+
+      // Reset form and close dialog
+      form.reset();
+      setOpen(false);
+
+      toast.success(`Tag "${values.label}" created successfully`);
+    } catch (err) {
+      console.error("Error creating tag:", err);
+      toast.error("Failed to create tag");
+    } finally {
+      setIsSavingTag(false);
+    }
   };
 
   return (
@@ -430,7 +488,9 @@ export default function TaskPage() {
                           )}
                         />
                         <DialogFooter>
-                          <Button type="submit">Create Tag</Button>
+                          <Button type="submit" disabled={isSavingTag}>
+                            {isSavingTag ? "Creating..." : "Create Tag"}
+                          </Button>
                         </DialogFooter>
                       </form>
                     </Form>
@@ -438,20 +498,27 @@ export default function TaskPage() {
                 </Dialog>
               </CardHeader>
               <CardContent>
-                {tags.length === 0 ? (
+                {isLoadingTags ? (
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-full" />
+                  </div>
+                ) : tags.length === 0 ? (
                   <div className="text-sm text-muted-foreground">
                     No tags created yet
                   </div>
                 ) : (
                   <ul className="space-y-2">
-                    {tags.map((tag, index) => (
+                    {tags.map((tag) => (
                       <li
-                        key={index}
+                        key={tag.id}
                         className="flex justify-between items-center text-sm"
                       >
-                        <span className="font-medium">{tag.label}</span>
+                        <span className="font-medium">{tag.values.label}</span>
                         <span className="text-muted-foreground">
-                          {formatTime(tag.start)} - {formatTime(tag.end)}
+                          {formatTime(tag.values.start)} -{" "}
+                          {formatTime(tag.values.end)}
                         </span>
                       </li>
                     ))}

@@ -4,6 +4,7 @@ import { Pool } from "pg";
 import config from "../config";
 import { cert } from "./cert";
 
+// Connect to the database
 export const db = drizzle(
   new Pool({
     host: config.databaseHost,
@@ -20,8 +21,10 @@ export const db = drizzle(
   { casing: "snake_case" }
 );
 
+// Re-export all functions from the database modules
 export * from "./jobs";
 export * from "./memberships";
 export * from "./orgs";
+export * from "./tags";
 export * from "./tasks";
 export * from "./users";

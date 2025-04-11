@@ -376,3 +376,73 @@ export const getJobLabels = async (
   );
   return response.data.data;
 };
+
+/**
+ * Tag interface for time segment tags
+ */
+export interface TimeSegmentTag {
+  id?: number;
+  taskId: number;
+  createdById?: number;
+  tagType: string;
+  isPrediction?: boolean;
+  values: {
+    label: string;
+    start: number;
+    end: number;
+  };
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+/**
+ * Create a tag for a task
+ * @param token JWT token
+ * @param jobId ID of the job
+ * @param taskId ID of the task
+ * @param tagData Tag data to create
+ * @returns The created tag
+ */
+export const createTag = async (
+  token: string,
+  jobId: number,
+  taskId: number,
+  tagData: Omit<
+    TimeSegmentTag,
+    "id" | "taskId" | "createdById" | "createdAt" | "updatedAt"
+  >
+): Promise<TimeSegmentTag> => {
+  const response = await axios.post<{ success: boolean; data: TimeSegmentTag }>(
+    `${API_URL}/api/jobs/${jobId}/tasks/${taskId}/tags`,
+    tagData,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+  return response.data.data;
+};
+
+/**
+ * Get all tags for a task
+ * @param token JWT token
+ * @param jobId ID of the job
+ * @param taskId ID of the task
+ * @returns Array of tags for the task
+ */
+export const getTaskTags = async (
+  token: string,
+  jobId: number,
+  taskId: number
+): Promise<TimeSegmentTag[]> => {
+  const response = await axios.get<{
+    success: boolean;
+    data: TimeSegmentTag[];
+  }>(`${API_URL}/api/jobs/${jobId}/tasks/${taskId}/tags`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  return response.data.data;
+};

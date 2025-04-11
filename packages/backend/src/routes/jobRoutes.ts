@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
   completeTaskController,
   createJob,
+  createTagController,
   createTask,
   deleteJob,
   getAllJobs,
@@ -13,6 +14,7 @@ import {
   getJobTaskStats,
   getNextAvailableTask,
   getTaskById,
+  getTaskTagsController,
   updateJob,
 } from "../controllers/jobController";
 import { generatePresignedUrl } from "../services/s3Service";
@@ -60,6 +62,12 @@ router.post("/jobs/:jobId/tasks/:taskId/complete", completeTaskController);
 
 // POST /api/jobs/:jobId/tasks - Create a new task for a job
 router.post("/jobs/:jobId/tasks", createTask);
+
+// GET /api/jobs/:jobId/tasks/:taskId/tags - Get all tags for a task
+router.get("/jobs/:jobId/tasks/:taskId/tags", getTaskTagsController);
+
+// POST /api/jobs/:jobId/tasks/:taskId/tags - Create a new tag for a task
+router.post("/jobs/:jobId/tasks/:taskId/tags", createTagController);
 
 // GET /api/orgs/:orgId/jobs/:jobId/upload-url - Get a presigned URL for uploading a JSONL file
 router.get("/orgs/:orgId/jobs/:jobId/upload-url", async (req, res, next) => {
