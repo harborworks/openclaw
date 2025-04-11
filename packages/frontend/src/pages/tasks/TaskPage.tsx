@@ -6,7 +6,7 @@ import { useAuth } from "react-oidc-context";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import * as z from "zod";
-import { Task, completeTask, getTask } from "../../api/jobs";
+import { Task, completeTask, getJobLabels, getTask } from "../../api/jobs";
 import { getUserById } from "../../api/users";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
@@ -57,6 +57,7 @@ export default function TaskPage() {
   );
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingUser, setIsLoadingUser] = useState(false);
+  const [isLoadingLabels, setIsLoadingLabels] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isCompletingTask, setIsCompletingTask] = useState(false);
   const [open, setOpen] = useState(false);
@@ -64,6 +65,7 @@ export default function TaskPage() {
   const [tags, setTags] = useState<
     Array<{ label: string; start: number; end: number }>
   >([]);
+  const [jobLabels, setJobLabels] = useState<string[]>([]);
 
   // Form for creating time segment tags
   const form = useForm<TimeSegmentTagFormValues>({
@@ -98,6 +100,9 @@ export default function TaskPage() {
         );
         setTask(taskData);
 
+        // Fetch job labels
+        await fetchJobLabels(jobIdNum);
+
         // If task is assigned, fetch user information
         if (taskData.assignedToId) {
           await fetchUserEmail(taskData.assignedToId);
@@ -113,6 +118,21 @@ export default function TaskPage() {
 
     fetchTask();
   }, [auth.user?.access_token, jobId, taskId]);
+
+  // Fetch job labels
+  const fetchJobLabels = async (jobId: number) => {
+    if (!auth.user?.access_token) return;
+
+    setIsLoadingLabels(true);
+    try {
+      const response = await getJobLabels(auth.user.access_token, jobId);
+      setJobLabels(response.labels);
+    } catch (err) {
+      console.error("Error fetching job labels:", err);
+    } finally {
+      setIsLoadingLabels(false);
+    }
+  };
 
   // Fetch the user's email by ID
   const fetchUserEmail = async (userId: number) => {
@@ -379,12 +399,32 @@ export default function TaskPage() {
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Label</FormLabel>
-                              <FormControl>
-                                <Input
-                                  placeholder="Enter tag label"
-                                  {...field}
-                                />
-                              </FormControl>
+                              {jobLabels.length > 0 ? (
+                                <div className="grid grid-cols-2 gap-2">
+                                  {jobLabels.map((label) => (
+                                    <Button
+                                      key={label}
+                                      type="button"
+                                      variant={
+                                        field.value === label
+                                          ? "default"
+                                          : "outline"
+                                      }
+                                      onClick={() => field.onChange(label)}
+                                      className="justify-start"
+                                    >
+                                      {label}
+                                    </Button>
+                                  ))}
+                                </div>
+                              ) : (
+                                <FormControl>
+                                  <Input
+                                    placeholder="Enter tag label"
+                                    {...field}
+                                  />
+                                </FormControl>
+                              )}
                               <FormMessage />
                             </FormItem>
                           )}

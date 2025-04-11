@@ -693,3 +693,53 @@ export const getAllJobTasks = async (
     next(error);
   }
 };
+
+/**
+ * Get labels for a specific job
+ */
+export const getJobLabels = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const jobId = parseInt(req.params.jobId);
+
+    if (isNaN(jobId)) {
+      res.status(400).json({
+        message: "Invalid job ID",
+      });
+      return;
+    }
+
+    const job = await db.getJobById(jobId);
+
+    // Parse labels if they're a string
+    let labels: string[] = [];
+    try {
+      if (typeof job.labels === "string") {
+        labels = JSON.parse(job.labels);
+      } else if (Array.isArray(job.labels)) {
+        labels = job.labels;
+      }
+    } catch (e) {
+      console.error("Error parsing job labels:", e);
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        labels,
+        tagType: job.tagType,
+      },
+    });
+  } catch (error: any) {
+    if (error.message === "Job not found") {
+      res.status(404).json({
+        message: error.message,
+      });
+      return;
+    }
+    next(error);
+  }
+};

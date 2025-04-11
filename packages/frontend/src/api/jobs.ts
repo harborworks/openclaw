@@ -351,3 +351,28 @@ export const getAllJobTasks = async (
   });
   return response.data.data;
 };
+
+/**
+ * Get job labels for a specific job
+ * @param token JWT token
+ * @param jobId ID of the job to get labels for
+ */
+export interface JobLabels {
+  labels: string[];
+  tagType: string;
+}
+
+export const getJobLabels = async (
+  token: string,
+  jobId: number
+): Promise<JobLabels> => {
+  const response = await axios.get<{ success: boolean; data: JobLabels }>(
+    `${API_URL}/api/jobs/${jobId}/labels`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+  return response.data.data;
+};

@@ -7,6 +7,7 @@ import {
   getAllJobs,
   getAllJobTasks,
   getJob,
+  getJobLabels,
   getJobs,
   getJobTasks,
   getJobTaskStats,
@@ -29,6 +30,9 @@ router.post("/orgs/:orgId/jobs", createJob);
 
 // GET /api/jobs/:jobId - Get a specific job
 router.get("/jobs/:jobId", getJob);
+
+// GET /api/jobs/:jobId/labels - Get labels for a specific job
+router.get("/jobs/:jobId/labels", getJobLabels);
 
 // PUT /api/jobs/:jobId - Update a job
 router.put("/jobs/:jobId", updateJob);
