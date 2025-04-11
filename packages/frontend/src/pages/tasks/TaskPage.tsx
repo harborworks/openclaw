@@ -1,3 +1,4 @@
+import { PlusIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAuth } from "react-oidc-context";
 import { useNavigate, useParams } from "react-router-dom";
@@ -227,6 +228,17 @@ export default function TaskPage() {
                   </div>
                 )}
               </CardContent>
+            </Card>
+
+            <Card className="mt-4">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle>Tags</CardTitle>
+                <Button variant="ghost" size="sm">
+                  <PlusIcon className="h-4 w-4" />
+                  <span className="sr-only">Add tag</span>
+                </Button>
+              </CardHeader>
+              <CardContent>{/* Tag content will go here */}</CardContent>
             </Card>
           </div>
         </div>
