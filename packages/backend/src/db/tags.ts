@@ -1,5 +1,5 @@
 import { tags, tagType } from "@sparrow-tags/schema";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { db } from "./index";
 
 export type CreateTagInput = {
@@ -42,7 +42,15 @@ export const createTag = async (data: CreateTagInput) => {
  * @returns Array of tags for the task
  */
 export const getTagsByTaskId = async (taskId: number) => {
-  const tagsData = await db.select().from(tags).where(eq(tags.taskId, taskId));
+  const tagsData = await db
+    .select()
+    .from(tags)
+    .where(
+      and(
+        eq(tags.taskId, taskId),
+        isNull(tags.deletedAt) // Only get tags that haven't been deleted
+      )
+    );
 
   return tagsData.map((tag) => ({
     id: tag.id,
@@ -56,4 +64,24 @@ export const getTagsByTaskId = async (taskId: number) => {
     deletedById: tag.deletedById || null,
     deletedAt: tag.deletedAt || null,
   }));
+};
+
+/**
+ * Delete a tag
+ * @param tagId Tag ID to delete
+ * @param userId User ID performing the deletion
+ * @returns The deleted tag or null if not found
+ */
+export const deleteTag = async (tagId: number, userId: number) => {
+  // Update the tag with deleted info rather than actually deleting
+  const [deletedTag] = await db
+    .update(tags)
+    .set({
+      deletedById: userId,
+      deletedAt: new Date(),
+    })
+    .where(eq(tags.id, tagId))
+    .returning();
+
+  return deletedTag || null;
 };

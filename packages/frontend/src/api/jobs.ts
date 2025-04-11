@@ -446,3 +446,25 @@ export const getTaskTags = async (
   });
   return response.data.data;
 };
+
+/**
+ * Delete a tag
+ * @param token JWT token
+ * @param tagId ID of the tag to delete
+ * @returns The deleted tag
+ */
+export const deleteTag = async (
+  token: string,
+  tagId: number
+): Promise<TimeSegmentTag> => {
+  const response = await axios.delete<{
+    success: boolean;
+    data: TimeSegmentTag;
+    message: string;
+  }>(`${API_URL}/api/tags/${tagId}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  return response.data.data;
+};

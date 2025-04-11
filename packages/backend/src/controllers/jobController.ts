@@ -879,3 +879,49 @@ export const getTaskTagsController = async (
     next(error);
   }
 };
+
+/**
+ * Delete a tag
+ */
+export const deleteTagController = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const tagId = parseInt(req.params.tagId);
+    const userId = req.user?.id;
+
+    if (isNaN(tagId)) {
+      res.status(400).json({
+        message: "Invalid tag ID",
+      });
+      return;
+    }
+
+    if (!userId) {
+      res.status(401).json({
+        message: "Unauthorized",
+      });
+      return;
+    }
+
+    // Delete the tag
+    const deletedTag = await db.deleteTag(tagId, userId);
+
+    if (!deletedTag) {
+      res.status(404).json({
+        message: "Tag not found",
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      data: deletedTag,
+      message: "Tag deleted successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
+};

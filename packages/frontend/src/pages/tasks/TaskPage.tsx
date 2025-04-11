@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { PlusIcon } from "lucide-react";
+import { PlusIcon, TrashIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useAuth } from "react-oidc-context";
@@ -11,6 +11,7 @@ import {
   TimeSegmentTag,
   completeTask,
   createTag,
+  deleteTag,
   getJobLabels,
   getTask,
   getTaskTags,
@@ -75,6 +76,7 @@ export default function TaskPage() {
   const [tags, setTags] = useState<TimeSegmentTag[]>([]);
   const [jobLabels, setJobLabels] = useState<string[]>([]);
   const [jobTagType, setJobTagType] = useState<string>("");
+  const [isDeletingTag, setIsDeletingTag] = useState<number | null>(null);
 
   // Form for creating time segment tags
   const form = useForm<TimeSegmentTagFormValues>({
@@ -291,6 +293,27 @@ export default function TaskPage() {
       toast.error("Failed to create tag");
     } finally {
       setIsSavingTag(false);
+    }
+  };
+
+  // Handle tag deletion
+  const handleDeleteTag = async (tagId: number) => {
+    if (!auth.user?.access_token) return;
+
+    setIsDeletingTag(tagId);
+
+    try {
+      await deleteTag(auth.user.access_token, tagId);
+
+      // Update the tags list by removing the deleted tag
+      setTags(tags.filter((tag) => tag.id !== tagId));
+
+      toast.success("Tag deleted successfully");
+    } catch (err) {
+      console.error("Error deleting tag:", err);
+      toast.error("Failed to delete tag");
+    } finally {
+      setIsDeletingTag(null);
     }
   };
 
@@ -513,13 +536,30 @@ export default function TaskPage() {
                     {tags.map((tag) => (
                       <li
                         key={tag.id}
-                        className="flex justify-between items-center text-sm"
+                        className="flex justify-between items-center text-sm border-b pb-2"
                       >
-                        <span className="font-medium">{tag.values.label}</span>
-                        <span className="text-muted-foreground">
-                          {formatTime(tag.values.start)} -{" "}
-                          {formatTime(tag.values.end)}
-                        </span>
+                        <div className="flex flex-col">
+                          <span className="font-medium">
+                            {tag.values.label}
+                          </span>
+                          <span className="text-muted-foreground">
+                            {formatTime(tag.values.start)} -{" "}
+                            {formatTime(tag.values.end)}
+                          </span>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteTag(tag.id as number)}
+                          disabled={isDeletingTag === tag.id}
+                          className="h-8 w-8 p-0"
+                        >
+                          {isDeletingTag === tag.id ? (
+                            <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                          ) : (
+                            <TrashIcon className="h-4 w-4 text-red-500" />
+                          )}
+                        </Button>
                       </li>
                     ))}
                   </ul>

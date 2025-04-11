@@ -5,6 +5,7 @@ import {
   createTagController,
   createTask,
   deleteJob,
+  deleteTagController,
   getAllJobs,
   getAllJobTasks,
   getJob,
@@ -68,6 +69,9 @@ router.get("/jobs/:jobId/tasks/:taskId/tags", getTaskTagsController);
 
 // POST /api/jobs/:jobId/tasks/:taskId/tags - Create a new tag for a task
 router.post("/jobs/:jobId/tasks/:taskId/tags", createTagController);
+
+// DELETE /api/tags/:tagId - Delete a tag
+router.delete("/tags/:tagId", deleteTagController);
 
 // GET /api/orgs/:orgId/jobs/:jobId/upload-url - Get a presigned URL for uploading a JSONL file
 router.get("/orgs/:orgId/jobs/:jobId/upload-url", async (req, res, next) => {
