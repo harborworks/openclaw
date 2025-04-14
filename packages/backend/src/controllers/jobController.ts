@@ -278,6 +278,17 @@ export const updateJob = async (
       return;
     }
 
+    // Get the job to get its organization ID for the middleware
+    try {
+      const job = await db.getJobById(jobId);
+      req.params.orgId = job.orgId.toString();
+    } catch (error) {
+      res.status(404).json({
+        message: "Job not found",
+      });
+      return;
+    }
+
     // Validate data if provided
     if (dataTypeValue && !dataType.enumValues.includes(dataTypeValue)) {
       res.status(400).json({
@@ -304,7 +315,7 @@ export const updateJob = async (
     }
 
     // Update the job
-    const job = await db.updateJob(jobId, {
+    const updatedJob = await db.updateJob(jobId, {
       name,
       instructions,
       dataType: dataTypeValue,
@@ -314,7 +325,7 @@ export const updateJob = async (
 
     res.status(200).json({
       success: true,
-      data: job,
+      data: updatedJob,
     });
   } catch (error: any) {
     if (error.message === "Job not found") {
@@ -349,6 +360,17 @@ export const deleteJob = async (
     if (!userId) {
       res.status(401).json({
         message: "Unauthorized",
+      });
+      return;
+    }
+
+    // Get the job to get its organization ID for the middleware
+    try {
+      const job = await db.getJobById(jobId);
+      req.params.orgId = job.orgId.toString();
+    } catch (error) {
+      res.status(404).json({
+        message: "Job not found",
       });
       return;
     }

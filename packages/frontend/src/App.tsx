@@ -72,6 +72,27 @@ export default function App() {
     return auth.isAuthenticated ? <Outlet /> : <Navigate to="/" replace />;
   };
 
+  const AdminRoute = () => {
+    if (auth.isLoading || loading) {
+      return null;
+    }
+
+    // Check if user is authenticated
+    if (!auth.isAuthenticated) {
+      return <Navigate to="/" replace />;
+    }
+
+    // Check if user is an admin (superadmin or org admin)
+    const isSuperAdmin = userInfo?.superadmin || false;
+    const isOrgAdmin = memberships.some((membership) => membership.isAdmin);
+
+    return isSuperAdmin || isOrgAdmin ? (
+      <Outlet />
+    ) : (
+      <Navigate to="/jobs" replace />
+    );
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-slate-50">
       <Navbar userInfo={userInfo} />
@@ -92,10 +113,12 @@ export default function App() {
             <Route path="/admin/*" element={<AdminPage />} />
             <Route path="/jobs" element={<AuthenticatedRoute />}>
               <Route index element={<JobsPage />} />
-              <Route
-                path="/jobs/create"
-                element={<CreateJobPage memberships={memberships} />}
-              />
+              <Route path="/jobs/create" element={<AdminRoute />}>
+                <Route
+                  index
+                  element={<CreateJobPage memberships={memberships} />}
+                />
+              </Route>
               <Route path="/jobs/:jobId" element={<JobDetailPage />} />
               <Route path="/jobs/:jobId/all-tasks" element={<AllTasksPage />} />
               <Route path="/jobs/:jobId/tasks/:taskId" element={<TaskPage />} />
