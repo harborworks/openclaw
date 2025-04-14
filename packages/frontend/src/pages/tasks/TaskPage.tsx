@@ -59,12 +59,11 @@ export default function TaskPage() {
   );
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingUser, setIsLoadingUser] = useState(false);
-  const [isLoadingLabels, setIsLoadingLabels] = useState(false);
+  const [_, setIsLoadingLabels] = useState(false);
   const [isLoadingTags, setIsLoadingTags] = useState(false);
   const [isSavingTag, setIsSavingTag] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isCompletingTask, setIsCompletingTask] = useState(false);
-  const [open, setOpen] = useState(false);
   const [showTagEditor, setShowTagEditor] = useState(false);
   const [editingTag, setEditingTag] = useState<TimeSegmentTag | null>(null);
   const [videoDuration, setVideoDuration] = useState(0);

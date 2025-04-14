@@ -56,7 +56,7 @@ export const getAllJobs = async (
       .map((org) => org.id)
       .filter((id): id is number => id !== null);
 
-    const userJobs = jobs.filter(
+    const userJobs = (jobs as unknown as JobWithStats[]).filter(
       (job: JobWithStats) =>
         job.org_id !== null && orgIds.includes(Number(job.org_id))
     );
