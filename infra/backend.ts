@@ -18,7 +18,7 @@ export const service = new sst.aws.Service("Backend", {
       { listen: "80/http", forward: "3000/http" },
     ],
   },
-  link: [database, tasks],
+  link: [database, tasks, userPool],
   dev: {
     directory: "packages/backend",
     command: "npm run dev",

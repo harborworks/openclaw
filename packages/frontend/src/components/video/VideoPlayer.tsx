@@ -1,9 +1,15 @@
 import Hls from "hls.js";
-import { Pause, Play } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import {
+  ForwardedRef,
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import videojs from "video.js";
 import "video.js/dist/video-js.css";
-import { Slider } from "../ui/slider";
 
 interface VideoPlayerProps {
   src: string;
@@ -13,265 +19,283 @@ interface VideoPlayerProps {
   controls?: boolean;
   autoplay?: boolean;
   className?: string;
+  aspectRatio?: string; // Optional custom aspect ratio as string (e.g. "16:9")
+  onLoadedMetadata?: (e: React.SyntheticEvent<HTMLVideoElement>) => void;
 }
 
-// Format time in seconds to MM:SS or HH:MM:SS format
-const formatTime = (seconds: number) => {
-  if (isNaN(seconds)) return "00:00";
+const VideoPlayer = forwardRef(
+  (
+    {
+      src,
+      poster,
+      width = 640,
+      height = 360,
+      controls = true,
+      autoplay = true,
+      className = "",
+      aspectRatio,
+      onLoadedMetadata,
+    }: VideoPlayerProps,
+    ref: ForwardedRef<HTMLVideoElement>
+  ) => {
+    const innerVideoRef = useRef<HTMLVideoElement>(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const playerRef = useRef<any>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
 
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const secs = Math.floor(seconds % 60);
+    // Forward the inner ref to the parent component
+    useImperativeHandle(ref, () => innerVideoRef.current as HTMLVideoElement);
 
-  if (hours > 0) {
-    return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
-  }
-  return `${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
-};
+    // Calculate actual aspect ratio from props or use default
+    const videoAspectRatio = aspectRatio || "16:9";
+    const numericAspectRatio = aspectRatio
+      ? parseFloat(aspectRatio.split(":")[0]) /
+        parseFloat(aspectRatio.split(":")[1])
+      : width / height;
 
-const VideoPlayer = ({
-  src,
-  poster,
-  width = 640,
-  height = 360,
-  controls = true,
-  autoplay = false,
-  className = "",
-}: VideoPlayerProps) => {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const playerRef = useRef<any>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
+    useLayoutEffect(() => {
+      const style = document.createElement("style");
+      style.innerHTML = `
+      .vjs-big-play-button {
+        display: none !important;
+      }
+    `;
+      document.head.appendChild(style);
 
-  // State for video controls
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [seeking, setSeeking] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [showControls, setShowControls] = useState(true);
-
-  useEffect(() => {
-    if (!videoRef.current) return;
-
-    // Initialize video.js player
-    const videoElement = videoRef.current;
-
-    if (!playerRef.current) {
-      const options = {
-        controls: false, // We're implementing our own controls
-        autoplay,
-        fluid: true,
-        responsive: true,
-        preload: "auto",
-        poster,
-        width,
-        height,
-      };
-
-      playerRef.current = videojs(videoElement, options);
-
-      // Add event listeners for time updates
-      playerRef.current.on("timeupdate", () => {
-        if (!seeking) {
-          setCurrentTime(playerRef.current.currentTime());
-        }
-      });
-
-      playerRef.current.on("durationchange", () => {
-        setDuration(playerRef.current.duration());
-      });
-
-      playerRef.current.on("play", () => {
-        setIsPlaying(true);
-      });
-
-      playerRef.current.on("pause", () => {
-        setIsPlaying(false);
-      });
-
-      playerRef.current.on("ended", () => {
-        setIsPlaying(false);
-      });
-
-      console.log("Video player initialized with width:", width);
-    }
-
-    // Check if browser supports HLS natively
-    const isHlsNativelySupported = videoElement.canPlayType(
-      "application/vnd.apple.mpegurl"
-    );
-
-    // For browsers that don't support HLS natively, use hls.js
-    if (!isHlsNativelySupported && Hls.isSupported() && src.includes(".m3u8")) {
-      console.log("Using HLS.js for playback");
-      const hls = new Hls();
-      hls.loadSource(src);
-      hls.attachMedia(videoElement);
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        if (autoplay) {
-          videoElement.play().catch((error) => {
-            console.error("Autoplay failed:", error);
-          });
-        }
-      });
-
-      hls.on(Hls.Events.ERROR, (_, data) => {
-        console.error("HLS error:", data);
-      });
-    } else {
-      // For browsers with native HLS support or other video formats
-      playerRef.current.src({
-        src,
-        type: src.includes(".m3u8") ? "application/x-mpegURL" : "video/mp4",
-      });
-      console.log("Video source set:", src);
-    }
-
-    // Set up the canvas overlay to match video dimensions
-    if (canvasRef.current && containerRef.current) {
-      const updateCanvasSize = () => {
-        const container = containerRef.current;
-        if (!container) return;
-
-        const videoEl = container.querySelector(".video-js");
-        if (!videoEl) return;
-
-        const rect = videoEl.getBoundingClientRect();
-        if (canvasRef.current) {
-          canvasRef.current.width = rect.width;
-          canvasRef.current.height = rect.height;
-          canvasRef.current.style.width = `${rect.width}px`;
-          canvasRef.current.style.height = `${rect.height}px`;
-        }
-      };
-
-      // Initial size update
-      updateCanvasSize();
-
-      // Update canvas size on window resize
-      window.addEventListener("resize", updateCanvasSize);
-
-      // Clean up event listener
       return () => {
-        window.removeEventListener("resize", updateCanvasSize);
+        document.head.removeChild(style);
       };
-    }
+    }, []);
 
-    // Clean up the player on unmount
-    return () => {
-      if (playerRef.current) {
-        playerRef.current.dispose();
-        playerRef.current = null;
+    useEffect(() => {
+      // Measure container size on mount and resize
+      const updateContainerSize = () => {
+        if (!containerRef.current) return;
+
+        // Get parent element dimensions
+        const parent = containerRef.current.parentElement;
+        if (!parent) return;
+
+        const parentWidth = parent.clientWidth;
+        const parentHeight = parent.clientHeight || window.innerHeight;
+
+        setContainerSize({ width: parentWidth, height: parentHeight });
+      };
+
+      // Initial measurement
+      updateContainerSize();
+
+      // Set up resize observer for parent element size changes
+      const resizeObserver = new ResizeObserver(updateContainerSize);
+      if (containerRef.current?.parentElement) {
+        resizeObserver.observe(containerRef.current.parentElement);
+      }
+
+      // Also listen for window resize events
+      window.addEventListener("resize", updateContainerSize);
+
+      return () => {
+        resizeObserver.disconnect();
+        window.removeEventListener("resize", updateContainerSize);
+      };
+    }, []);
+
+    useEffect(() => {
+      if (!innerVideoRef.current) return;
+
+      // Initialize video.js player
+      const videoElement = innerVideoRef.current;
+
+      // Add loadedmetadata event listener if provided
+      if (onLoadedMetadata) {
+        videoElement.addEventListener(
+          "loadedmetadata",
+          onLoadedMetadata as any
+        );
+      }
+
+      if (!playerRef.current) {
+        const options = {
+          controls,
+          autoplay,
+          fluid: true,
+          responsive: true,
+          preload: "auto",
+          poster,
+          aspectRatio: videoAspectRatio, // Format is width:height as string
+          controlBar: {
+            volumePanel: { inline: false, vertical: true, disabled: true },
+            muteToggle: false,
+            pictureInPictureToggle: false,
+            fullscreenToggle: false,
+          },
+          muted: true, // Always mute the video
+        };
+
+        playerRef.current = videojs(videoElement, options);
+
+        // Ensure the player is muted
+        playerRef.current.muted(true);
+      }
+
+      // Check if browser supports HLS natively
+      const isHlsNativelySupported = videoElement.canPlayType(
+        "application/vnd.apple.mpegurl"
+      );
+
+      // For browsers that don't support HLS natively, use hls.js
+      if (
+        !isHlsNativelySupported &&
+        Hls.isSupported() &&
+        src.includes(".m3u8")
+      ) {
+        console.log("Using HLS.js for playback");
+        const hls = new Hls();
+        hls.loadSource(src);
+        hls.attachMedia(videoElement);
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          if (autoplay) {
+            videoElement.play().catch((error: Error) => {
+              console.error("Autoplay failed:", error);
+            });
+          }
+        });
+
+        hls.on(Hls.Events.ERROR, (_, data) => {
+          console.error("HLS error:", data);
+        });
+      } else {
+        // For browsers with native HLS support or other video formats
+        playerRef.current.src({
+          src,
+          type: src.includes(".m3u8") ? "application/x-mpegURL" : "video/mp4",
+        });
+        console.log("Video source set:", src);
+      }
+
+      // Set up the canvas overlay to match video dimensions
+      if (canvasRef.current && containerRef.current) {
+        const updateCanvasSize = () => {
+          const container = containerRef.current;
+          if (!container) return;
+
+          const videoEl = container.querySelector(".video-js");
+          if (!videoEl) return;
+
+          const rect = videoEl.getBoundingClientRect();
+          if (canvasRef.current) {
+            canvasRef.current.width = rect.width;
+            canvasRef.current.height = rect.height;
+            canvasRef.current.style.width = `${rect.width}px`;
+            canvasRef.current.style.height = `${rect.height}px`;
+          }
+        };
+
+        // Initial size update
+        updateCanvasSize();
+
+        // Update canvas size on window resize
+        window.addEventListener("resize", updateCanvasSize);
+
+        // Clean up event listener
+        return () => {
+          window.removeEventListener("resize", updateCanvasSize);
+
+          // Remove the loadedmetadata event listener
+          if (onLoadedMetadata) {
+            videoElement.removeEventListener(
+              "loadedmetadata",
+              onLoadedMetadata as any
+            );
+          }
+        };
+      }
+
+      // Clean up the player on unmount
+      return () => {
+        if (onLoadedMetadata && videoElement) {
+          videoElement.removeEventListener(
+            "loadedmetadata",
+            onLoadedMetadata as any
+          );
+        }
+
+        if (playerRef.current) {
+          playerRef.current.dispose();
+          playerRef.current = null;
+        }
+      };
+    }, [src, controls, autoplay, poster, videoAspectRatio, onLoadedMetadata]);
+
+    // Calculate dimensions to fit container while maintaining aspect ratio
+    const calculateOptimalDimensions = () => {
+      const { width: maxWidth, height: maxHeight } = containerSize;
+
+      if (maxWidth === 0 || maxHeight === 0) {
+        // Default dimensions if container size is not yet available
+        return { width: "100%", height: "auto" };
+      }
+
+      // Calculate dimensions based on aspect ratio constraints
+      const heightByWidth = maxWidth / numericAspectRatio;
+      const widthByHeight = maxHeight * numericAspectRatio;
+
+      if (heightByWidth <= maxHeight) {
+        // Width is the limiting factor
+        return { width: maxWidth, height: heightByWidth };
+      } else {
+        // Height is the limiting factor
+        return { width: widthByHeight, height: maxHeight };
       }
     };
-  }, [src, controls, autoplay, poster, width, height]);
 
-  // Handle timeline slider change
-  const handleTimeChange = (value: number[]) => {
-    if (!playerRef.current) return;
-    setSeeking(true);
-    setCurrentTime(value[0]);
-  };
+    const optimalDimensions = calculateOptimalDimensions();
 
-  // Handle slider commit (when user finishes scrubbing)
-  const handleTimeCommit = (value: number[]) => {
-    if (!playerRef.current) return;
-    playerRef.current.currentTime(value[0]);
-    setSeeking(false);
-  };
-
-  // Toggle play/pause
-  const togglePlayPause = () => {
-    if (!playerRef.current) return;
-    if (isPlaying) {
-      playerRef.current.pause();
-    } else {
-      playerRef.current.play();
-    }
-  };
-
-  return (
-    <div
-      ref={containerRef}
-      className={`relative ${className}`}
-      style={{ width: `${width}px`, maxWidth: "100%", margin: "0 auto" }}
-      onMouseEnter={() => setShowControls(true)}
-      onMouseLeave={() => setShowControls(false)}
-    >
+    return (
       <div
-        data-vjs-player
-        className="video-js-container cursor-pointer"
-        onClick={togglePlayPause}
-      >
-        <video ref={videoRef} className="video-js vjs-big-play-centered" />
-      </div>
-
-      <canvas
-        ref={canvasRef}
-        className="absolute top-0 left-0 pointer-events-none z-10"
+        ref={containerRef}
+        className={`relative ${className}`}
         style={{
-          width: "100%",
-          height: "100%",
-          opacity: 0,
+          width:
+            typeof optimalDimensions.width === "number"
+              ? `${optimalDimensions.width}px`
+              : optimalDimensions.width,
+          height:
+            typeof optimalDimensions.height === "number"
+              ? `${optimalDimensions.height}px`
+              : optimalDimensions.height,
+          maxWidth: "100%",
+          maxHeight: "100%",
+          margin: "0 auto",
         }}
-      />
-
-      {/* Play/Pause button in center */}
-      <div
-        className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20 
-                   bg-black/40 rounded-full p-3 cursor-pointer 
-                   transition-opacity duration-300 ${showControls || !isPlaying ? "opacity-100" : "opacity-0"}`}
-        onClick={togglePlayPause}
       >
-        {isPlaying ? (
-          <Pause className="w-6 h-6 text-white" />
-        ) : (
-          <Play className="w-6 h-6 text-white" />
-        )}
-      </div>
-
-      {/* Video player controls */}
-      <div
-        className={`absolute bottom-0 left-0 right-0 bg-black/60 p-3 z-20 
-                   transition-opacity duration-300 ${showControls ? "opacity-100" : "opacity-0"}`}
-      >
-        {/* Timeline area with increased click target */}
         <div
-          className="w-full h-12 flex items-center relative cursor-pointer"
-          onClick={(e) => {
-            if (!playerRef.current || !duration) return;
-
-            // Get click position relative to the container
-            const rect = e.currentTarget.getBoundingClientRect();
-            const clickX = e.clientX - rect.left;
-            const containerWidth = rect.width;
-
-            // Calculate the time based on the click position
-            const clickPercent = clickX / containerWidth;
-            const newTime = clickPercent * duration;
-
-            // Set the video time
-            playerRef.current.currentTime(newTime);
-            setCurrentTime(newTime);
-          }}
+          data-vjs-player
+          className="video-js-container"
+          style={{ width: "100%", height: "100%" }}
         >
-          <Slider
-            value={[currentTime]}
-            min={0}
-            max={duration || 100}
-            step={0.01}
-            onValueChange={handleTimeChange}
-            onValueCommit={handleTimeCommit}
-            className="w-full absolute top-1/2 -translate-y-1/2 pointer-events-none"
+          <video
+            ref={innerVideoRef}
+            className="video-js vjs-default-skin vjs-big-play-centered"
+            muted
           />
         </div>
-        <div className="flex justify-between text-white text-xs mt-2">
-          <span>{formatTime(currentTime)}</span>
-          <span>{formatTime(duration)}</span>
-        </div>
+        <canvas
+          ref={canvasRef}
+          className="absolute top-0 left-0 pointer-events-none z-10"
+          style={{
+            width: "100%",
+            height: "100%",
+            opacity: 0.7, // For debugging, make it transparent later
+          }}
+        />
       </div>
-    </div>
-  );
-};
+    );
+  }
+);
+
+// Add display name for better debugging
+VideoPlayer.displayName = "VideoPlayer";
 
 export default VideoPlayer;

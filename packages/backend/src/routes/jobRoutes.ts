@@ -2,18 +2,24 @@ import { Router } from "express";
 import {
   completeTaskController,
   createJob,
+  createTagController,
   createTask,
   deleteJob,
+  deleteTagController,
   getAllJobs,
   getAllJobTasks,
   getJob,
+  getJobLabels,
   getJobs,
   getJobTasks,
   getJobTaskStats,
   getNextAvailableTask,
   getTaskById,
+  getTaskTagsController,
   updateJob,
+  updateTagController,
 } from "../controllers/jobController";
+import { requireAdmin } from "../middlewares/authMiddleware";
 import { generatePresignedUrl } from "../services/s3Service";
 
 const router = Router();
@@ -25,16 +31,19 @@ router.get("/jobs", getAllJobs);
 router.get("/orgs/:orgId/jobs", getJobs);
 
 // POST /api/orgs/:orgId/jobs - Create a new job for an organization
-router.post("/orgs/:orgId/jobs", createJob);
+router.post("/orgs/:orgId/jobs", requireAdmin, createJob);
 
 // GET /api/jobs/:jobId - Get a specific job
 router.get("/jobs/:jobId", getJob);
 
+// GET /api/jobs/:jobId/labels - Get labels for a specific job
+router.get("/jobs/:jobId/labels", getJobLabels);
+
 // PUT /api/jobs/:jobId - Update a job
-router.put("/jobs/:jobId", updateJob);
+router.put("/jobs/:jobId", requireAdmin, updateJob);
 
 // DELETE /api/jobs/:jobId - Delete a job
-router.delete("/jobs/:jobId", deleteJob);
+router.delete("/jobs/:jobId", requireAdmin, deleteJob);
 
 // GET /api/jobs/:jobId/tasks - Get all tasks for a job
 router.get("/jobs/:jobId/tasks", getJobTasks);
@@ -56,6 +65,18 @@ router.post("/jobs/:jobId/tasks/:taskId/complete", completeTaskController);
 
 // POST /api/jobs/:jobId/tasks - Create a new task for a job
 router.post("/jobs/:jobId/tasks", createTask);
+
+// GET /api/jobs/:jobId/tasks/:taskId/tags - Get all tags for a task
+router.get("/jobs/:jobId/tasks/:taskId/tags", getTaskTagsController);
+
+// POST /api/jobs/:jobId/tasks/:taskId/tags - Create a new tag for a task
+router.post("/jobs/:jobId/tasks/:taskId/tags", createTagController);
+
+// DELETE /api/tags/:tagId - Delete a tag
+router.delete("/tags/:tagId", deleteTagController);
+
+// PUT /api/tags/:tagId - Update a tag
+router.put("/tags/:tagId", updateTagController);
 
 // GET /api/orgs/:orgId/jobs/:jobId/upload-url - Get a presigned URL for uploading a JSONL file
 router.get("/orgs/:orgId/jobs/:jobId/upload-url", async (req, res, next) => {

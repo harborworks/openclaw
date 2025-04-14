@@ -2,6 +2,23 @@ import { dataType, tagType } from "@sparrow-tags/schema";
 import { NextFunction, Request, Response } from "express";
 import * as db from "../db";
 
+interface JobWithStats {
+  id: number;
+  org_id: number;
+  org_slug: string;
+  name: string;
+  data_type: string;
+  tag_type: string;
+  labels: string[] | string;
+  created_at: string;
+  updated_at: string;
+  deleted_by_id: number | null;
+  deleted_at: string | null;
+  total_tasks: number | string;
+  completed_tasks: number | string;
+  in_progress_tasks: number | string;
+}
+
 /**
  * Get all jobs for the authenticated user across all of their organizations
  */
@@ -39,12 +56,13 @@ export const getAllJobs = async (
       .map((org) => org.id)
       .filter((id): id is number => id !== null);
 
-    const userJobs = jobs.filter(
-      (job) => job.org_id !== null && orgIds.includes(Number(job.org_id))
+    const userJobs = (jobs as unknown as JobWithStats[]).filter(
+      (job: JobWithStats) =>
+        job.org_id !== null && orgIds.includes(Number(job.org_id))
     );
 
     // Transform the snake_case keys to camelCase for consistent frontend API
-    const transformedJobs = userJobs.map((job) => {
+    const transformedJobs = userJobs.map((job: JobWithStats) => {
       // Parse labels if they're a string
       let parsedLabels: string[] = [];
       try {
@@ -260,6 +278,17 @@ export const updateJob = async (
       return;
     }
 
+    // Get the job to get its organization ID for the middleware
+    try {
+      const job = await db.getJobById(jobId);
+      req.params.orgId = job.orgId.toString();
+    } catch (error) {
+      res.status(404).json({
+        message: "Job not found",
+      });
+      return;
+    }
+
     // Validate data if provided
     if (dataTypeValue && !dataType.enumValues.includes(dataTypeValue)) {
       res.status(400).json({
@@ -286,7 +315,7 @@ export const updateJob = async (
     }
 
     // Update the job
-    const job = await db.updateJob(jobId, {
+    const updatedJob = await db.updateJob(jobId, {
       name,
       instructions,
       dataType: dataTypeValue,
@@ -296,7 +325,7 @@ export const updateJob = async (
 
     res.status(200).json({
       success: true,
-      data: job,
+      data: updatedJob,
     });
   } catch (error: any) {
     if (error.message === "Job not found") {
@@ -331,6 +360,17 @@ export const deleteJob = async (
     if (!userId) {
       res.status(401).json({
         message: "Unauthorized",
+      });
+      return;
+    }
+
+    // Get the job to get its organization ID for the middleware
+    try {
+      const job = await db.getJobById(jobId);
+      req.params.orgId = job.orgId.toString();
+    } catch (error) {
+      res.status(404).json({
+        message: "Job not found",
       });
       return;
     }
@@ -688,6 +728,299 @@ export const getAllJobTasks = async (
     res.status(200).json({
       success: true,
       data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Get labels for a specific job
+ */
+export const getJobLabels = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const jobId = parseInt(req.params.jobId);
+
+    if (isNaN(jobId)) {
+      res.status(400).json({
+        message: "Invalid job ID",
+      });
+      return;
+    }
+
+    const job = await db.getJobById(jobId);
+
+    // Parse labels if they're a string
+    let labels: string[] = [];
+    try {
+      if (typeof job.labels === "string") {
+        labels = JSON.parse(job.labels);
+      } else if (Array.isArray(job.labels)) {
+        labels = job.labels;
+      }
+    } catch (e) {
+      console.error("Error parsing job labels:", e);
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        labels,
+        tagType: job.tagType,
+      },
+    });
+  } catch (error: any) {
+    if (error.message === "Job not found") {
+      res.status(404).json({
+        message: error.message,
+      });
+      return;
+    }
+    next(error);
+  }
+};
+
+/**
+ * Create a tag for a task
+ */
+export const createTagController = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const jobId = parseInt(req.params.jobId);
+    const taskId = parseInt(req.params.taskId);
+    const userId = req.user?.id;
+    const { label, tagType: tagTypeValue, values } = req.body;
+
+    if (isNaN(jobId) || isNaN(taskId)) {
+      res.status(400).json({
+        message: "Invalid job ID or task ID",
+      });
+      return;
+    }
+
+    if (!userId) {
+      res.status(401).json({
+        message: "Unauthorized",
+      });
+      return;
+    }
+
+    // Get the task to verify it exists and belongs to the job
+    const task = await db.getTaskById(taskId);
+
+    if (!task) {
+      res.status(404).json({
+        message: "Task not found",
+      });
+      return;
+    }
+
+    if (task.jobId !== jobId) {
+      res.status(400).json({
+        message: "Task does not belong to the specified job",
+      });
+      return;
+    }
+
+    // Validate tag type
+    if (!tagTypeValue || !tagType.enumValues.includes(tagTypeValue)) {
+      res.status(400).json({
+        message: `Invalid tagType. Must be one of: ${tagType.enumValues.join(", ")}`,
+      });
+      return;
+    }
+
+    // Create the tag
+    const tag = await db.createTag({
+      taskId,
+      createdById: userId,
+      tagType: tagTypeValue,
+      values,
+    });
+
+    res.status(201).json({
+      success: true,
+      data: tag,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Get tags for a task
+ */
+export const getTaskTagsController = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const jobId = parseInt(req.params.jobId);
+    const taskId = parseInt(req.params.taskId);
+
+    if (isNaN(jobId) || isNaN(taskId)) {
+      res.status(400).json({
+        message: "Invalid job ID or task ID",
+      });
+      return;
+    }
+
+    // Get the task to verify it exists and belongs to the job
+    const task = await db.getTaskById(taskId);
+
+    if (!task) {
+      res.status(404).json({
+        message: "Task not found",
+      });
+      return;
+    }
+
+    if (task.jobId !== jobId) {
+      res.status(400).json({
+        message: "Task does not belong to the specified job",
+      });
+      return;
+    }
+
+    // Get the tags for the task
+    const tags = await db.getTagsByTaskId(taskId);
+
+    res.status(200).json({
+      success: true,
+      data: tags,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Delete a tag
+ */
+export const deleteTagController = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const tagId = parseInt(req.params.tagId);
+    const userId = req.user?.id;
+
+    if (isNaN(tagId)) {
+      res.status(400).json({
+        message: "Invalid tag ID",
+      });
+      return;
+    }
+
+    if (!userId) {
+      res.status(401).json({
+        message: "Unauthorized",
+      });
+      return;
+    }
+
+    // Delete the tag
+    const deletedTag = await db.deleteTag(tagId, userId);
+
+    if (!deletedTag) {
+      res.status(404).json({
+        message: "Tag not found",
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      data: deletedTag,
+      message: "Tag deleted successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Update an existing tag
+ * @param req Request object
+ * @param res Response object
+ * @param next Next function
+ */
+export const updateTagController = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    // Check if user is authenticated
+    if (!req.user) {
+      res.status(401).json({
+        message: "Authentication required",
+      });
+      return;
+    }
+
+    const tagId = parseInt(req.params.tagId);
+    if (isNaN(tagId)) {
+      res.status(400).json({
+        message: "Invalid tag ID",
+      });
+      return;
+    }
+
+    // Get the tag data from the request body
+    const { values, tagType: tagTypeValue } = req.body;
+
+    if (!values) {
+      res.status(400).json({
+        message: "Missing required field: values",
+      });
+      return;
+    }
+
+    if (!tagTypeValue || !tagType.enumValues.includes(tagTypeValue)) {
+      res.status(400).json({
+        message: `Invalid tagType. Must be one of: ${tagType.enumValues.join(", ")}`,
+      });
+      return;
+    }
+
+    // Update the tag
+    const updatedTag = await db.updateTag({
+      tagId,
+      updatedById: req.user.id,
+      values,
+    });
+
+    if (!updatedTag) {
+      res.status(404).json({
+        message: "Tag not found",
+      });
+      return;
+    }
+
+    // Return the updated tag
+    res.status(200).json({
+      success: true,
+      data: {
+        id: updatedTag.id,
+        taskId: updatedTag.taskId,
+        createdById: updatedTag.createdById,
+        tagType: updatedTag.tagType,
+        isPrediction: updatedTag.isPrediction,
+        values: updatedTag.values,
+        createdAt: updatedTag.createdAt,
+        updatedAt: updatedTag.updatedAt,
+      },
+      message: "Tag updated successfully",
     });
   } catch (error) {
     next(error);
