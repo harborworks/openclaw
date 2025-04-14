@@ -131,7 +131,7 @@ export default function JobsPage() {
   return (
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Job Management</h1>
+        <h1 className="text-2xl font-bold">Jobs</h1>
         {isAdmin && (
           <Button asChild>
             <Link to="/jobs/create">Create New Job</Link>
@@ -240,34 +240,36 @@ export default function JobsPage() {
                         <Button variant="outline" size="sm" asChild>
                           <Link to={`/jobs/${job.id}`}>View Details</Link>
                         </Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="destructive" size="sm">
-                              Archive
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>
-                                Are you sure you want to archive this job?
-                              </AlertDialogTitle>
-                              <AlertDialogDescription>
-                                This job will be archived and will no longer
-                                appear in the jobs list. All associated tasks
-                                will remain in the database but will not be
-                                accessible.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => handleDeleteJob(job.id)}
-                              >
-                                Archive Job
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                        {isAdmin && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="destructive" size="sm">
+                                Archive
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>
+                                  Are you sure you want to archive this job?
+                                </AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This job will be archived and will no longer
+                                  appear in the jobs list. All associated tasks
+                                  will remain in the database but will not be
+                                  accessible.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDeleteJob(job.id)}
+                                >
+                                  Archive Job
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
