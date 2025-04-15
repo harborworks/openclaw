@@ -60,7 +60,7 @@ router.get("/jobs/:jobId/next-task", getNextAvailableTask);
 // GET /api/jobs/:jobId/tasks/:taskId - Get a specific task
 router.get("/jobs/:jobId/tasks/:taskId", getTaskById);
 
-// POST /api/jobs/:jobId/tasks/:taskId/complete - Complete a task
+// POST /api/jobs/:jobId/tasks/:taskId/complete - Complete a task (admins can complete any task)
 router.post("/jobs/:jobId/tasks/:taskId/complete", completeTaskController);
 
 // POST /api/jobs/:jobId/tasks - Create a new task for a job

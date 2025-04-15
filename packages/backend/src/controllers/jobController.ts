@@ -649,8 +649,31 @@ export const completeTaskController = async (
       return;
     }
 
-    // Check if task is assigned to this user
-    if (task.assignedToId !== userId) {
+    // Get the job to determine the organization
+    let job;
+    try {
+      job = await db.getJobById(jobId);
+    } catch (err) {
+      res.status(404).json({
+        message: "Job not found",
+      });
+      return;
+    }
+
+    // Check if user is an admin (either superadmin or org admin)
+    let isAdmin = false;
+    if (req.user?.superadmin) {
+      isAdmin = true;
+    } else {
+      // Check if user is an org admin for this job's organization
+      const userMemberships = await db.getUserOrgs(userId);
+      isAdmin = userMemberships.some(
+        (membership) => membership.id === job.orgId && membership.isAdmin
+      );
+    }
+
+    // For regular users, check if task is assigned to them
+    if (!isAdmin && task.assignedToId !== userId) {
       res.status(403).json({
         message: "Task is not assigned to you",
       });
@@ -658,7 +681,7 @@ export const completeTaskController = async (
     }
 
     // Complete the task
-    const completedTask = await db.completeTask(taskId, userId);
+    const completedTask = await db.completeTask(taskId, userId, isAdmin);
 
     if (!completedTask) {
       res.status(500).json({

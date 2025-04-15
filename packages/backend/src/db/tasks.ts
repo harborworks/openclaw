@@ -52,15 +52,35 @@ export const getNextAvailableTask = async (userId: number, jobId: number) => {
  *
  * @param taskId The ID of the task to mark as completed
  * @param userId The ID of the user completing the task
+ * @param isAdmin Whether the user is an admin and can bypass assignment check
  * @returns The updated task or null if not found
  */
-export const completeTask = async (taskId: number, userId: number) => {
-  const result = await db.execute(sql`
-    UPDATE tasks
-    SET completed_at = NOW()
-    WHERE id = ${taskId} AND assigned_to_id = ${userId}
-    RETURNING *
-  `);
+export const completeTask = async (
+  taskId: number,
+  userId: number,
+  isAdmin: boolean = false
+) => {
+  let query;
+
+  if (isAdmin) {
+    // Admins can complete any task regardless of assignment
+    query = sql`
+      UPDATE tasks
+      SET completed_at = NOW()
+      WHERE id = ${taskId}
+      RETURNING *
+    `;
+  } else {
+    // Regular users can only complete tasks assigned to them
+    query = sql`
+      UPDATE tasks
+      SET completed_at = NOW()
+      WHERE id = ${taskId} AND assigned_to_id = ${userId}
+      RETURNING *
+    `;
+  }
+
+  const result = await db.execute(query);
 
   if (result.rowCount === 0) {
     return null;
