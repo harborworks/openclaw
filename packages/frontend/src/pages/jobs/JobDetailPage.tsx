@@ -31,7 +31,7 @@ export default function JobDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isLoadingNextTask, setIsLoadingNextTask] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [_, setIsAdmin] = useState(false);
 
   useEffect(() => {
     const fetchJobAndStats = async () => {
@@ -124,6 +124,13 @@ export default function JobDetailPage() {
       ? Math.round((taskStats.completed / taskStats.total) * 100)
       : 0;
 
+  console.log(
+    job,
+    taskStats,
+    parseInt(taskStats?.total.toString() || "0"),
+    parseInt(taskStats?.completed.toString() || "0")
+  );
+
   return (
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex flex-col space-y-2">
@@ -132,16 +139,19 @@ export default function JobDetailPage() {
             Back to Jobs
           </Button>
           <div className="space-x-2 flex">
-            {isAdmin && (
+            {
               <Button variant="outline" onClick={handleViewAllTasks}>
                 View All Tasks
               </Button>
-            )}
-            {job && taskStats && taskStats.total > taskStats.completed && (
-              <Button onClick={handleNextTask} disabled={isLoadingNextTask}>
-                {isLoadingNextTask ? "Loading..." : "Next Available Task"}
-              </Button>
-            )}
+            }
+            {job &&
+              taskStats &&
+              parseInt(taskStats.total.toString()) >
+                parseInt(taskStats.completed.toString()) && (
+                <Button onClick={handleNextTask} disabled={isLoadingNextTask}>
+                  {isLoadingNextTask ? "Loading..." : "Next Available Task"}
+                </Button>
+              )}
           </div>
         </div>
       </div>
