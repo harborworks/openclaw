@@ -120,16 +120,11 @@ export default function JobDetailPage() {
 
   // Calculate completion percentage
   const completionPercentage =
-    taskStats && taskStats.total > 0
-      ? Math.round((taskStats.completed / taskStats.total) * 100)
+    taskStats && Number(taskStats.total) > 0
+      ? Math.round(
+          (Number(taskStats.completed) / Number(taskStats.total)) * 100
+        )
       : 0;
-
-  console.log(
-    job,
-    taskStats,
-    parseInt(taskStats?.total.toString() || "0"),
-    parseInt(taskStats?.completed.toString() || "0")
-  );
 
   return (
     <div className="container mx-auto py-6 space-y-6">
@@ -146,8 +141,7 @@ export default function JobDetailPage() {
             }
             {job &&
               taskStats &&
-              parseInt(taskStats.total.toString()) >
-                parseInt(taskStats.completed.toString()) && (
+              Number(taskStats.total) > Number(taskStats.completed) && (
                 <Button onClick={handleNextTask} disabled={isLoadingNextTask}>
                   {isLoadingNextTask ? "Loading..." : "Next Available Task"}
                 </Button>

@@ -106,7 +106,14 @@ export const getTaskStats = async (jobId: number) => {
     AND deleted_by_id IS NULL
   `);
 
-  return result.rows[0];
+  const stats = result.rows[0];
+
+  // Convert string values to numbers
+  return {
+    total: Number(stats.total),
+    in_progress: Number(stats.in_progress),
+    completed: Number(stats.completed),
+  };
 };
 
 /**
