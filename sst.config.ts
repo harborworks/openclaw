@@ -7,11 +7,6 @@ export default $config({
       removal: input?.stage === "prod" ? "retain" : "remove",
       protect: ["prod"].includes(input?.stage),
       home: "aws",
-      console: {
-        autodeploy: {
-          runner: { runtime: "nodejs: 22" },
-        },
-      },
     };
   },
   async run() {
