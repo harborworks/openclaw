@@ -89,7 +89,6 @@ export default function TaskPage() {
           0,
           videoRef.current.currentTime - 1
         );
-        toast.info("Rewound 1 second", { duration: 1000 });
       }
     },
     { enableOnFormTags: true },
@@ -104,7 +103,6 @@ export default function TaskPage() {
           videoDuration,
           videoRef.current.currentTime + 1
         );
-        toast.info("Forward 1 second", { duration: 1000 });
       }
     },
     { enableOnFormTags: true },
@@ -119,7 +117,6 @@ export default function TaskPage() {
           0,
           videoRef.current.currentTime - 5
         );
-        toast.info("Rewound 5 seconds", { duration: 1000 });
       }
     },
     { enableOnFormTags: true },
@@ -134,7 +131,6 @@ export default function TaskPage() {
           videoDuration,
           videoRef.current.currentTime + 5
         );
-        toast.info("Forward 5 seconds", { duration: 1000 });
       }
     },
     { enableOnFormTags: true },
