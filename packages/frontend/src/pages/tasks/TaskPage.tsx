@@ -1,7 +1,8 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { PencilIcon, PlusIcon, TrashIcon } from "lucide-react";
+import { Keyboard, PencilIcon, PlusIcon, TrashIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useHotkeys } from "react-hotkeys-hook";
 import { useAuth } from "react-oidc-context";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -35,10 +36,21 @@ import {
   FormMessage,
 } from "../../components/ui/form";
 import { Input } from "../../components/ui/input";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "../../components/ui/popover";
 import { ScrollArea } from "../../components/ui/scroll-area";
 import { Separator } from "../../components/ui/separator";
 import { Skeleton } from "../../components/ui/skeleton";
 import { Slider } from "../../components/ui/slider";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableRow,
+} from "../../components/ui/table";
 import VideoPlayer from "../../components/video/VideoPlayer";
 
 // Schema for time segment tag
@@ -72,6 +84,67 @@ export default function TaskPage() {
   const [jobTagType, setJobTagType] = useState<string>("");
   const [isDeletingTag, setIsDeletingTag] = useState<number | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Add keyboard shortcuts for video navigation
+  useHotkeys(
+    "left",
+    () => {
+      if (videoRef.current) {
+        videoRef.current.currentTime = Math.max(
+          0,
+          videoRef.current.currentTime - 1
+        );
+        toast.info("Rewound 1 second", { duration: 1000 });
+      }
+    },
+    { enableOnFormTags: true },
+    [videoRef]
+  );
+
+  useHotkeys(
+    "right",
+    () => {
+      if (videoRef.current) {
+        videoRef.current.currentTime = Math.min(
+          videoDuration,
+          videoRef.current.currentTime + 1
+        );
+        toast.info("Forward 1 second", { duration: 1000 });
+      }
+    },
+    { enableOnFormTags: true },
+    [videoRef, videoDuration]
+  );
+
+  useHotkeys(
+    "shift+left",
+    () => {
+      if (videoRef.current) {
+        videoRef.current.currentTime = Math.max(
+          0,
+          videoRef.current.currentTime - 5
+        );
+        toast.info("Rewound 5 seconds", { duration: 1000 });
+      }
+    },
+    { enableOnFormTags: true },
+    [videoRef]
+  );
+
+  useHotkeys(
+    "shift+right",
+    () => {
+      if (videoRef.current) {
+        videoRef.current.currentTime = Math.min(
+          videoDuration,
+          videoRef.current.currentTime + 5
+        );
+        toast.info("Forward 5 seconds", { duration: 1000 });
+      }
+    },
+    { enableOnFormTags: true },
+    [videoRef, videoDuration]
+  );
 
   // Form for creating time segment tags
   const form = useForm<TimeSegmentTagFormValues>({
@@ -635,16 +708,6 @@ export default function TaskPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <div className="text-sm text-muted-foreground">Task ID</div>
-                  <div className="font-medium">#{task.id}</div>
-                </div>
-
-                <div>
-                  <div className="text-sm text-muted-foreground">Job ID</div>
-                  <div className="font-medium">#{task.jobId}</div>
-                </div>
-
-                <div>
                   <div className="text-sm text-muted-foreground">Status</div>
                   <div>{getTaskStatus()}</div>
                 </div>
@@ -663,6 +726,76 @@ export default function TaskPage() {
                     </div>
                   </div>
                 )}
+
+                <div>
+                  <div className="text-sm text-muted-foreground">
+                    Keyboard Shortcuts
+                  </div>
+                  <div className="mt-1">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" size="sm" className="w-full">
+                          <Keyboard className="h-4 w-4 mr-2" />
+                          View Shortcuts
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[600px]">
+                        <div className="space-y-2">
+                          <h4 className="font-medium">Keyboard Shortcuts</h4>
+                          <Separator />
+                          <Table>
+                            <TableBody>
+                              <TableRow className="border-b-0">
+                                <TableCell className="py-1.5">
+                                  <div className="bg-muted p-1 rounded text-xs min-w-8 text-center inline-block">
+                                    ←
+                                  </div>
+                                </TableCell>
+                                <TableCell className="py-1.5 pr-4">
+                                  <span className="text-sm whitespace-nowrap">
+                                    Rewind 1 second
+                                  </span>
+                                </TableCell>
+                                <TableCell className="py-1.5">
+                                  <div className="bg-muted p-1 rounded text-xs min-w-8 text-center inline-block">
+                                    →
+                                  </div>
+                                </TableCell>
+                                <TableCell className="py-1.5">
+                                  <span className="text-sm whitespace-nowrap">
+                                    Forward 1 second
+                                  </span>
+                                </TableCell>
+                              </TableRow>
+                              <TableRow className="border-b-0">
+                                <TableCell className="py-1.5">
+                                  <div className="bg-muted p-1 px-2 rounded text-xs min-w-20 text-center inline-block">
+                                    Shift + ←
+                                  </div>
+                                </TableCell>
+                                <TableCell className="py-1.5 pr-4">
+                                  <span className="text-sm whitespace-nowrap">
+                                    Rewind 5 seconds
+                                  </span>
+                                </TableCell>
+                                <TableCell className="py-1.5">
+                                  <div className="bg-muted p-1 px-2 rounded text-xs min-w-20 text-center inline-block">
+                                    Shift + →
+                                  </div>
+                                </TableCell>
+                                <TableCell className="py-1.5">
+                                  <span className="text-sm whitespace-nowrap">
+                                    Forward 5 seconds
+                                  </span>
+                                </TableCell>
+                              </TableRow>
+                            </TableBody>
+                          </Table>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
