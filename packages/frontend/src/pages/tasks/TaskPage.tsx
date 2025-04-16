@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Keyboard, PencilIcon, PlusIcon, TrashIcon } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useAuth } from "react-oidc-context";
@@ -8,14 +8,14 @@ import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import * as z from "zod";
 import {
-  Task,
-  TimeSegmentTag,
   completeTask,
   createTag,
   deleteTag,
   getJobLabels,
   getTask,
   getTaskTags,
+  Task,
+  TimeSegmentTag,
   updateTag,
 } from "../../api/jobs";
 import { getUserById } from "../../api/users";
@@ -28,15 +28,6 @@ import {
   CardTitle,
 } from "../../components/ui/card";
 import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "../../components/ui/form";
-import { Input } from "../../components/ui/input";
-import {
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -44,14 +35,18 @@ import {
 import { ScrollArea } from "../../components/ui/scroll-area";
 import { Separator } from "../../components/ui/separator";
 import { Skeleton } from "../../components/ui/skeleton";
-import { Slider } from "../../components/ui/slider";
 import {
   Table,
   TableBody,
   TableCell,
   TableRow,
 } from "../../components/ui/table";
-import VideoPlayer from "../../components/video/VideoPlayer";
+
+// Lazy load the VideoPlayer component
+const VideoPlayer = lazy(() => import("../../components/video/VideoPlayer"));
+
+// Lazy load the TagEditor component
+const TagEditor = lazy(() => import("./components/TagEditor"));
 
 // Schema for time segment tag
 const timeSegmentTagSchema = z.object({
@@ -477,156 +472,29 @@ export default function TaskPage() {
   // Floating Tag Editor UI
   const renderTagEditor = () => {
     return (
-      <div className="fixed bottom-4 right-4 bg-white rounded-lg shadow-lg border p-4 w-[400px] z-10">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="font-medium">
-            {editingTag ? "Edit Time Segment Tag" : "Create Time Segment Tag"}
-          </h3>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              setShowTagEditor(false);
-              setEditingTag(null);
-              form.reset();
-            }}
-            className="h-8 w-8 p-0"
-          >
-            <span className="sr-only">Close</span>✕
-          </Button>
-        </div>
-        <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(onSubmit as any)}
-            className="space-y-4"
-          >
-            <FormField
-              control={form.control}
-              name="timeRange"
-              render={({ field }) => (
-                <FormItem className="space-y-4">
-                  <FormLabel>Time Range</FormLabel>
-                  <div className="flex justify-between">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={setStartFromVideo}
-                    >
-                      Set Start to Current
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={setEndFromVideo}
-                    >
-                      Set End to Current
-                    </Button>
-                  </div>
-                  <div className="pt-4">
-                    <Slider
-                      defaultValue={field.value}
-                      max={100}
-                      step={0.1}
-                      value={field.value}
-                      onValueChange={(values) => {
-                        field.onChange(values);
-                        handleTimeRangeChange(values);
-                      }}
-                      className="mb-2"
-                    />
-                  </div>
-                  <div className="flex justify-between text-sm text-muted-foreground">
-                    <div>
-                      Start: {formatTime(percentToSeconds(field.value[0]))}
-                    </div>
-                    <div>
-                      End: {formatTime(percentToSeconds(field.value[1]))}
-                    </div>
-                  </div>
-                  <div className="flex justify-between">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() =>
-                        seekVideoToTime(percentToSeconds(field.value[0]))
-                      }
-                    >
-                      Jump to Start
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() =>
-                        seekVideoToTime(percentToSeconds(field.value[1]))
-                      }
-                    >
-                      Jump to End
-                    </Button>
-                  </div>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="label"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Label</FormLabel>
-                  {jobLabels.length > 0 ? (
-                    <div className="grid grid-cols-2 gap-2">
-                      {jobLabels.map((label) => (
-                        <Button
-                          key={label}
-                          type="button"
-                          variant={
-                            field.value === label ? "default" : "outline"
-                          }
-                          onClick={() => field.onChange(label)}
-                          className="justify-start"
-                        >
-                          {label}
-                        </Button>
-                      ))}
-                    </div>
-                  ) : (
-                    <FormControl>
-                      <Input placeholder="Enter tag label" {...field} />
-                    </FormControl>
-                  )}
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <div className="flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  setShowTagEditor(false);
-                  setEditingTag(null);
-                  form.reset();
-                }}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isSavingTag}>
-                {isSavingTag
-                  ? editingTag
-                    ? "Updating..."
-                    : "Creating..."
-                  : editingTag
-                    ? "Update Tag"
-                    : "Create Tag"}
-              </Button>
-            </div>
-          </form>
-        </Form>
-      </div>
+      <Suspense
+        fallback={
+          <div className="fixed bottom-4 right-4 bg-white rounded-lg shadow-lg border p-4 w-[400px] z-10">
+            Loading tag editor...
+          </div>
+        }
+      >
+        <TagEditor
+          form={form}
+          onSubmit={onSubmit}
+          editingTag={editingTag}
+          setShowTagEditor={setShowTagEditor}
+          setEditingTag={setEditingTag}
+          isSavingTag={isSavingTag}
+          percentToSeconds={percentToSeconds}
+          setStartFromVideo={setStartFromVideo}
+          setEndFromVideo={setEndFromVideo}
+          handleTimeRangeChange={handleTimeRangeChange}
+          formatTime={formatTime}
+          seekVideoToTime={seekVideoToTime}
+          jobLabels={jobLabels}
+        />
+      </Suspense>
     );
   };
 
@@ -647,18 +515,26 @@ export default function TaskPage() {
             <div className="w-full bg-gray-50 rounded-lg overflow-hidden min-h-[70vh] flex items-center justify-center">
               {isVideoUrl(task.url) ? (
                 <div className="relative w-full aspect-video max-h-[70vh]">
-                  <VideoPlayer
-                    ref={videoRef}
-                    src={`https://cors-anywhere-zq.herokuapp.com/${task.url}`}
-                    controls={true}
-                    className="absolute inset-0 w-full h-full"
-                    onLoadedMetadata={(
-                      e: React.SyntheticEvent<HTMLVideoElement>
-                    ) => {
-                      const video = e.currentTarget;
-                      setVideoDuration(video.duration);
-                    }}
-                  />
+                  <Suspense
+                    fallback={
+                      <div className="w-full h-full flex items-center justify-center">
+                        Loading video player...
+                      </div>
+                    }
+                  >
+                    <VideoPlayer
+                      ref={videoRef}
+                      src={`https://cors-anywhere-zq.herokuapp.com/${task.url}`}
+                      controls={true}
+                      className="absolute inset-0 w-full h-full"
+                      onLoadedMetadata={(
+                        e: React.SyntheticEvent<HTMLVideoElement>
+                      ) => {
+                        const video = e.currentTarget;
+                        setVideoDuration(video.duration);
+                      }}
+                    />
+                  </Suspense>
                 </div>
               ) : (
                 <img
