@@ -70,6 +70,16 @@ export const tags = pgTable("tags", {
     .references(() => users.id),
   tagType: tagType("tag_type").notNull(),
   isPrediction: boolean().notNull().default(false),
+  /**
+   * For bounding-boxes, values should be object with the following structure:
+   * {
+   *   label: string,
+   *   x1: number,
+   *   y1: number,
+   *   x2: number,
+   *   y2: number,
+   * }
+   */
   values: jsonb().notNull(),
   ...deleted,
   ...timestamps,

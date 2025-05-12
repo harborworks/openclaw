@@ -455,8 +455,19 @@ export const createTask = async (
       return;
     }
 
-    // Verify the job exists
-    await db.getJobById(jobId);
+    // Verify the job exists and get its data_type
+    const job = await db.getJobById(jobId);
+
+    // Simple check for image URLs (extensions)
+    const imageExtensions = [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp", ".tiff", ".svg"];
+    const isImage = imageExtensions.some((ext) => url.toLowerCase().endsWith(ext));
+
+    if (isImage && job.dataType !== "image") {
+      res.status(400).json({
+        message: "Job data_type must be 'image' for image URLs.",
+      });
+      return;
+    }
 
     // Create the task
     const task = await db.addTaskToJob(jobId, url);
@@ -858,6 +869,26 @@ export const createTagController = async (
         message: `Invalid tagType. Must be one of: ${tagType.enumValues.join(", ")}`,
       });
       return;
+    }
+
+    // Get the job to check tagType
+    const job = await db.getJobById(jobId);
+
+    // If bounding-boxes, validate values structure
+    if (tagTypeValue === "bounding-boxes") {
+      if (
+          typeof values !== "object" ||
+          typeof values.id !== "string" ||
+          typeof values.label !== "string" ||
+          typeof values.x1 !== "number" ||
+          typeof values.y2 !== "number" ||
+          typeof values.x2 !== "number" ||
+          typeof values.y2 !== "number"
+        ) {
+          res.status(400).json({ message: "Invalid bounding box structure in values.", object: values });
+          return;
+        }
+      
     }
 
     // Create the tag

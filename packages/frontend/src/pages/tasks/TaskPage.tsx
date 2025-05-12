@@ -8,17 +8,21 @@ import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import * as z from "zod";
 import {
+  BoundingBoxTag,
   completeTask,
+  createBoundingBoxTag,
   createTag,
   deleteTag,
   getJobLabels,
   getTask,
   getTaskTags,
+  Tag,
   Task,
   TimeSegmentTag,
-  updateTag,
+  updateTag
 } from "../../api/jobs";
 import { getUserById } from "../../api/users";
+import { BoundingBox, BoundingBoxAnnotator } from "../../components/BoundingBoxAnnotator";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import {
@@ -56,6 +60,16 @@ const timeSegmentTagSchema = z.object({
 
 type TimeSegmentTagFormValues = z.infer<typeof timeSegmentTagSchema>;
 
+// Type guard for time segment tag
+function isTimeSegmentTag(tag: Tag): tag is TimeSegmentTag {
+  return tag.tagType === "time-segments";
+}
+
+// Type guard for bounding box tag
+function isBoundingBoxTag(tag: Tag): tag is BoundingBoxTag {
+  return tag.tagType === "bounding-boxes";
+}
+
 export default function TaskPage() {
   const { jobId, taskId } = useParams<{ jobId: string; taskId: string }>();
   const auth = useAuth();
@@ -66,18 +80,17 @@ export default function TaskPage() {
   );
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingUser, setIsLoadingUser] = useState(false);
-  const [_, setIsLoadingLabels] = useState(false);
-  const [isLoadingTags, setIsLoadingTags] = useState(false);
   const [isSavingTag, setIsSavingTag] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isCompletingTask, setIsCompletingTask] = useState(false);
   const [showTagEditor, setShowTagEditor] = useState(false);
   const [editingTag, setEditingTag] = useState<TimeSegmentTag | null>(null);
   const [videoDuration, setVideoDuration] = useState(0);
-  const [tags, setTags] = useState<TimeSegmentTag[]>([]);
+  const [tags, setTags] = useState<Tag[]>([]);
   const [jobLabels, setJobLabels] = useState<string[]>([]);
   const [jobTagType, setJobTagType] = useState<string>("");
   const [isDeletingTag, setIsDeletingTag] = useState<number | null>(null);
+  const [boundingBoxes, setBoundingBoxes] = useState<BoundingBox[]>([]);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   // Add keyboard shortcuts for video navigation
@@ -146,82 +159,48 @@ export default function TaskPage() {
     },
   });
 
+  // Load task data
   useEffect(() => {
-    const fetchTask = async () => {
+    const loadTaskData = async () => {
       if (!auth.user?.access_token || !jobId || !taskId) return;
 
+      const jobIdNum = parseInt(jobId, 10);
+      const taskIdNum = parseInt(taskId, 10);
+
+      if (isNaN(jobIdNum) || isNaN(taskIdNum)) {
+        setError("Invalid job ID or task ID");
+        setIsLoading(false);
+        return;
+      }
+
       try {
-        setIsLoading(true);
-        setError(null);
+        // Load job data first to get tag type
+        const jobData = await getJobLabels(auth.user.access_token, jobIdNum);
+        setJobLabels(jobData.labels);
+        setJobTagType(jobData.tagType);
 
-        const jobIdNum = parseInt(jobId, 10);
-        const taskIdNum = parseInt(taskId, 10);
-
-        if (isNaN(jobIdNum) || isNaN(taskIdNum)) {
-          setError("Invalid job ID or task ID");
-          return;
-        }
-
-        // Fetch the task
-        const taskData = await getTask(
-          auth.user.access_token,
-          jobIdNum,
-          taskIdNum
-        );
+        // Then load task data
+        const taskData = await getTask(auth.user.access_token, jobIdNum, taskIdNum);
         setTask(taskData);
 
-        // Fetch job labels
-        await fetchJobLabels(jobIdNum);
+        // Load task tags
+        const tagsData = await getTaskTags(auth.user.access_token, jobIdNum, taskIdNum);
+        setTags(tagsData);
 
-        // Fetch task tags
-        await fetchTaskTags(jobIdNum, taskIdNum);
-
-        // If task is assigned, fetch user information
+        // If task is assigned, load assigned user's email
         if (taskData.assignedToId) {
-          await fetchUserEmail(taskData.assignedToId);
+          fetchUserEmail(taskData.assignedToId);
         }
       } catch (err) {
-        console.error("Error fetching task:", err);
-        setError("Failed to fetch task");
-        toast.error("Failed to fetch task");
+        console.error("Error loading task data:", err);
+        setError("Failed to load task data");
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchTask();
+    loadTaskData();
   }, [auth.user?.access_token, jobId, taskId]);
-
-  // Fetch job labels
-  const fetchJobLabels = async (jobId: number) => {
-    if (!auth.user?.access_token) return;
-
-    setIsLoadingLabels(true);
-    try {
-      const response = await getJobLabels(auth.user.access_token, jobId);
-      setJobLabels(response.labels);
-      setJobTagType(response.tagType);
-    } catch (err) {
-      console.error("Error fetching job labels:", err);
-    } finally {
-      setIsLoadingLabels(false);
-    }
-  };
-
-  // Fetch task tags
-  const fetchTaskTags = async (jobId: number, taskId: number) => {
-    if (!auth.user?.access_token) return;
-
-    setIsLoadingTags(true);
-    try {
-      const tagsData = await getTaskTags(auth.user.access_token, jobId, taskId);
-      setTags(tagsData);
-    } catch (err) {
-      console.error("Error fetching task tags:", err);
-    } finally {
-      setIsLoadingTags(false);
-    }
-  };
 
   // Fetch the user's email by ID
   const fetchUserEmail = async (userId: number) => {
@@ -330,7 +309,7 @@ export default function TaskPage() {
     if (!videoRef.current) return;
 
     const currentPercent = getCurrentVideoTime();
-    const [_, endPercent] = form.getValues("timeRange");
+    const [, endPercent] = form.getValues("timeRange");
 
     // Make sure start is not after end
     if (currentPercent < endPercent) {
@@ -345,7 +324,7 @@ export default function TaskPage() {
     if (!videoRef.current) return;
 
     const currentPercent = getCurrentVideoTime();
-    const [startPercent, _] = form.getValues("timeRange");
+    const [startPercent] = form.getValues("timeRange");
 
     // Make sure end is not before start
     if (currentPercent > startPercent) {
@@ -376,7 +355,7 @@ export default function TaskPage() {
 
       // Create the tag data
       const tagData = {
-        tagType: jobTagType || "time-segments",
+        tagType: "time-segments" as const,
         values: {
           label: values.label,
           start: startTime,
@@ -414,11 +393,8 @@ export default function TaskPage() {
       form.reset();
       setShowTagEditor(false);
       setEditingTag(null);
-
-      // Remove the success toast
     } catch (err) {
       console.error(`Error ${editingTag ? "updating" : "creating"} tag:`, err);
-      // Keep error toast as it's important for user feedback on failures
       toast.error(`Failed to ${editingTag ? "update" : "create"} tag`);
     } finally {
       setIsSavingTag(false);
@@ -426,7 +402,9 @@ export default function TaskPage() {
   };
 
   // Handle editing a tag
-  const handleEditTag = (tag: TimeSegmentTag) => {
+  const handleEditTag = (tag: Tag) => {
+    if (!isTimeSegmentTag(tag)) return;
+    
     // Convert start/end times back to slider percentages
     const startPercent = secondsToPercent(tag.values.start);
     const endPercent = secondsToPercent(tag.values.end);
@@ -456,6 +434,7 @@ export default function TaskPage() {
       setTags(tags.filter((tag) => tag.id !== tagId));
 
       // Remove the success toast
+      toast.success("Tag deleted successfully");
     } catch (err) {
       console.error("Error deleting tag:", err);
       // Keep error toast as it's important for user feedback on failures
@@ -494,6 +473,88 @@ export default function TaskPage() {
     );
   };
 
+  // Add a function to handle saving bounding box tags
+  const handleSaveBoundingBoxes = async () => {
+    if (!auth.user?.access_token || !jobId || !taskId) return;
+    const jobIdNum = parseInt(jobId, 10);
+    const taskIdNum = parseInt(taskId, 10);
+
+    try {
+      setIsSavingTag(true);
+      // Get existing box IDs to avoid duplicates
+      const existingBoxIds = new Set(
+        tags
+          .filter((tag): tag is BoundingBoxTag => tag.tagType === "bounding-boxes")
+          .map(tag => tag.values.id)
+      );
+
+      // Only create tags for new boxes that don't exist yet
+      for (const box of boundingBoxes) {
+        if (!existingBoxIds.has(box.id)) {
+          await createBoundingBoxTag(
+            auth.user.access_token,
+            jobIdNum,
+            taskIdNum,
+            {
+              tagType: "bounding-boxes",
+              values: box
+            }
+          );
+        }
+      }
+      // Refresh tags after saving
+      const tagsData = await getTaskTags(auth.user.access_token, jobIdNum, taskIdNum);
+      setTags(tagsData);
+      toast.success("Bounding boxes saved");
+      setBoundingBoxes([]);
+    } catch (error) {
+      console.error("Error saving bounding boxes:", error);
+      toast.error("Failed to save bounding boxes");
+    } finally {
+      setIsSavingTag(false);
+    }
+  };
+
+  // Compute all existing bounding boxes from tags
+  const existingBoxes: BoundingBox[] = tags
+    .filter((tag): tag is BoundingBoxTag => tag.tagType === "bounding-boxes")
+    .map(tag => tag.values);
+
+  // Merge with local (unsaved) boundingBoxes, avoiding duplicate IDs
+  const allBoxes: BoundingBox[] = [
+    ...existingBoxes,
+    ...boundingBoxes.filter(
+      (box) => !existingBoxes.some((b) => b.id === box.id)
+    ),
+  ];
+
+  // Handle bounding box deletion
+  const handleDeleteBoundingBox = async (boxId: string) => {
+    if (!auth.user?.access_token || !jobId || !taskId) return;
+    const jobIdNum = parseInt(jobId, 10);
+    const taskIdNum = parseInt(taskId, 10);
+    
+    try {
+      // Find the tag containing this box
+      const tag = tags.find(t => 
+        isBoundingBoxTag(t) && 
+        t.values.id === boxId
+      );
+
+      if (tag) {
+        await deleteTag(auth.user.access_token, tag.id as number);
+        // Refresh tags after deletion
+        const tagsData = await getTaskTags(auth.user.access_token, jobIdNum, taskIdNum);
+        setTags(tagsData);
+        // Also remove from local state if it exists there
+        setBoundingBoxes(boxes => boxes.filter(box => box.id !== boxId));
+      }
+    } catch (error) {
+      console.error("Error deleting bounding box:", error);
+      toast.error("Failed to delete bounding box");
+    }
+  };
+
   return (
     <div className="container mx-auto py-4">
       {isLoading ? (
@@ -507,30 +568,40 @@ export default function TaskPage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Main content area */}
           <div className="lg:col-span-9 space-y-6">
-            {/* Video player container with aspect ratio */}
+            {/* Image or video display */}
             <div className="w-full bg-gray-50 rounded-lg overflow-hidden min-h-[70vh] flex items-center justify-center">
               {isVideoUrl(task.url) ? (
                 <div className="relative w-full aspect-video max-h-[70vh]">
-                  <Suspense
-                    fallback={
-                      <div className="w-full h-full flex items-center justify-center">
-                        Loading video player...
-                      </div>
-                    }
-                  >
+                  <Suspense fallback={<div className="w-full h-full flex items-center justify-center">Loading video player...</div>}>
                     <VideoPlayer
                       ref={videoRef}
                       src={`https://cors-anywhere-zq.herokuapp.com/${task.url}`}
                       controls={true}
                       className="absolute inset-0 w-full h-full"
-                      onLoadedMetadata={(
-                        e: React.SyntheticEvent<HTMLVideoElement>
-                      ) => {
+                      onLoadedMetadata={(e: React.SyntheticEvent<HTMLVideoElement>) => {
                         const video = e.currentTarget;
                         setVideoDuration(video.duration);
                       }}
                     />
                   </Suspense>
+                </div>
+              ) : jobTagType === "bounding-boxes" ? (
+                <div className="relative w-full h-[70vh]">
+                  <BoundingBoxAnnotator
+                    imageUrl={task.url}
+                    boxes={allBoxes}
+                    onChange={setBoundingBoxes}
+                    labels={jobLabels}
+                    localBoxIds={boundingBoxes.map((b) => b.id)}
+                    onDeleteBox={handleDeleteBoundingBox}
+                  />
+                  <Button
+                    className="absolute top-2 right-2 z-10"
+                    onClick={handleSaveBoundingBoxes}
+                    disabled={isSavingTag || boundingBoxes.length === 0}
+                  >
+                    {isSavingTag ? "Saving..." : "Save Bounding Boxes"}
+                  </Button>
                 </div>
               ) : (
                 <img
@@ -540,12 +611,89 @@ export default function TaskPage() {
                 />
               )}
             </div>
-
             {/* Floating Tag Editor */}
             {showTagEditor && renderTagEditor()}
-
             <Separator />
-
+            {/* Show bounding box tags if any */}
+            {jobTagType === "bounding-boxes" && tags.length > 0 && (
+              <div>
+                <h3 className="font-medium mb-2">Saved Bounding Boxes</h3>
+                <ul className="space-y-2">
+                  {tags.map((tag) => (
+                    isBoundingBoxTag(tag) ? (
+                      <li key={tag.id} className="border rounded p-2">
+                        <div className="flex flex-col text-xs">
+                          <span><b>Label:</b> {tag.values.label}</span>
+                          <span><b>x1:</b> {tag.values.x1}, <b>y1:</b> {tag.values.y1}</span>
+                          <span><b>x2:</b> {tag.values.x2}, <b>y2:</b> {tag.values.y2}</span>
+                        </div>
+                        <div className="flex justify-end mt-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteTag(tag.id as number)}
+                            disabled={isDeletingTag === tag.id}
+                            className="h-8 w-8 p-0"
+                          >
+                            {isDeletingTag === tag.id ? (
+                              <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                            ) : (
+                              <TrashIcon className="h-4 w-4 text-red-500" />
+                            )}
+                            <span className="sr-only">Delete tag</span>
+                          </Button>
+                        </div>
+                      </li>
+                    ) : null
+                  ))}
+                </ul>
+              </div>
+            )}
+            {/* Show time segment tags if any */}
+            {jobTagType === "time-segments" && tags.length > 0 && (
+              <div>
+                <h3 className="font-medium mb-2">Saved Time Segments</h3>
+                <ul className="space-y-2">
+                  {tags.map((tag) => (
+                    isTimeSegmentTag(tag) ? (
+                      <li key={tag.id} className="border rounded p-2">
+                        <div className="flex flex-col">
+                          <span className="font-medium">{tag.values.label}</span>
+                          <span className="text-muted-foreground">
+                            {`${formatTime(tag.values.start)} - ${formatTime(tag.values.end)}`}
+                          </span>
+                        </div>
+                        <div className="flex justify-end mt-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEditTag(tag)}
+                            className="h-8 w-8 p-0"
+                          >
+                            <PencilIcon className="h-4 w-4 text-blue-500" />
+                            <span className="sr-only">Edit tag</span>
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteTag(tag.id as number)}
+                            disabled={isDeletingTag === tag.id}
+                            className="h-8 w-8 p-0"
+                          >
+                            {isDeletingTag === tag.id ? (
+                              <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                            ) : (
+                              <TrashIcon className="h-4 w-4 text-red-500" />
+                            )}
+                            <span className="sr-only">Delete tag</span>
+                          </Button>
+                        </div>
+                      </li>
+                    ) : null
+                  ))}
+                </ul>
+              </div>
+            )}
             {/* Navigation buttons in a single row */}
             <div className="flex justify-between items-center px-2">
               <Button
@@ -574,7 +722,7 @@ export default function TaskPage() {
 
           {/* Sidebar with task metadata */}
           <div className="lg:col-span-3">
-            <Card className="sticky top-4">
+            <Card className="sticky top-4 bg-white z-10">
               <CardHeader>
                 <CardTitle>Task Details</CardTitle>
               </CardHeader>
@@ -599,75 +747,77 @@ export default function TaskPage() {
                   </div>
                 )}
 
-                <div>
-                  <div className="text-sm text-muted-foreground">
-                    Keyboard Shortcuts
+                {jobTagType !== "bounding-boxes" && (
+                  <div>
+                    <div className="text-sm text-muted-foreground">
+                      Keyboard Shortcuts
+                    </div>
+                    <div className="mt-1">
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" size="sm" className="w-full">
+                            <Keyboard className="h-4 w-4 mr-2" />
+                            View Shortcuts
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[600px]">
+                          <div className="space-y-2">
+                            <h4 className="font-medium">Keyboard Shortcuts</h4>
+                            <Separator />
+                            <Table>
+                              <TableBody>
+                                <TableRow className="border-b-0">
+                                  <TableCell className="py-1.5">
+                                    <div className="bg-muted p-1 rounded text-xs min-w-8 text-center inline-block">
+                                      ←
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="py-1.5 pr-4">
+                                    <span className="text-sm whitespace-nowrap">
+                                      Rewind 1 second
+                                    </span>
+                                  </TableCell>
+                                  <TableCell className="py-1.5">
+                                    <div className="bg-muted p-1 rounded text-xs min-w-8 text-center inline-block">
+                                      →
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="py-1.5">
+                                    <span className="text-sm whitespace-nowrap">
+                                      Forward 1 second
+                                    </span>
+                                  </TableCell>
+                                </TableRow>
+                                <TableRow className="border-b-0">
+                                  <TableCell className="py-1.5">
+                                    <div className="bg-muted p-1 px-2 rounded text-xs min-w-20 text-center inline-block">
+                                      Shift + ←
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="py-1.5 pr-4">
+                                    <span className="text-sm whitespace-nowrap">
+                                      Rewind 5 seconds
+                                    </span>
+                                  </TableCell>
+                                  <TableCell className="py-1.5">
+                                    <div className="bg-muted p-1 px-2 rounded text-xs min-w-20 text-center inline-block">
+                                      Shift + →
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="py-1.5">
+                                    <span className="text-sm whitespace-nowrap">
+                                      Forward 5 seconds
+                                    </span>
+                                  </TableCell>
+                                </TableRow>
+                              </TableBody>
+                            </Table>
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
                   </div>
-                  <div className="mt-1">
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="outline" size="sm" className="w-full">
-                          <Keyboard className="h-4 w-4 mr-2" />
-                          View Shortcuts
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[600px]">
-                        <div className="space-y-2">
-                          <h4 className="font-medium">Keyboard Shortcuts</h4>
-                          <Separator />
-                          <Table>
-                            <TableBody>
-                              <TableRow className="border-b-0">
-                                <TableCell className="py-1.5">
-                                  <div className="bg-muted p-1 rounded text-xs min-w-8 text-center inline-block">
-                                    ←
-                                  </div>
-                                </TableCell>
-                                <TableCell className="py-1.5 pr-4">
-                                  <span className="text-sm whitespace-nowrap">
-                                    Rewind 1 second
-                                  </span>
-                                </TableCell>
-                                <TableCell className="py-1.5">
-                                  <div className="bg-muted p-1 rounded text-xs min-w-8 text-center inline-block">
-                                    →
-                                  </div>
-                                </TableCell>
-                                <TableCell className="py-1.5">
-                                  <span className="text-sm whitespace-nowrap">
-                                    Forward 1 second
-                                  </span>
-                                </TableCell>
-                              </TableRow>
-                              <TableRow className="border-b-0">
-                                <TableCell className="py-1.5">
-                                  <div className="bg-muted p-1 px-2 rounded text-xs min-w-20 text-center inline-block">
-                                    Shift + ←
-                                  </div>
-                                </TableCell>
-                                <TableCell className="py-1.5 pr-4">
-                                  <span className="text-sm whitespace-nowrap">
-                                    Rewind 5 seconds
-                                  </span>
-                                </TableCell>
-                                <TableCell className="py-1.5">
-                                  <div className="bg-muted p-1 px-2 rounded text-xs min-w-20 text-center inline-block">
-                                    Shift + →
-                                  </div>
-                                </TableCell>
-                                <TableCell className="py-1.5">
-                                  <span className="text-sm whitespace-nowrap">
-                                    Forward 5 seconds
-                                  </span>
-                                </TableCell>
-                              </TableRow>
-                            </TableBody>
-                          </Table>
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                </div>
+                )}
               </CardContent>
             </Card>
 
@@ -688,13 +838,7 @@ export default function TaskPage() {
                 </Button>
               </CardHeader>
               <CardContent>
-                {isLoadingTags ? (
-                  <div className="space-y-2">
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-4 w-full" />
-                  </div>
-                ) : tags.length === 0 ? (
+                {tags.length === 0 ? (
                   <div className="text-sm text-muted-foreground">
                     No tags created yet
                   </div>
@@ -702,45 +846,52 @@ export default function TaskPage() {
                   <ScrollArea className="h-[300px]">
                     <ul className="space-y-2 pr-4">
                       {tags.map((tag) => (
-                        <li
-                          key={tag.id}
-                          className="flex justify-between items-center text-sm border-b pb-2"
-                        >
-                          <div className="flex flex-col">
-                            <span className="font-medium">
-                              {tag.values.label}
-                            </span>
-                            <span className="text-muted-foreground">
-                              {formatTime(tag.values.start)} -{" "}
-                              {formatTime(tag.values.end)}
-                            </span>
-                          </div>
-                          <div className="flex space-x-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleEditTag(tag)}
-                              className="h-8 w-8 p-0"
-                            >
-                              <PencilIcon className="h-4 w-4 text-blue-500" />
-                              <span className="sr-only">Edit tag</span>
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDeleteTag(tag.id as number)}
-                              disabled={isDeletingTag === tag.id}
-                              className="h-8 w-8 p-0"
-                            >
-                              {isDeletingTag === tag.id ? (
-                                <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                              ) : (
-                                <TrashIcon className="h-4 w-4 text-red-500" />
-                              )}
-                              <span className="sr-only">Delete tag</span>
-                            </Button>
-                          </div>
-                        </li>
+                        isBoundingBoxTag(tag) ? (
+                          <li key={tag.id} className="flex flex-col text-xs border-b pb-2">
+                            <span><b>Label:</b> {tag.values.label}</span>
+                            <span><b>x1:</b> {tag.values.x1}, <b>y1:</b> {tag.values.y1}</span>
+                            <span><b>x2:</b> {tag.values.x2}, <b>y2:</b> {tag.values.y2}</span>
+                          </li>
+                        ) : isTimeSegmentTag(tag) ? (
+                          <li
+                            key={tag.id}
+                            className="flex justify-between items-center text-sm border-b pb-2"
+                          >
+                            <div className="flex flex-col">
+                              <span className="font-medium">
+                                {tag.values.label}
+                              </span>
+                              <span className="text-muted-foreground">
+                                {`${formatTime(tag.values.start)} - ${formatTime(tag.values.end)}`}
+                              </span>
+                            </div>
+                            <div className="flex space-x-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleEditTag(tag)}
+                                className="h-8 w-8 p-0"
+                              >
+                                <PencilIcon className="h-4 w-4 text-blue-500" />
+                                <span className="sr-only">Edit tag</span>
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeleteTag(tag.id as number)}
+                                disabled={isDeletingTag === tag.id}
+                                className="h-8 w-8 p-0"
+                              >
+                                {isDeletingTag === tag.id ? (
+                                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                                ) : (
+                                  <TrashIcon className="h-4 w-4 text-red-500" />
+                                )}
+                                <span className="sr-only">Delete tag</span>
+                              </Button>
+                            </div>
+                          </li>
+                        ) : null
                       ))}
                     </ul>
                   </ScrollArea>

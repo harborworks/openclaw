@@ -380,20 +380,44 @@ export const getJobLabels = async (
 /**
  * Tag interface for time segment tags
  */
+export interface BoundingBox {
+  id: string;
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  label: string;
+}
+
+export interface TimeSegment {
+  label: string;
+  start: number;
+  end: number;
+}
+
 export interface TimeSegmentTag {
   id?: number;
   taskId: number;
   createdById?: number;
-  tagType: string;
+  tagType: "time-segments";
   isPrediction?: boolean;
-  values: {
-    label: string;
-    start: number;
-    end: number;
-  };
+  values: TimeSegment;
   createdAt?: string;
   updatedAt?: string;
 }
+
+export interface BoundingBoxTag {
+  id?: number;
+  taskId: number;
+  createdById?: number;
+  tagType: "bounding-boxes";
+  isPrediction?: boolean;
+  values: BoundingBox;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export type Tag = TimeSegmentTag | BoundingBoxTag;
 
 /**
  * Create a tag for a task
@@ -407,10 +431,7 @@ export const createTag = async (
   token: string,
   jobId: number,
   taskId: number,
-  tagData: Omit<
-    TimeSegmentTag,
-    "id" | "taskId" | "createdById" | "createdAt" | "updatedAt"
-  >
+  tagData: Omit<TimeSegmentTag, "id" | "taskId" | "createdById" | "createdAt" | "updatedAt">
 ): Promise<TimeSegmentTag> => {
   const response = await axios.post<{ success: boolean; data: TimeSegmentTag }>(
     `${API_URL}/api/jobs/${jobId}/tasks/${taskId}/tags`,
@@ -435,10 +456,10 @@ export const getTaskTags = async (
   token: string,
   jobId: number,
   taskId: number
-): Promise<TimeSegmentTag[]> => {
+): Promise<Tag[]> => {
   const response = await axios.get<{
     success: boolean;
-    data: TimeSegmentTag[];
+    data: Tag[];
   }>(`${API_URL}/api/jobs/${jobId}/tasks/${taskId}/tags`, {
     headers: {
       Authorization: `Bearer ${token}`,
@@ -456,10 +477,10 @@ export const getTaskTags = async (
 export const deleteTag = async (
   token: string,
   tagId: number
-): Promise<TimeSegmentTag> => {
+): Promise<Tag> => {
   const response = await axios.delete<{
     success: boolean;
-    data: TimeSegmentTag;
+    data: Tag;
     message: string;
   }>(`${API_URL}/api/tags/${tagId}`, {
     headers: {
@@ -480,22 +501,36 @@ export const updateTag = async (
   token: string,
   tagId: number,
   tagData: {
-    tagType: string;
-    values: {
-      label: string;
-      start: number;
-      end: number;
-    };
+    tagType: "time-segments" | "bounding-boxes";
+    values: TimeSegment | BoundingBox;
   }
-): Promise<TimeSegmentTag> => {
+): Promise<Tag> => {
   const response = await axios.put<{
     success: boolean;
-    data: TimeSegmentTag;
+    data: Tag;
     message: string;
   }>(`${API_URL}/api/tags/${tagId}`, tagData, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
   });
+  return response.data.data;
+};
+
+export const createBoundingBoxTag = async (
+  token: string,
+  jobId: number,
+  taskId: number,
+  tagData: Omit<BoundingBoxTag, "id" | "taskId" | "createdById" | "createdAt" | "updatedAt">,
+): Promise<BoundingBoxTag> => {
+  const response = await axios.post<{ success: boolean; data: BoundingBoxTag }>(
+    `${API_URL}/api/jobs/${jobId}/tasks/${taskId}/tags`,
+    tagData,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
   return response.data.data;
 };
