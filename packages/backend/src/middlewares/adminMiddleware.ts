@@ -18,7 +18,7 @@ export const requireSuperadmin = (
   }
 
   // Then check if user is a superadmin
-  if (!req.user.superadmin && req.user.email !=='enes+2@stagecoding.com') {
+  if (!req.user.superadmin) {
     res.status(403).json({
       message: "Forbidden. Superadmin privileges required.",
     });
