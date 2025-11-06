@@ -28,7 +28,12 @@ AWS_PROFILE=<profile> yarn deploy --stage prod
 When using this as a template:
 
 ```
+# Replace sparrow-tags names
 npx replace-in-file '/sparow-portal/g' '<app-slug>' '**/*.*' '*.*' --verbose
 npx replace-in-file '/Sparrow Tags/g' '<App Name>' '**/*.*' '*.*' --verbose
 npx replace-in-file '/sparrowtags.com/g' '<appdomain.com>' '**/*.*' '*.*' --verbose
+
+# Change git repo
+git remove origin
+git remote add origin <repo url>
 ```
