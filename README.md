@@ -29,7 +29,7 @@ When using this as a template:
 
 ```
 # Replace sparrow-tags names
-npx replace-in-file '/sparow-portal/g' '<app-slug>' '**/*.*' '*.*' --verbose
+npx replace-in-file '/sparow-tags/g' '<app-slug>' '**/*.*' '*.*' --verbose
 npx replace-in-file '/Sparrow Tags/g' '<App Name>' '**/*.*' '*.*' --verbose
 npx replace-in-file '/sparrowtags.com/g' '<appdomain.com>' '**/*.*' '*.*' --verbose
 
