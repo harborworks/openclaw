@@ -11,10 +11,16 @@ export const userPool = new sst.aws.CognitoUserPool("UserPool", {
     },
   },
   transform: {
-    userPool: {
-      adminCreateUserConfig: {
+    userPool: (args) => {
+      args.adminCreateUserConfig = {
         allowAdminCreateUserOnly: true,
-      },
+        inviteMessageTemplate: {
+          emailMessage: `<p>You have been invited to the Sparrow Tags App. You can sign in at ${frontendUrl}.</p><br><p>Username: {username}</p><p>Temporary password: {####}</p>`,
+          emailSubject: "Your temporary password for Sparrow Tags",
+          smsMessage:
+            "<p>Welcome to Sparrow Tags!</p><p>Username: {username}</p><p>Temporary password: {####}</p>",
+        },
+      };
     },
   },
 });
