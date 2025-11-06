@@ -29,9 +29,9 @@ When using this as a template:
 
 ```
 # Replace sparrow-tags names
-npx replace-in-file '/sparow-tags/g' '<app-slug>' '**/*.*' '*.*' --verbose
-npx replace-in-file '/Sparrow Tags/g' '<App Name>' '**/*.*' '*.*' --verbose
-npx replace-in-file '/sparrowtags.com/g' '<appdomain.com>' '**/*.*' '*.*' --verbose
+npx replace-in-file '/sparrow-tags/g' '<app-slug>' '**/*' '*' '**/*' '*' --ignore 'README.md' --verbose
+npx replace-in-file '/Sparrow Tags/g' '<App Name>' '**/*' '*' '**/*' '*' --ignore 'README.md' --verbose
+npx replace-in-file '/sparrowtags.com/g' '<appdomain.com>' '**/*.*' '*.*' '**/*' '*' --ignore 'README.md' --verbose
 
 # Change git repo
 git remote rm origin
