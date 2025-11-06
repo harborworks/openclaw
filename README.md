@@ -34,6 +34,6 @@ npx replace-in-file '/Sparrow Tags/g' '<App Name>' '**/*.*' '*.*' --verbose
 npx replace-in-file '/sparrowtags.com/g' '<appdomain.com>' '**/*.*' '*.*' --verbose
 
 # Change git repo
-git remove origin
+git remote rm origin
 git remote add origin <repo url>
 ```
