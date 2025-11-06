@@ -1,6 +1,9 @@
 import { vpc } from "./vpc";
 
-export const databasePassword = new sst.Secret("DatabasePassword");
+export const databasePassword = new sst.Secret(
+  "DatabasePassword",
+  $dev ? "postgres" : undefined
+);
 
 export const database = new sst.aws.Postgres("Database", {
   vpc,
