@@ -22,7 +22,6 @@ export default $config({
       DATABASE_HOST: database.host,
       DATABASE_PORT: database.port.apply((port) => port.toString()),
       DATABASE_USER: database.username,
-      DATABASE_PASSWORD: database.password,
     };
   },
 });
