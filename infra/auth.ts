@@ -4,6 +4,7 @@ export const userPool = new sst.aws.CognitoUserPool("UserPool", {
   usernames: ["email"],
   triggers: {
     preSignUp: {
+      runtime: "nodejs22.x",
       environment: {
         API_URL: backendUrl,
       },
@@ -27,7 +28,18 @@ export const userPool = new sst.aws.CognitoUserPool("UserPool", {
 
 export const userPoolClient = userPool.addClient("WebClient", {
   transform: {
-    client: { callbackUrls: [frontendUrl], logoutUrls: [frontendUrl] },
+    client: {
+      callbackUrls: [frontendUrl],
+      logoutUrls: [frontendUrl],
+      accessTokenValidity: 1,
+      idTokenValidity: 1,
+      refreshTokenValidity: 90,
+      tokenValidityUnits: {
+        accessToken: "days",
+        idToken: "days",
+        refreshToken: "days",
+      },
+    },
   },
 });
 

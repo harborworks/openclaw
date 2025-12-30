@@ -9,6 +9,7 @@ tasks.notify({
       filterPrefix: "orgs",
       events: ["s3:ObjectCreated:*"],
       function: {
+        runtime: "nodejs22.x",
         link: [tasks],
         handler: "packages/functions/src/createTasks.handler",
         timeout: "5 minutes",
