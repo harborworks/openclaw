@@ -20,6 +20,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "deploy": "sst deploy",
-    "dev": "sst dev"
+    "dev": "sst dev",
+    "test": "yarn workspace @sparrow-template/backend test && yarn workspace @sparrow-template/frontend test"
   }
 }
