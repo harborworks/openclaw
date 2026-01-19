@@ -1,5 +1,3 @@
-# Sparrow Tags
-
 ## Quick start
 
 After cloning the repo:
@@ -33,7 +31,21 @@ npx replace-in-file '/sparrow-tags/g' '<app-slug>' '**/*' '*' '**/*' '*' --ignor
 npx replace-in-file '/Sparrow Tags/g' '<App Name>' '**/*' '*' '**/*' '*' --ignore 'README.md' --verbose
 npx replace-in-file '/sparrowtags.com/g' '<appdomain.com>' '**/*.*' '*.*' '**/*' '*' --ignore 'README.md' --verbose
 
-# Change git repo
-git remote rm origin
-git remote add origin <repo url>
+# Create base .env.local
+cat > .env.local <<EOF
+DATABASE_NAME=postgres
+DATABASE_PASSWORD=postgres
+DATABASE_USER=postgres
+DATABASE_HOST=localhost
+EOF
+
+# Set local postgres port and create .env.local
+npx replace-in-file '/54321/g' '<port>' '*' 'infra/*' --ignore 'README.md' --verbose
+echo 'DATABASE_PORT=<port>' >> .env.local
+
+# Install dependencies
+yarn
+
+# Initialize sst
+AWS_PROFILE=<profile> yarn sst install
 ```
