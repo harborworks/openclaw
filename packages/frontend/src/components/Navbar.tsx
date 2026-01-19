@@ -23,7 +23,7 @@ export function Navbar({ userInfo }: NavbarProps) {
       <div className="container mx-auto px-4 flex h-12 items-center justify-between">
         <div className="flex items-center space-x-6">
           <Link to="/" className="font-semibold">
-            Sparrow Tags
+            Sparrow Template
           </Link>
 
           {userInfo?.superadmin && (

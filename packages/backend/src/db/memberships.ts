@@ -1,4 +1,4 @@
-import { memberships, orgs, users } from "@sparrow-tags/schema";
+import { memberships, orgs, users } from "@sparrow-template/schema";
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from ".";
 

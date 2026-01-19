@@ -1,4 +1,4 @@
-export const appDomain = "sparrowtags.com";
+export const appDomain = "sparrowtemplate.com";
 
 export const frontendDomain =
   $app.stage === "prod" ? appDomain : "localhost:5173";

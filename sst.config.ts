@@ -3,7 +3,7 @@
 export default $config({
   app(input) {
     return {
-      name: "sparrow-tags",
+      name: "sparrow-template",
       removal: input?.stage === "prod" ? "retain" : "remove",
       protect: ["prod"].includes(input?.stage),
       home: "aws",

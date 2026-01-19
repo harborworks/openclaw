@@ -1,4 +1,4 @@
-import { users } from "@sparrow-tags/schema";
+import { users } from "@sparrow-template/schema";
 import { CognitoJwtVerifier } from "aws-jwt-verify";
 import { NextFunction, Request, Response } from "express";
 

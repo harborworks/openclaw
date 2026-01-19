@@ -9,8 +9,8 @@ COPY packages/schema ./packages/schema
 COPY drizzle ./drizzle
 
 RUN yarn
-RUN yarn workspace @sparrow-tags/schema build
-RUN yarn workspace @sparrow-tags/backend build
+RUN yarn workspace @sparrow-template/schema build
+RUN yarn workspace @sparrow-template/backend build
 
 FROM base AS runner
 WORKDIR /app

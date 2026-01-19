@@ -1,5 +1,5 @@
 {
-  "name": "@sparrow-tags/backend",
+  "name": "@sparrow-template/backend",
   "version": "1.0.0",
   "license": "UNLICENSED",
   "private": true,
@@ -7,7 +7,7 @@
     "@aws-sdk/client-cognito-identity-provider": "^3.777.0",
     "@aws-sdk/client-s3": "^3.782.0",
     "@aws-sdk/s3-request-presigner": "^3.782.0",
-    "@sparrow-tags/schema": "*",
+    "@sparrow-template/schema": "*",
     "aws-jwt-verify": "^5.0.0",
     "cors": "^2.8.5",
     "drizzle-orm": "^0.41.0",

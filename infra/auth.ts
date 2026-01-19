@@ -16,10 +16,10 @@ export const userPool = new sst.aws.CognitoUserPool("UserPool", {
       args.adminCreateUserConfig = {
         allowAdminCreateUserOnly: true,
         inviteMessageTemplate: {
-          emailMessage: `<p>You have been invited to the Sparrow Tags App. You can sign in at ${frontendUrl}.</p><br><p>Username: {username}</p><p>Temporary password: {####}</p>`,
-          emailSubject: "Your temporary password for Sparrow Tags",
+          emailMessage: `<p>You have been invited to the Sparrow Template App. You can sign in at ${frontendUrl}.</p><br><p>Username: {username}</p><p>Temporary password: {####}</p>`,
+          emailSubject: "Your temporary password for Sparrow Template",
           smsMessage:
-            "<p>Welcome to Sparrow Tags!</p><p>Username: {username}</p><p>Temporary password: {####}</p>",
+            "<p>Welcome to Sparrow Template!</p><p>Username: {username}</p><p>Temporary password: {####}</p>",
         },
       };
     },
@@ -43,7 +43,7 @@ export const userPoolClient = userPool.addClient("WebClient", {
   },
 });
 
-const slug = "sparrow-tags";
+const slug = "sparrow-template";
 new aws.cognito.UserPoolDomain("AuthDomain", {
   userPoolId: userPool.id,
   domain: $app.stage === "prod" ? slug : `${slug}-${$app.stage}`,

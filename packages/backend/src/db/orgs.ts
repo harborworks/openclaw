@@ -1,4 +1,4 @@
-import { orgs } from "@sparrow-tags/schema";
+import { orgs } from "@sparrow-template/schema";
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "./index.js";
 

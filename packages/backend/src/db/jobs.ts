@@ -1,4 +1,4 @@
-import { dataType, jobs, orgs, tagType, tasks } from "@sparrow-tags/schema";
+import { dataType, jobs, orgs, tagType, tasks } from "@sparrow-template/schema";
 import { and, eq, isNull, sql } from "drizzle-orm";
 import { db } from "./index.js";
 

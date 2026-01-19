@@ -1,5 +1,5 @@
 {
-  "name": "sparrow-tags",
+  "name": "sparrow-template",
   "version": "1.0.0",
   "license": "UNLICENSED",
   "private": true,
@@ -15,7 +15,7 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "yarn workspace @sparrow-tags/schema build && yarn workspaces run build",
+    "build": "yarn workspace @sparrow-template/schema build && yarn workspaces run build",
     "clean": "yarn workspaces run clean && rm -rf node_modules",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",

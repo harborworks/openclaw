@@ -3,7 +3,7 @@
  The package is a monorepo. If you need to add a dependency to a package do it like this please:
  
  ```
- yarn workspace @sparrow-tags/frontend add react-router-dom
+ yarn workspace @sparrow-template/frontend add react-router-dom
  ```
  
  ## Infrastructure

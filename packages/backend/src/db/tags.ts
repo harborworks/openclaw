@@ -1,4 +1,4 @@
-import { tags, tagType } from "@sparrow-tags/schema";
+import { tags, tagType } from "@sparrow-template/schema";
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "./index";
 

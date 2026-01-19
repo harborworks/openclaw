@@ -1,4 +1,4 @@
-import { dataType, tagType } from "@sparrow-tags/schema";
+import { dataType, tagType } from "@sparrow-template/schema";
 import { NextFunction, Request, Response } from "express";
 import * as db from "../db";
 
