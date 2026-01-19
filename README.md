@@ -23,9 +23,7 @@ Deploying to prod:
 AWS_PROFILE=<profile> yarn deploy --stage prod
 ```
 
-## Template App
-
-When using this as a template:
+## Initializing from template
 
 ```
 # Replace sparrow-template names
@@ -46,9 +44,15 @@ EOF
 npx replace-in-file '/54321/g' '<port>' '*' 'infra/*' --ignore 'README.md' --verbose
 echo 'DATABASE_PORT=<port>' >> .env.local
 
-# Install dependencies
+# Initialize
 yarn
-
-# Initialize sst
 yarn sst install
+yarn workspace @<app-slug>/schema build
+docker-compose up -d
+yarn db:migrate
+AWS_PROFILE=<profile> yarn dev
+
+# Create superuser
+1. Invite user from cognito (make sure app is running)
+2. Login to db and change created user to superadmin
 ```
