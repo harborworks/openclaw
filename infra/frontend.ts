@@ -10,7 +10,8 @@ export const frontend = new sst.aws.StaticSite("Frontend", {
   dev: {
     command: "npm run dev",
   },
-  domain: frontendDomain,
+  domain:
+    $app.stage === "prod" || $app.stage === "stage" ? frontendDomain : undefined,
   environment: {
     VITE_AUTHORITY: userPool.id.apply(
       (id) => `https://cognito-idp.us-east-1.amazonaws.com/${id}`

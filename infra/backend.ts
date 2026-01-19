@@ -1,6 +1,6 @@
 import { userPool, userPoolClient } from "./auth";
 import { database } from "./database";
-import { backendUrl } from "./urls";
+import { backendDomain, backendUrl } from "./urls";
 import { vpc } from "./vpc";
 
 export const cluster = new sst.aws.Cluster("Cluster", {
@@ -10,7 +10,10 @@ export const cluster = new sst.aws.Cluster("Cluster", {
 export const service = new sst.aws.Service("Backend", {
   cluster,
   loadBalancer: {
-    domain: backendUrl.replace("https://", ""),
+    domain:
+      $app.stage === "prod" || $app.stage === "stage"
+        ? backendDomain
+        : undefined,
     rules: [
       { listen: "443/https", forward: "3000/http" },
       { listen: "80/http", forward: "3000/http" },
