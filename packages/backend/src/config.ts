@@ -9,7 +9,6 @@ interface Config {
   databasePort: number;
   databaseUser: string;
   databasePassword: string;
-  tasksBucketName: string;
 }
 
 const config: Config = {
@@ -23,7 +22,6 @@ const config: Config = {
   databasePort: Number(process.env.DATABASE_PORT!),
   databaseUser: process.env.DATABASE_USER!,
   databasePassword: process.env.DATABASE_PASSWORD!,
-  tasksBucketName: process.env.TASKS_BUCKET_NAME!,
 };
 
 export default config;

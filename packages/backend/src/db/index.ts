@@ -21,9 +21,6 @@ export const db = drizzle(
 );
 
 // Re-export all functions from the database modules
-export * from "./jobs";
 export * from "./memberships";
 export * from "./orgs";
-export * from "./tags";
-export * from "./tasks";
 export * from "./users";

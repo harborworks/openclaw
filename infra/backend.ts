@@ -1,8 +1,6 @@
 import { userPool, userPoolClient } from "./auth";
 import { database } from "./database";
-import { tasks } from "./storage";
 import { backendUrl } from "./urls";
-
 import { vpc } from "./vpc";
 
 export const cluster = new sst.aws.Cluster("Cluster", {
@@ -18,7 +16,7 @@ export const service = new sst.aws.Service("Backend", {
       { listen: "80/http", forward: "3000/http" },
     ],
   },
-  link: [database, tasks, userPool],
+  link: [database, userPool],
   dev: {
     directory: "packages/backend",
     command: "npm run dev",
@@ -33,6 +31,5 @@ export const service = new sst.aws.Service("Backend", {
     DATABASE_PORT: database.port.apply((port) => port.toString()),
     DATABASE_USER: database.username,
     DATABASE_PASSWORD: database.password,
-    TASKS_BUCKET_NAME: tasks.name,
   },
 });

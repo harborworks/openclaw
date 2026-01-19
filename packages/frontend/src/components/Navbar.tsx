@@ -34,15 +34,6 @@ export function Navbar({ userInfo }: NavbarProps) {
               Admin
             </Link>
           )}
-
-          {auth.isAuthenticated && (
-            <Link
-              to="/jobs"
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Jobs
-            </Link>
-          )}
         </div>
 
         <div>

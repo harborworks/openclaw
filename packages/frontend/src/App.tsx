@@ -1,19 +1,13 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import { useAuth } from "react-oidc-context";
-import { Navigate, Outlet, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 
 import * as api from "./api";
-import { UserMembership } from "./api/self";
 import { Navbar } from "./components/Navbar";
 
 // Lazy load page components
 const HomePage = lazy(() => import("./pages/HomePage"));
 const AdminPage = lazy(() => import("./pages/AdminPage"));
-const JobsPage = lazy(() => import("./pages/jobs/JobsPage"));
-const CreateJobPage = lazy(() => import("./pages/jobs/CreateJobPage"));
-const JobDetailPage = lazy(() => import("./pages/jobs/JobDetailPage"));
-const TaskPage = lazy(() => import("./pages/tasks/TaskPage"));
-const AllTasksPage = lazy(() => import("./pages/tasks/AllTasksPage"));
 
 // Loading component for Suspense fallback
 const PageLoader = () => (
@@ -32,7 +26,6 @@ interface UserInfo {
 export default function App() {
   const auth = useAuth();
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
-  const [memberships, setMemberships] = useState<UserMembership[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -52,9 +45,6 @@ export default function App() {
           email: selfData.user.email,
           superadmin: Boolean(selfData.user.superadmin),
         });
-
-        // Set memberships
-        setMemberships(selfData.memberships);
       } catch (err) {
         console.error("Error fetching user info:", err);
         setError(err instanceof Error ? err.message : "An error occurred");
@@ -64,34 +54,6 @@ export default function App() {
     };
     fetchUser();
   }, [auth.user?.access_token]);
-
-  const AuthenticatedRoute = () => {
-    if (auth.isLoading) {
-      return null;
-    }
-    return auth.isAuthenticated ? <Outlet /> : <Navigate to="/" replace />;
-  };
-
-  const AdminRoute = () => {
-    if (auth.isLoading || loading) {
-      return null;
-    }
-
-    // Check if user is authenticated
-    if (!auth.isAuthenticated) {
-      return <Navigate to="/" replace />;
-    }
-
-    // Check if user is an admin (superadmin or org admin)
-    const isSuperAdmin = userInfo?.superadmin || false;
-    const isOrgAdmin = memberships.some((membership) => membership.isAdmin);
-
-    return isSuperAdmin || isOrgAdmin ? (
-      <Outlet />
-    ) : (
-      <Navigate to="/jobs" replace />
-    );
-  };
 
   return (
     <div className="flex flex-col min-h-screen bg-slate-50">
@@ -111,18 +73,6 @@ export default function App() {
               }
             />
             <Route path="/admin/*" element={<AdminPage />} />
-            <Route path="/jobs" element={<AuthenticatedRoute />}>
-              <Route index element={<JobsPage />} />
-              <Route path="/jobs/create" element={<AdminRoute />}>
-                <Route
-                  index
-                  element={<CreateJobPage memberships={memberships} />}
-                />
-              </Route>
-              <Route path="/jobs/:jobId" element={<JobDetailPage />} />
-              <Route path="/jobs/:jobId/all-tasks" element={<AllTasksPage />} />
-              <Route path="/jobs/:jobId/tasks/:taskId" element={<TaskPage />} />
-            </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
