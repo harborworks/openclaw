@@ -22,5 +22,5 @@ COPY --from=build /app .
 
 EXPOSE 3001
 
-# Run migrations then start
-CMD ["sh", "-c", "npx drizzle-kit migrate && node packages/backend/dist/server.js"]
+# Write .env.local from container env so drizzle-kit picks it up, then migrate + start
+CMD ["sh", "-c", "env | grep -E '^DATABASE_' > .env.local && npx drizzle-kit migrate && node packages/backend/dist/server.js"]
