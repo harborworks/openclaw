@@ -32,6 +32,26 @@ services:
     restart: unless-stopped
     init: true
 
+  cli:
+    image: ${OPENCLAW_IMAGE:-openclaw:local}
+    environment:
+      HOME: /home/node
+      TERM: xterm-256color
+      OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN:-}
+      OPENCLAW_GATEWAY_URL: http://gateway:18789
+      BROWSER: echo
+    volumes:
+      - ${OPENCLAW_CONFIG_DIR:-./.harbor-host/config}:/home/node/.openclaw
+      - ${OPENCLAW_WORKSPACE_DIR:-./.harbor-host/workspace}:/home/node/.openclaw/workspace
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    stdin_open: true
+    tty: true
+    init: true
+    entrypoint: ["node", "dist/index.js"]
+    profiles:
+      - cli
+
   gateway:
     image: ${OPENCLAW_IMAGE:-openclaw:local}
     environment:
