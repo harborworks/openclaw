@@ -3,15 +3,10 @@
   "version": "1.0.0",
   "license": "UNLICENSED",
   "private": true,
-  "dependencies": {
-    "@harbor-app/schema": "*",
-    "drizzle-orm": "^0.41.0",
-    "pg": "^8.14.1"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@tsconfig/node22": "^22.0.1",
     "@types/node": "^22.13.14",
-    "@types/pg": "^8.11.11",
     "bun": "^1.2.8",
     "typescript": "^5.8.2",
     "vitest": "^3.0.0"

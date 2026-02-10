@@ -1,19 +1,32 @@
 /**
- * Agent Sync Job
+ * Agent Sync
  *
- * Polls agent status and updates the DB. In the future this will
- * query the OpenClaw gateway for agent heartbeat/status info.
+ * Polls the Harbor API for the agent roster and compares it
+ * against local gateway sessions. Logs discrepancies.
  *
- * For now: logs agent count as a smoke test.
+ * Future: auto-register agents, update statuses, detect offline agents.
  */
 
-import { agents } from "@harbor-app/schema";
-import { db } from "../db";
+import * as harbor from "../harbor-client";
+import * as gateway from "../gateway-client";
 
 export async function agentSync(): Promise<void> {
-  const rows = await db.select().from(agents);
-  console.log(`[agent-sync] ${rows.length} agents registered`);
-  for (const agent of rows) {
-    console.log(`  ${agent.name} (${agent.sessionKey}) — ${agent.role}`);
+  const [agents, sessions] = await Promise.all([
+    harbor.getAgents(),
+    gateway.getSessionStatus(),
+  ]);
+
+  console.log(
+    `[agent-sync] harbor: ${agents.length} agents, gateway: ${sessions.length} sessions`
+  );
+
+  // Compare: agents registered in harbor but not in gateway
+  const sessionKeys = new Set(sessions.map((s) => s.key));
+  for (const agent of agents) {
+    if (!sessionKeys.has(agent.sessionKey)) {
+      console.log(
+        `[agent-sync] ${agent.name} (${agent.sessionKey}) not found in gateway`
+      );
+    }
   }
 }

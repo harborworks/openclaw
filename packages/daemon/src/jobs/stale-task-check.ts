@@ -1,38 +1,28 @@
 /**
- * Stale Task Check Job
+ * Stale Task Check
  *
- * Finds tasks stuck in in_progress or review for too long.
- * For now: just logs them. Later: creates notifications or alerts.
+ * Polls the Harbor API for tasks stuck in active states too long.
+ * Future: notify the PM agent or create alerts.
  */
 
-import { tasks } from "@harbor-app/schema";
-import { inArray, lt } from "drizzle-orm";
-import { db } from "../db";
+import * as harbor from "../harbor-client";
 
-const STALE_THRESHOLD_MS = 24 * 60 * 60 * 1000; // 24 hours
+const STALE_HOURS = 24;
 
 export async function staleTaskCheck(): Promise<void> {
-  const cutoff = new Date(Date.now() - STALE_THRESHOLD_MS);
+  const tasks = await harbor.getTasks();
 
-  const stale = await db
-    .select()
-    .from(tasks)
-    .where(
-      inArray(tasks.status, ["in_progress", "review"])
-    );
-
-  // Filter by updatedAt in JS since we need date comparison
-  const staleTasks = stale.filter(
-    (t) => t.updatedAt && new Date(t.updatedAt) < cutoff
+  const activeTasks = tasks.filter((t) =>
+    ["in_progress", "review"].includes(t.status)
   );
 
-  if (staleTasks.length === 0) return;
+  if (activeTasks.length === 0) return;
 
-  console.log(`[stale-task-check] ${staleTasks.length} stale task(s):`);
-  for (const t of staleTasks) {
-    const hours = Math.round(
-      (Date.now() - new Date(t.updatedAt!).getTime()) / 3600000
-    );
-    console.log(`  "${t.title}" — ${t.status} for ${hours}h`);
+  // For now just log — we don't have updatedAt in the API response yet
+  console.log(
+    `[stale-task-check] ${activeTasks.length} task(s) in active states`
+  );
+  for (const t of activeTasks) {
+    console.log(`  ${t.status}: "${t.title}"`);
   }
 }
