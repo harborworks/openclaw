@@ -8,8 +8,8 @@ RUN yarn install --frozen-lockfile
 
 COPY packages/schema packages/schema
 COPY packages/backend packages/backend
-RUN yarn workspace @sparrow-template/schema build
-RUN yarn workspace @sparrow-template/backend build
+RUN yarn workspace @harbor-app/schema build
+RUN yarn workspace @harbor-app/backend build
 
 # Migrations
 COPY drizzle drizzle

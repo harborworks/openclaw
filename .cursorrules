@@ -5,21 +5,15 @@ Each package has its own `.cursorrules` file with detailed patterns and conventi
 - `packages/schema/.cursorrules` - Database schema definitions
 - `packages/backend/.cursorrules` - Express API server
 - `packages/frontend/.cursorrules` - React frontend
-- `packages/functions/.cursorrules` - Lambda functions
-- `infra/.cursorrules` - SST infrastructure
 
 ## Installing new dependencies
  
 The package is a monorepo. If you need to add a dependency to a package do it like this:
  
 ```bash
-yarn workspace @sparrow-template/frontend add react-router-dom
+yarn workspace @harbor-app/frontend add react-router-dom
 ```
- 
-## Infrastructure
- 
-We use sst.dev, a project based on Pulumi for infrastructure as code.
- 
+
 ## Database Schema & Migrations
 
 The database schema uses Drizzle ORM with definitions in `packages/schema`.
@@ -27,7 +21,7 @@ The database schema uses Drizzle ORM with definitions in `packages/schema`.
 **Important workflow:**
 
 1. Make changes to schema files in `packages/schema/src/`
-2. Build the schema: `yarn workspace @sparrow-template/schema build`
+2. Build the schema: `yarn workspace @harbor-app/schema build`
 3. Generate migration: `yarn db:generate`
 4. **Prompt the developer to run**: `yarn db:migrate`
 
@@ -37,57 +31,12 @@ The database schema uses Drizzle ORM with definitions in `packages/schema`.
  
 We use a TypeScript Express server in `packages/backend`. The database logic uses Drizzle ORM with the schema in a shared package at `packages/schema`.
  
- ## Frontend
+## Frontend
  
- The following shadcn/ui components are available in the `packages/frontend/src/components/ui` folder. You should use them whenever possible. Don't pull in new libraries or build custom components unless it's truly necessary.
+The following shadcn/ui components are available in the `packages/frontend/src/components/ui` folder. You should use them whenever possible. Don't pull in new libraries or build custom components unless it's truly necessary.
  
- ### shadcn/ui components
+### shadcn/ui components
  
- - accordion
- - alert-dialog
- - alert
- - aspect-ratio
- - avatar
- - badge
- - breadcrumb
- - button
- - calendar
- - card
- - carousel
- - chart
- - checkbox
- - collapsible
- - command
- - context-menu
- - dialog
- - drawer
- - dropdown-menu
- - form
- - hover-card
- - input-otp
- - input
- - label
- - menubar
- - navigation-menu
- - pagination
- - popover
- - progress
- - radio-group
- - resizable
- - scroll-area
- - select
- - separator
- - sheet
- - sidebar
- - skeleton
- - slider
- - sonner
- - switch
- - table
- - tabs
- - textarea
- - toggle-group
- - toggle
- - tooltip
+accordion, alert-dialog, alert, aspect-ratio, avatar, badge, breadcrumb, button, calendar, card, carousel, chart, checkbox, collapsible, command, context-menu, dialog, drawer, dropdown-menu, form, hover-card, input-otp, input, label, menubar, navigation-menu, pagination, popover, progress, radio-group, resizable, scroll-area, select, separator, sheet, sidebar, skeleton, slider, sonner, switch, table, tabs, textarea, toggle-group, toggle, tooltip
  
- **Important:** For toast, please use the `sonner` component, do not implement your own.
+**Important:** For toast, please use the `sonner` component, do not implement your own.

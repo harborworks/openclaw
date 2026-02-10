@@ -1,58 +1,67 @@
-# <Project Name>
+# Harbor App
 
-## Quick start
+Mission Control for agent teams — task management with Kanban board, comments, and notifications.
 
-After cloning the repo:
+## Stack
+
+- **Database:** Postgres + Drizzle ORM
+- **Backend:** Express + TypeScript
+- **Frontend:** React + ShadCN/ui + React Query
+- **Auth:** API key (agents) + password login (browser)
+
+## Local Development
 
 ```bash
-# Install packages
+# Install
 yarn
-# AWS profile is required for SST commands
-AWS_PROFILE=<profile> yarn dev
-```
 
-Connecting to a database in a private VPC:
+# Start Postgres
+docker-compose up -d
 
-```bash
-AWS_PROFILE=<profile> torpedo  # See https://github.com/sst/torpedo
-```
-
-Deploying to prod:
-
-```bash
-AWS_PROFILE=<profile> yarn deploy --stage prod
-```
-
-## Initializing from template
-
-```
-# Replace sparrow-template names
-npx replace-in-file '/sparrow-template/g' '<app-slug>' '**/*' '**/.cursorrules' '.cursorrules' '.github/**/*' --ignore 'README.md' --verbose
-npx replace-in-file '/Sparrow Template/g' '<App Name>' '**/*' '**/.cursorrules' '.cursorrules' '.github/**/*' --ignore 'README.md' --verbose
-npx replace-in-file '/# <Project Name>/g' '# <App Name>' '*' --verbose
-npx replace-in-file '/sparrowtemplate.com/g' '<appdomain.com>' '**/*' '**/.cursorrules' '.cursorrules' --ignore 'README.md' --verbose
-
-# Create base .env.local
+# Create .env.local
 cat > .env.local <<EOF
-DATABASE_NAME=postgres
-DATABASE_PASSWORD=postgres
-DATABASE_USER=postgres
 DATABASE_HOST=localhost
+DATABASE_PORT=54321
+DATABASE_USER=postgres
+DATABASE_PASSWORD=postgres
+DATABASE_NAME=postgres
+API_KEY=dev-api-key
+SESSION_SECRET=dev-session-secret
+ADMIN_PASSWORD=admin
+PORT=3001
 EOF
 
-# Set local postgres port and create .env.local
-npx replace-in-file '/54321/g' '<port>' '*' 'infra/*' --ignore 'README.md' --verbose
-echo 'DATABASE_PORT=<port>' >> .env.local
-
-# Initialize
-yarn
-yarn sst install
-yarn workspace @<app-slug>/schema build
-docker-compose up -d
+# Build schema + migrate
+yarn workspace @harbor-app/schema build
 yarn db:migrate
-AWS_PROFILE=<profile> yarn dev
 
-# Create superuser
-1. Invite user from cognito (make sure app is running)
-2. Login to db and change created user to superadmin
+# Run backend
+cd packages/backend && env $(cat ../../.env.local | xargs) bun run src/server.ts
+
+# Run frontend (separate terminal)
+cd packages/frontend && VITE_API_URL=http://localhost:3001 yarn dev
 ```
+
+## Production
+
+```bash
+# Create .env.prod from example
+cp .env.prod.example .env.prod
+# Edit with real values
+
+# Deploy
+set -a && source .env.prod && set +a
+docker-compose -f docker-compose.prod.yml up -d
+```
+
+## Deploy Flow
+
+1. Work on a feature branch
+2. Open PR when ready
+3. Merge to `main`
+4. GitHub Action auto-deploys to devbox via self-hosted runner
+
+## API Auth
+
+- **Browser:** POST `/api/auth/login` with `{ password }`, uses session cookie
+- **Agents:** Pass `X-API-Key` header on all requests

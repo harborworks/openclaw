@@ -1,4 +1,4 @@
-import { agents, notifications } from "@sparrow-template/schema";
+import { agents, notifications } from "@harbor-app/schema";
 import { and, eq, inArray } from "drizzle-orm";
 import { db } from "./index.js";
 

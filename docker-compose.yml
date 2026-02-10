@@ -8,6 +8,6 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     volumes:
-      - sparrow-template-data:/var/lib/postgresql/data/
+      - harbor-app-data:/var/lib/postgresql/data/
 volumes:
-  sparrow-template-data:
+  harbor-app-data:

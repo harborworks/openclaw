@@ -1,5 +1,5 @@
 {
-  "name": "sparrow-template",
+  "name": "harbor-app",
   "version": "1.0.0",
   "license": "UNLICENSED",
   "private": true,
@@ -15,12 +15,12 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "yarn workspace @sparrow-template/schema build && yarn workspaces run build",
+    "build": "yarn workspace @harbor-app/schema build && yarn workspaces run build",
     "clean": "yarn workspaces run clean && rm -rf node_modules",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "deploy": "sst deploy",
     "dev": "sst dev",
-    "test": "yarn workspace @sparrow-template/backend test && yarn workspace @sparrow-template/frontend test"
+    "test": "yarn workspace @harbor-app/backend test && yarn workspace @harbor-app/frontend test"
   }
 }

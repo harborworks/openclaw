@@ -11,7 +11,6 @@ src/
 ├── routes/          # Express route definitions
 ├── controllers/     # Request handlers (business logic)
 ├── db/              # Database queries (data access layer)
-├── services/        # External service integrations (Cognito, etc.)
 ├── middlewares/     # Express middleware
 ├── models/          # TypeScript interfaces/types
 └── config.ts        # Environment configuration
@@ -28,10 +27,10 @@ src/
 
 ## Database Query Patterns
 
-Queries go in `src/db/`. Import schema from `@sparrow-template/schema`:
+Queries go in `src/db/`. Import schema from `@harbor-app/schema`:
 
 ```typescript
-import { myTable } from "@sparrow-template/schema";
+import { myTable } from "@harbor-app/schema";
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "./index.js";
 
@@ -138,9 +137,7 @@ app.use("/api/my-feature", myFeatureRoutes);
 
 ## Authentication
 
-- All routes are protected by `authMiddleware` (applied globally in `app.ts`)
-- Access `req.user` for the authenticated user (id, email, superadmin, cognitoId)
-- Use `requireSuperadmin` middleware for admin-only endpoints
+- API routes protected by authMiddleware (API key or session cookie)
 
 ## Error Handling
 
@@ -150,7 +147,6 @@ app.use("/api/my-feature", myFeatureRoutes);
 
 ## Testing
 
-Tests use Vitest. Mock dependencies to avoid database/Cognito connections:
 
 ```typescript
 import { describe, expect, it, vi } from "vitest";
@@ -161,4 +157,4 @@ vi.mock("./db", () => ({ db: {} }));
 import app from "./app";
 ```
 
-Run tests: `yarn workspace @sparrow-template/backend test`
+Run tests: `yarn workspace @harbor-app/backend test`

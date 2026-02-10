@@ -1,4 +1,4 @@
-import { agents, tasks } from "@sparrow-template/schema";
+import { agents, tasks } from "@harbor-app/schema";
 import { eq, sql } from "drizzle-orm";
 import { db } from "./index.js";
 

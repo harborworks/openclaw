@@ -26,7 +26,7 @@ jobs:
         run: yarn install --immutable
 
       - name: Build schema package
-        run: yarn workspace @sparrow-template/schema build
+        run: yarn workspace @harbor-app/schema build
 
       - name: Build all packages
         run: yarn build
