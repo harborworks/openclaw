@@ -21,6 +21,6 @@
     "db:migrate": "drizzle-kit migrate",
     "deploy": "sst deploy",
     "dev": "sst dev",
-    "test": "yarn workspace @harbor-app/backend test && yarn workspace @harbor-app/frontend test"
+    "test": "yarn workspace @harbor-app/backend test && yarn workspace @harbor-app/frontend test && yarn workspace @harbor-app/daemon test"
   }
 }
