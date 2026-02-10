@@ -32,6 +32,7 @@ jobs:
       - name: Build and deploy
         run: |
           cd ${{ vars.DEPLOY_DIR }}
+          set -a && source .env.prod && set +a
           docker-compose -f docker-compose.prod.yml build
           docker-compose -f docker-compose.prod.yml up -d
 
