@@ -1,16 +1,15 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { AuthProvider } from "react-oidc-context";
 import { BrowserRouter } from "react-router-dom";
 import { Toaster } from "./components/ui/sonner";
 
 import App from "./App.tsx";
-import { cognitoAuthConfig } from "./auth.ts";
+import { AuthProvider } from "./auth.ts";
 import "./index.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <AuthProvider {...cognitoAuthConfig}>
+    <AuthProvider>
       <BrowserRouter>
         <App />
         <Toaster />

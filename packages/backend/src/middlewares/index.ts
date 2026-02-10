@@ -1,3 +1,2 @@
-export * from "./adminMiddleware";
-export * from "./authMiddleware";
-export * from "./errorHandler";
+export { authMiddleware, requireAdmin } from "./authMiddleware";
+export { errorHandler } from "./errorHandler";

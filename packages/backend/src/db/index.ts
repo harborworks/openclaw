@@ -1,7 +1,6 @@
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import config from "../config";
-import { cert } from "./cert";
 
 // Connect to the database
 export const db = drizzle(
@@ -11,16 +10,12 @@ export const db = drizzle(
     user: config.databaseUser,
     password: config.databasePassword,
     database: config.databaseName,
-    ssl: config.databaseHost.includes("localhost")
-      ? false
-      : {
-          ca: cert,
-        },
+    ssl: false,
   }),
   { casing: "snake_case" }
 );
 
-// Re-export all functions from the database modules
-export * from "./memberships";
-export * from "./orgs";
-export * from "./users";
+export * from "./agents";
+export * from "./tasks";
+export * from "./taskComments";
+export * from "./notifications";

@@ -4,9 +4,8 @@
   "license": "UNLICENSED",
   "private": true,
   "dependencies": {
-    "@aws-sdk/client-cognito-identity-provider": "^3.777.0",
     "@sparrow-template/schema": "*",
-    "aws-jwt-verify": "^5.0.0",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "drizzle-orm": "^0.41.0",
     "express": "^5.1.0",
@@ -14,6 +13,7 @@
   },
   "devDependencies": {
     "@tsconfig/node22": "^22.0.1",
+    "@types/cookie-parser": "^1.4.10",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.1",
     "@types/node": "^22.13.14",

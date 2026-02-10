@@ -1,38 +1,42 @@
-name: Deploy
+name: Deploy to devbox
 
 on:
   push:
-    branches:
-      - main
-  workflow_dispatch:
+    branches: [main]
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
-    env:
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    runs-on: self-hosted
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - name: Pull latest
+        run: |
+          cd ${{ vars.DEPLOY_DIR }}
+          git fetch origin main
+          git reset --hard origin/main
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: "yarn"
+      - name: Write secrets to .env.prod
+        run: |
+          cd ${{ vars.DEPLOY_DIR }}
+          cat > .env.prod << EOF
+          DATABASE_NAME=postgres
+          DATABASE_USER=postgres
+          DATABASE_PASSWORD=${{ secrets.DATABASE_PASSWORD }}
+          API_KEY=${{ secrets.API_KEY }}
+          SESSION_SECRET=${{ secrets.SESSION_SECRET }}
+          ADMIN_PASSWORD=${{ secrets.ADMIN_PASSWORD }}
+          PORT=3001
+          NGROK_AUTHTOKEN=${{ secrets.NGROK_AUTHTOKEN }}
+          NGROK_URL=${{ vars.NGROK_URL }}
+          EOF
 
-      - name: Install dependencies
-        run: yarn install --frozen-lockfile
+      - name: Build and deploy
+        run: |
+          cd ${{ vars.DEPLOY_DIR }}
+          docker compose -f docker-compose.prod.yml build
+          docker compose -f docker-compose.prod.yml up -d
 
-      - name: Build
-        run: yarn build
-
-      - name: Deploy
-        if: env.AWS_ACCESS_KEY_ID && env.AWS_SECRET_ACCESS_KEY
-        env:
-          AWS_REGION: us-east-1
-        run: yarn deploy --stage prod
+      - name: Health check
+        run: |
+          sleep 10
+          curl -sf ${{ vars.NGROK_URL }}/health || exit 1
+          echo "Deploy successful"

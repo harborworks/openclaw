@@ -6,6 +6,9 @@ import { defineConfig } from "vite";
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  server: {
+    host: "0.0.0.0",
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
@@ -16,12 +19,7 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          react: [
-            "react",
-            "react-dom",
-            "react-router-dom",
-            "react-oidc-context",
-          ],
+          react: ["react", "react-dom", "react-router-dom"],
           ui: [
             "@radix-ui/react-accordion",
             "@radix-ui/react-alert-dialog",
@@ -38,7 +36,6 @@ export default defineConfig({
             "lucide-react",
             "sonner",
           ],
-          forms: ["react-hook-form", "@hookform/resolvers", "zod"],
         },
       },
     },
