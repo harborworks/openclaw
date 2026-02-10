@@ -32,8 +32,8 @@ jobs:
       - name: Build and deploy
         run: |
           cd ${{ vars.DEPLOY_DIR }}
-          docker compose -f docker-compose.prod.yml build
-          docker compose -f docker-compose.prod.yml up -d
+          docker-compose -f docker-compose.prod.yml build
+          docker-compose -f docker-compose.prod.yml up -d
 
       - name: Health check
         run: |
