@@ -38,5 +38,5 @@ jobs:
       - name: Health check
         run: |
           sleep 10
-          curl -sf ${{ vars.NGROK_URL }}/health || exit 1
+          curl -sfL https://${{ vars.NGROK_URL }}/health || exit 1
           echo "Deploy successful"

@@ -44,7 +44,7 @@ services:
     image: ngrok/ngrok:latest
     environment:
       - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
-    command: http nginx:80 --url=${NGROK_URL}
+    command: http nginx:80 --url=https://${NGROK_URL}
     depends_on:
       - nginx
 
