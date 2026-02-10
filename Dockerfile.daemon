@@ -1,0 +1,32 @@
+FROM node:22-bookworm-slim AS base
+
+RUN corepack enable
+WORKDIR /app
+
+# Install dependencies
+COPY package.json yarn.lock ./
+COPY packages/daemon/package.json ./packages/daemon/package.json
+# Need empty dirs for other workspaces so yarn doesn't complain
+RUN mkdir -p packages/schema packages/backend packages/frontend
+COPY packages/schema/package.json ./packages/schema/package.json
+COPY packages/backend/package.json ./packages/backend/package.json
+COPY packages/frontend/package.json ./packages/frontend/package.json
+
+RUN yarn install --frozen-lockfile --production=false
+
+# Build
+COPY packages/daemon ./packages/daemon
+RUN yarn workspace @harbor-app/daemon build
+
+# Production stage
+FROM node:22-bookworm-slim
+WORKDIR /app
+
+COPY --from=base /app/packages/daemon/dist ./dist
+COPY --from=base /app/packages/daemon/package.json ./package.json
+
+ENV NODE_ENV=production
+
+USER node
+
+CMD ["node", "dist/index.js"]

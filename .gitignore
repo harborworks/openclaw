@@ -139,3 +139,8 @@ dist
 .sst
 sst-env.d.ts
 packages/*/sst-env.d.ts
+
+# harbor host local dev
+.harbor-host/
+.env.host
+.env.prod
