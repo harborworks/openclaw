@@ -71,6 +71,13 @@
       "when": 1770725532069,
       "tag": "0009_sweet_yellow_claw",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1770760524387,
+      "tag": "0010_tranquil_liz_osborn",
+      "breakpoints": true
     }
   ]
 }

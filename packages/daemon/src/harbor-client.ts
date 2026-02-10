@@ -87,3 +87,28 @@ export async function markNotificationDelivered(id: number): Promise<void> {
     body: JSON.stringify({ id }),
   });
 }
+
+// ── Secrets ────────────────────────────────────────────────────
+
+export interface PendingSecretsResponse {
+  secrets: Array<{ id: number; name: string; value: string }>;
+  count: number;
+}
+
+/**
+ * Fetch pending secrets (decrypted by backend).
+ * Calling this also marks them as synced on the backend.
+ */
+export async function getPendingSecrets(): Promise<PendingSecretsResponse> {
+  return request<PendingSecretsResponse>("/secrets/pending");
+}
+
+export interface AllSecretsResponse {
+  secrets: Array<{ id: number; name: string; value: string }>;
+  count: number;
+}
+
+/** Fetch ALL secrets decrypted (for writing the full .env file). */
+export async function getAllDecryptedSecrets(): Promise<AllSecretsResponse> {
+  return request<AllSecretsResponse>("/secrets/all-decrypted");
+}

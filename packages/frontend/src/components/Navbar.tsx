@@ -19,6 +19,12 @@ export function Navbar() {
           >
             Board
           </Link>
+          <Link
+            to="/secrets"
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Secrets
+          </Link>
         </div>
         <Button size="sm" variant="outline" onClick={logout}>
           Sign Out
