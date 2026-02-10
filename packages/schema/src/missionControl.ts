@@ -125,10 +125,47 @@ export const notifications = pgTable(
   })
 );
 
+export const secretCategoryEnum = pgEnum("secret_category", [
+  "required",
+  "custom",
+]);
+
+export const secrets = pgTable(
+  "secrets",
+  {
+    id: integer().primaryKey().generatedAlwaysAsIdentity(),
+    name: varchar({ length: 255 }).notNull(),
+    category: secretCategoryEnum().notNull().default("custom"),
+    description: varchar({ length: 500 }),
+    /** AES-256-GCM encrypted value (base64). Null when deleted but record kept. */
+    encryptedValue: text(),
+    /** AES-256-GCM IV (base64) */
+    iv: varchar({ length: 32 }),
+    /** AES-256-GCM auth tag (base64) */
+    authTag: varchar({ length: 32 }),
+    isSet: boolean().notNull().default(false),
+    /** True when value has been updated but not yet synced to host */
+    pendingSync: boolean().notNull().default(true),
+    shireId: integer().references(() => shires.id),
+    ...timestamps,
+  },
+  (table) => ({
+    shireNameIdx: index("secret_shire_name_idx").on(table.shireId, table.name),
+  })
+);
+
 // Relations
 export const shiresRelations = relations(shires, ({ many }) => ({
   agents: many(agents),
   tasks: many(tasks),
+  secrets: many(secrets),
+}));
+
+export const secretsRelations = relations(secrets, ({ one }) => ({
+  shire: one(shires, {
+    fields: [secrets.shireId],
+    references: [shires.id],
+  }),
 }));
 
 export const agentsRelations = relations(agents, ({ one, many }) => ({

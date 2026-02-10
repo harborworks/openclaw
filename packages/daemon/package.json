@@ -1,0 +1,21 @@
+{
+  "name": "@harbor-app/daemon",
+  "version": "1.0.0",
+  "license": "UNLICENSED",
+  "private": true,
+  "dependencies": {},
+  "devDependencies": {
+    "@tsconfig/node22": "^22.0.1",
+    "@types/node": "^22.13.14",
+    "bun": "^1.2.8",
+    "typescript": "^5.8.2",
+    "vitest": "^3.0.0"
+  },
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist && rm -rf node_modules",
+    "dev": "bun --watch run src/index.ts",
+    "start": "node dist/index.js",
+    "test": "vitest run"
+  }
+}

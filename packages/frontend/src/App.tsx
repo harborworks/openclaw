@@ -7,6 +7,7 @@ import { Navbar } from "./components/Navbar";
 
 const BoardPage = lazy(() => import("./pages/BoardPage"));
 const LoginPage = lazy(() => import("./pages/LoginPage"));
+const SecretsPage = lazy(() => import("./pages/SecretsPage"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -44,6 +45,7 @@ export default function App() {
             <Routes>
               <Route path="/" element={<Navigate to="/board" replace />} />
               <Route path="/board" element={<BoardPage />} />
+              <Route path="/secrets" element={<SecretsPage />} />
               <Route path="*" element={<Navigate to="/board" replace />} />
             </Routes>
           </Suspense>
