@@ -12,7 +12,7 @@ COPY packages/frontend packages/frontend
 COPY packages/schema packages/schema
 
 ENV VITE_API_URL=$VITE_API_URL
-RUN yarn workspace @sparrow-template/frontend build
+RUN yarn workspace @harbor-app/frontend build
 
 FROM nginx:alpine
 COPY --from=build /app/packages/frontend/dist /usr/share/nginx/html

@@ -192,4 +192,4 @@ describe("Button", () => {
 });
 ```
 
-Run tests: `yarn workspace @sparrow-template/frontend test`
+Run tests: `yarn workspace @harbor-app/frontend test`

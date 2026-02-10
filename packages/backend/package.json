@@ -1,10 +1,10 @@
 {
-  "name": "@sparrow-template/backend",
+  "name": "@harbor-app/backend",
   "version": "1.0.0",
   "license": "UNLICENSED",
   "private": true,
   "dependencies": {
-    "@sparrow-template/schema": "*",
+    "@harbor-app/schema": "*",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "drizzle-orm": "^0.41.0",

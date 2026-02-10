@@ -7,7 +7,7 @@ This package contains the Drizzle ORM schema definitions shared across the appli
 After making any changes to the schema, you must rebuild the package for other packages to pick up the changes:
 
 ```bash
-yarn workspace @sparrow-template/schema build
+yarn workspace @harbor-app/schema build
 ```
 
 ## Schema Patterns
@@ -71,7 +71,7 @@ export const myTableRelations = relations(myTable, ({ one, many }) => ({
 
 After making schema changes:
 
-1. Build the schema: `yarn workspace @sparrow-template/schema build`
+1. Build the schema: `yarn workspace @harbor-app/schema build`
 2. Generate migrations: `yarn db:generate`
 3. Prompt the developer to run migrations: `yarn db:migrate`
 
