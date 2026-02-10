@@ -88,4 +88,35 @@ export async function secretSync(): Promise<void> {
   console.log(
     `[secret-sync] wrote ${finalEnv.size} var(s) to ${ENV_FILE_PATH}`
   );
+
+  // Signal the gateway to reload by sending SIGUSR1.
+  // Works because daemon shares PID namespace with gateway (pid: service:gateway).
+  signalGatewayReload();
+}
+
+/**
+ * Find the gateway's node process via /proc and send SIGUSR1.
+ * Requires shared PID namespace (pid: service:gateway in docker-compose).
+ */
+function signalGatewayReload(): void {
+  try {
+    // Scan /proc for the gateway process (node dist/index.js gateway)
+    const procDirs = fs.readdirSync("/proc").filter((d) => /^\d+$/.test(d));
+    for (const pid of procDirs) {
+      try {
+        const cmdline = fs.readFileSync(`/proc/${pid}/cmdline`, "utf-8");
+        if (cmdline.includes("dist/index.js") && cmdline.includes("gateway")) {
+          const pidNum = parseInt(pid, 10);
+          process.kill(pidNum, "SIGUSR1");
+          console.log(`[secret-sync] sent SIGUSR1 to gateway (pid ${pidNum})`);
+          return;
+        }
+      } catch {
+        // Can't read this proc entry, skip
+      }
+    }
+    console.log("[secret-sync] could not find gateway process to signal");
+  } catch (err) {
+    console.log(`[secret-sync] failed to signal gateway: ${err}`);
+  }
 }

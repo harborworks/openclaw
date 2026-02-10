@@ -20,12 +20,16 @@ services:
       TICK_INTERVAL_MS: "10000"
       ENV_FILE_PATH: /home/node/.openclaw/.env
       HOME: /home/node
+      # Path where gateway writes its PID (inside shared config volume)
+      GATEWAY_PID_FILE: /home/node/.openclaw/gateway.pid
     ports:
       - "${DAEMON_PORT:-4747}:4747"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
       - ${OPENCLAW_CONFIG_DIR:-./.harbor-host/config}:/home/node/.openclaw
+    # Share PID namespace with gateway so daemon can send SIGUSR1
+    pid: "service:gateway"
     depends_on:
       gateway:
         condition: service_started
