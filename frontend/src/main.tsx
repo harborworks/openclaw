@@ -1,5 +1,6 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import "./global.css";
 import { configureAmplify } from "./auth";
 import App from "./App";
 
