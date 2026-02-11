@@ -3,6 +3,7 @@ import { AuthProvider, ProtectedRoute, useAuth } from "./auth";
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { ConfirmPage } from "./pages/ConfirmPage";
+import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 
 function Dashboard() {
   const { user, logout } = useAuth();
@@ -67,6 +68,10 @@ function AppRoutes() {
       <Route
         path="/register"
         element={user ? <Navigate to="/" replace /> : <RegisterPage />}
+      />
+      <Route
+        path="/forgot-password"
+        element={user ? <Navigate to="/" replace /> : <ForgotPasswordPage />}
       />
       <Route
         path="/confirm"
