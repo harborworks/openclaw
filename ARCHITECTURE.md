@@ -133,9 +133,8 @@ todo → in_progress → review → done
 ```
 
 **Rules (enforced at the app level):**
-- Assignee(s) required for all tasks
+- Exactly one assignee at all times
 - Status changes must also change the assignee — an agent cannot move a task without reassigning it
-- When a task is moved to `done`, it is reassigned to the original creator/assignee
 
 ### Security: Device Authentication
 
