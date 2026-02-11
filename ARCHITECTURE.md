@@ -164,10 +164,11 @@ The daemon (`daemon/index.ts`) is the bridge between Convex and the local OpenCl
 
 The app routes as `/:orgSlug/:harborName/...`:
 
-- **KanbanBoard** — task board with drag-and-drop columns
-- **AgentList** — manage agents, view status
-- **SecretsManager** — set/view encrypted env vars
-- **HarborConfig** — template vars, heartbeat interval
+- **Tasks** — task board with drag-and-drop columns
+- **Agents** — manage agents, view status
+- **Secrets** — set/view encrypted env vars
+- **Schedule** — cron jobs and scheduled tasks
+- **Harbor Config** — template vars, heartbeat interval
 
 ## Deploy
 
