@@ -15,7 +15,7 @@ Mission Control is the web dashboard for managing AI agent workforces. It's buil
 ┌─────────────────────────────────────────────────────┐
 │                  Convex Cloud                        │
 │                                                      │
-│  Tables: orgs, users, memberships, shires, agents,  │
+│  Tables: orgs, users, memberships, harbors, agents,  │
 │          tasks, messages, activities, notifications, │
 │          secrets, cronJobs, templateVars, documents, │
 │          subscriptions                               │
@@ -103,7 +103,7 @@ No fetch calls, no loading states to manage for real-time data, no cache invalid
 #### Hierarchy
 ```
 Org (billing unit)
-  └── Shire (agent group — "a harbor")
+  └── Harbor (agent group — "a harbor")
         ├── Agents (AI workers)
         ├── Tasks (work items)
         │     ├── Messages (comments)
@@ -116,12 +116,12 @@ Org (billing unit)
 ```
 
 - **Org**: The billing/account unit. Has a slug for URL routing.
-- **Shire**: A group of agents. Maps to one OpenClaw gateway. Has its own secrets, cron jobs, and templates. Named "Harbor" in the product.
+- **Harbor**: A group of agents. Maps to one OpenClaw gateway. Has its own secrets, cron jobs, and templates. Named "Harbor" in the product.
 - **Agent**: An AI worker with a `sessionKey` (maps to an OpenClaw agent), role, level, and optional Telegram bot token.
 - **Task**: A work item with a status lifecycle: `inbox → assigned → in_progress → review → ready_to_deploy → done`
 - **Message**: A comment on a task. Supports @mentions which create notifications.
 - **Notification**: Delivered to agents via the daemon → gateway pipeline.
-- **Secret**: An environment variable. Encrypted with the shire's RSA public key. The daemon decrypts and writes to `~/.openclaw/.env`.
+- **Secret**: An environment variable. Encrypted with the harbor's RSA public key. The daemon decrypts and writes to `~/.openclaw/.env`.
 - **Cron Job**: Scheduled tasks synced to the gateway's cron system.
 
 ### Task Lifecycle
@@ -162,12 +162,12 @@ The daemon (`daemon/index.ts`) is the bridge between Convex and the local OpenCl
 
 ### Frontend Pages
 
-The app routes as `/:orgSlug/:shireName/...`:
+The app routes as `/:orgSlug/:harborName/...`:
 
 - **KanbanBoard** — task board with drag-and-drop columns
 - **AgentList** — manage agents, view status
 - **SecretsManager** — set/view encrypted env vars
-- **ShireConfig** — template vars, heartbeat interval
+- **HarborConfig** — template vars, heartbeat interval
 - **ActivityFeed** — audit log of all actions
 - **CommandPalette** — keyboard-driven search/navigation
 
@@ -183,7 +183,7 @@ The app routes as `/:orgSlug/:shireName/...`:
 
 ### Already Built (in ~/code/mission-control)
 - Full Convex schema with 12 tables
-- Complete CRUD for orgs, shires, agents, tasks, messages, notifications, secrets, cron jobs
+- Complete CRUD for orgs, harbors, agents, tasks, messages, notifications, secrets, cron jobs
 - Task state machine with transition validation and QA gates
 - Device authentication (RSA-PSS signing)
 - Daemon with agent sync, template rendering, secret management, cron sync, watchdog
@@ -192,7 +192,7 @@ The app routes as `/:orgSlug/:shireName/...`:
 
 ### Needed for Harbor Works
 - Cognito auth integration (replace current open access)
-- Multi-shire support in the UI (shire = harbor)
+- Multi-harbor support in the UI
 - Billing/plan enforcement
 - Harbor provisioning flow (create harbor → spin up host → pair daemon)
 - User management UI (invite users to org)
