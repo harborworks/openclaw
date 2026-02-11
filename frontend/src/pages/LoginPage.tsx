@@ -63,9 +63,6 @@ export function LoginPage() {
         <p style={styles.footer}>
           <Link to="/forgot-password" style={styles.link}>Forgot password?</Link>
         </p>
-        <p style={styles.footer}>
-          Don't have an account? <Link to="/register" style={styles.link}>Sign up</Link>
-        </p>
       </div>
     </div>
   );
