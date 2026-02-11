@@ -53,6 +53,7 @@ export const users = pgTable(
     email: varchar({ length: 255 }).notNull(),
     name: varchar({ length: 255 }),
     avatarUrl: varchar({ length: 500 }),
+    isSuperadmin: boolean().notNull().default(false),
     ...timestamps,
   },
   (table) => ({
@@ -94,10 +95,12 @@ export const harbors = pgTable(
       .references(() => orgs.id)
       .notNull(),
     name: varchar({ length: 255 }).notNull(),
+    slug: varchar({ length: 100 }).notNull(),
     ...timestamps,
   },
   (table) => ({
     orgIdIdx: index("harbor_org_id_idx").on(table.orgId),
+    orgSlugIdx: uniqueIndex("harbor_org_slug_idx").on(table.orgId, table.slug),
   })
 );
 

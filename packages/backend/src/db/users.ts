@@ -1,12 +1,16 @@
 import { orgMembers, orgs, users } from "@harbor-app/schema";
 import { eq } from "drizzle-orm";
+import config from "../config.js";
 import { db } from "./index.js";
 
 /**
  * Find or create a user by Auth0 ID.
  * Called on every authenticated request to keep user record in sync.
+ * Auto-promotes emails in SUPERADMIN_EMAILS to superadmin.
  */
 export const upsertUser = async (auth0Id: string, email: string, name?: string) => {
+  const shouldBeSuperadmin = config.superadminEmails.includes(email.toLowerCase());
+
   const existing = await db
     .select()
     .from(users)
@@ -14,18 +18,33 @@ export const upsertUser = async (auth0Id: string, email: string, name?: string) 
     .limit(1);
 
   if (existing.length > 0) {
-    // Update email/name if changed
-    if (existing[0].email !== email || (name && existing[0].name !== name)) {
-      await db
+    const user = existing[0];
+    const needsUpdate =
+      user.email !== email ||
+      (name && user.name !== name) ||
+      (shouldBeSuperadmin && !user.isSuperadmin);
+
+    if (needsUpdate) {
+      const [updated] = await db
         .update(users)
-        .set({ email, name: name || existing[0].name, updatedAt: new Date() })
-        .where(eq(users.id, existing[0].id));
+        .set({
+          email,
+          name: name || user.name,
+          isSuperadmin: shouldBeSuperadmin || user.isSuperadmin,
+          updatedAt: new Date(),
+        })
+        .where(eq(users.id, user.id))
+        .returning();
+      return updated;
     }
-    return existing[0];
+    return user;
   }
 
-  const rows = await db.insert(users).values({ auth0Id, email, name }).returning();
-  return rows[0];
+  const [newUser] = await db
+    .insert(users)
+    .values({ auth0Id, email, name, isSuperadmin: shouldBeSuperadmin })
+    .returning();
+  return newUser;
 };
 
 export const getUserByAuth0Id = async (auth0Id: string) => {
@@ -35,6 +54,19 @@ export const getUserByAuth0Id = async (auth0Id: string) => {
     .where(eq(users.auth0Id, auth0Id))
     .limit(1);
   return rows[0] ?? null;
+};
+
+export const getUserByEmail = async (email: string) => {
+  const rows = await db
+    .select()
+    .from(users)
+    .where(eq(users.email, email))
+    .limit(1);
+  return rows[0] ?? null;
+};
+
+export const getAllUsers = async () => {
+  return db.select().from(users).orderBy(users.email);
 };
 
 /**

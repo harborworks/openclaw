@@ -7,6 +7,9 @@ import { defineConfig } from "vite";
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss(), basicSsl()],
+  define: {
+    global: "globalThis",
+  },
   server: {
     host: "0.0.0.0",
     proxy: {

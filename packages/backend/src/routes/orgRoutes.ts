@@ -1,52 +1,55 @@
 import { Router, Request, Response, NextFunction } from "express";
-import * as db from "../db/index.js";
-import { requireOrgMember } from "../middlewares/authMiddleware";
+import { getOrgBySlug } from "../db/orgs.js";
+import { getHarborsByOrg, getHarborBySlug } from "../db/harbors.js";
+import { requireOrgMember } from "../middlewares/authMiddleware.js";
 
 const router = Router();
 
 // All org routes require membership
 router.use(requireOrgMember);
 
-/** List orgs the current user belongs to */
-router.get("/", (req: Request, res: Response) => {
-  res.json(req.user!.memberships);
-});
-
-/** Get harbors for an org (user must be a member) */
+/** Resolve org by slug — returns org + harbors */
 router.get(
-  "/:orgId/harbors",
+  "/:orgSlug",
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const orgId = Number(req.params.orgId);
-      if (!req.user!.orgIds.includes(orgId)) {
+      const org = await getOrgBySlug(req.params.orgSlug);
+      if (!org) {
+        res.status(404).json({ message: "Org not found" });
+        return;
+      }
+      if (!req.user!.orgIds.includes(org.id)) {
         res.status(403).json({ message: "Not a member of this org" });
         return;
       }
-      const harbors = await db.getHarborsByOrg(orgId);
-      res.json(harbors);
+      const harbors = await getHarborsByOrg(org.id);
+      res.json({ ...org, harbors });
     } catch (error) {
       next(error);
     }
   }
 );
 
-/** Create a harbor in an org */
-router.post(
-  "/:orgId/harbors",
+/** Resolve harbor by org slug + harbor slug */
+router.get(
+  "/:orgSlug/:harborSlug",
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const orgId = Number(req.params.orgId);
-      if (!req.user!.orgIds.includes(orgId)) {
+      const org = await getOrgBySlug(req.params.orgSlug);
+      if (!org) {
+        res.status(404).json({ message: "Org not found" });
+        return;
+      }
+      if (!req.user!.orgIds.includes(org.id)) {
         res.status(403).json({ message: "Not a member of this org" });
         return;
       }
-      const { name } = req.body;
-      if (!name) {
-        res.status(400).json({ message: "name is required" });
+      const harbor = await getHarborBySlug(org.id, req.params.harborSlug);
+      if (!harbor) {
+        res.status(404).json({ message: "Harbor not found" });
         return;
       }
-      const harbor = await db.createHarbor(orgId, name);
-      res.status(201).json(harbor);
+      res.json({ org, harbor });
     } catch (error) {
       next(error);
     }
