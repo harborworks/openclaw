@@ -5,6 +5,7 @@ import { errorHandler } from "./middlewares/errorHandler";
 import agentRoutes from "./routes/agentRoutes";
 import authRoutes from "./routes/authRoutes";
 import notificationRoutes from "./routes/notificationRoutes";
+import orgRoutes from "./routes/orgRoutes";
 import secretRoutes from "./routes/secretRoutes";
 
 const app = express();
@@ -20,6 +21,7 @@ app.use(authMiddleware);
 
 // Routes
 app.use("/api/auth", authRoutes);
+app.use("/api/orgs", orgRoutes);
 app.use("/api/agents", agentRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/secrets", secretRoutes);

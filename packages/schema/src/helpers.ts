@@ -1,5 +1,4 @@
-import { integer, timestamp } from "drizzle-orm/pg-core";
-import { users } from "./auth";
+import { timestamp } from "drizzle-orm/pg-core";
 
 export const timestamps = {
   createdAt: timestamp().defaultNow().notNull(),
@@ -7,9 +6,4 @@ export const timestamps = {
     .notNull()
     .defaultNow()
     .$onUpdate(() => new Date()),
-};
-
-export const deleted = {
-  deletedById: integer().references(() => users.id),
-  deletedAt: timestamp(),
 };

@@ -36,7 +36,7 @@ export const createSecret = async (data: {
   encryptedValue: string;
   iv: string;
   authTag: string;
-  shireId?: number;
+  harborId?: number;
 }) => {
   const rows = await db
     .insert(secrets)
