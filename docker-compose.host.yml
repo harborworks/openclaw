@@ -1,0 +1,75 @@
+##
+## Harbor Host stack — runs on each harbor host.
+## Daemon polls Convex; gateway runs local OpenClaw agents.
+##
+## Usage:
+##   docker compose -f docker-compose.host.yml --env-file .env.host up -d
+##
+
+services:
+  daemon:
+    build:
+      context: ./daemon
+    environment:
+      CONVEX_URL: ${CONVEX_URL:-}
+      HARBOR_API_KEY: ${HARBOR_API_KEY:-}
+      GATEWAY_URL: http://gateway:18789
+      GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN:-}
+      DAEMON_PORT: "4747"
+      TICK_INTERVAL_MS: "10000"
+      HOME: /home/node
+    ports:
+      - "${DAEMON_PORT:-4747}:4747"
+    volumes:
+      - ${OPENCLAW_CONFIG_DIR:-./.harbor-host/config}:/home/node/.openclaw
+    pid: "service:gateway"
+    depends_on:
+      gateway:
+        condition: service_started
+    restart: unless-stopped
+    init: true
+
+  cli:
+    image: ${OPENCLAW_IMAGE:-openclaw:local}
+    environment:
+      HOME: /home/node
+      TERM: xterm-256color
+      OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN:-}
+      BROWSER: echo
+    volumes:
+      - ${OPENCLAW_CONFIG_DIR:-./.harbor-host/config}:/home/node/.openclaw
+      - ${OPENCLAW_WORKSPACE_DIR:-./.harbor-host/workspace}:/home/node/.openclaw/workspace
+    network_mode: "service:gateway"
+    stdin_open: true
+    tty: true
+    init: true
+    entrypoint: ["node", "dist/index.js"]
+    profiles:
+      - cli
+
+  gateway:
+    image: ${OPENCLAW_IMAGE:-openclaw:local}
+    environment:
+      HOME: /home/node
+      TERM: xterm-256color
+      OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN:-}
+    volumes:
+      - ${OPENCLAW_CONFIG_DIR:-./.harbor-host/config}:/home/node/.openclaw
+      - ${OPENCLAW_WORKSPACE_DIR:-./.harbor-host/workspace}:/home/node/.openclaw/workspace
+    ports:
+      - "${GATEWAY_PORT:-18789}:18789"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    init: true
+    restart: unless-stopped
+    command:
+      [
+        "node",
+        "dist/index.js",
+        "gateway",
+        "--allow-unconfigured",
+        "--bind",
+        "lan",
+        "--port",
+        "18789",
+      ]
