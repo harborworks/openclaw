@@ -1,11 +1,4 @@
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  useCallback,
-  type ReactNode,
-} from "react";
+import { useEffect, useState, useCallback, type ReactNode } from "react";
 import {
   signIn,
   signUp,
@@ -13,28 +6,8 @@ import {
   confirmSignUp,
   getCurrentUser,
   fetchAuthSession,
-  type SignInOutput,
 } from "aws-amplify/auth";
-
-interface User {
-  userId: string;
-  email: string;
-}
-
-interface AuthState {
-  user: User | null;
-  loading: boolean;
-}
-
-interface AuthContextValue extends AuthState {
-  login: (email: string, password: string) => Promise<SignInOutput>;
-  register: (email: string, password: string) => Promise<void>;
-  confirmRegistration: (email: string, code: string) => Promise<void>;
-  logout: () => Promise<void>;
-  getIdToken: () => Promise<string | undefined>;
-}
-
-const AuthContext = createContext<AuthContextValue | null>(null);
+import { AuthContext, type User, type AuthState } from "./auth-context";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>({ user: null, loading: true });
@@ -101,10 +74,4 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       {children}
     </AuthContext.Provider>
   );
-}
-
-export function useAuth() {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
-  return ctx;
 }
