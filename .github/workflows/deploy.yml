@@ -52,6 +52,9 @@ jobs:
             --timeout-seconds 300 \
             --parameters commands='[
               "set -e",
+              "export HOME=/root",
+              "export GIT_SSH_COMMAND=\"ssh -i /home/ubuntu/.ssh/id_ed25519 -o StrictHostKeyChecking=accept-new\"",
+              "git config --global --add safe.directory '"$DEPLOY_DIR"'",
               "cd '"$DEPLOY_DIR"'",
               "git fetch origin main",
               "git reset --hard origin/main",
