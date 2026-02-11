@@ -118,7 +118,7 @@ Org (billing unit)
 - **Org**: The billing/account unit. Has a slug for URL routing.
 - **Harbor**: A group of agents. Maps to one OpenClaw gateway. Has its own secrets, cron jobs, and templates. Named "Harbor" in the product.
 - **Agent**: An AI worker with a `sessionKey` (maps to an OpenClaw agent), role, level, and optional Telegram bot token.
-- **Task**: A work item with a status lifecycle: `inbox → assigned → in_progress → review → ready_to_deploy → done`
+- **Task**: A work item with a status lifecycle: `todo → in_progress → review → done`
 - **Message**: A comment on a task. Supports @mentions which create notifications.
 - **Notification**: Delivered to agents via the daemon → gateway pipeline.
 - **Secret**: An environment variable. Encrypted with the harbor's RSA public key. The daemon decrypts and writes to `~/.openclaw/.env`.
@@ -127,14 +127,15 @@ Org (billing unit)
 ### Task Lifecycle
 
 ```
-inbox → assigned → in_progress → review → ready_to_deploy → done
-                                    ↑           │
-                                    └───────────┘  (QA rejection)
-
-Any state → blocked (and back)
+todo → in_progress → review → done
+          ↑            │
+          └────────────┘  (rejection)
 ```
 
-State transitions are enforced in `convex/tasks.ts`. The `review → ready_to_deploy` transition requires explicit QA approval (`approveQa` mutation, restricted to agents with role "QA").
+**Rules (enforced at the app level):**
+- Assignee(s) required for all tasks
+- Status changes must also change the assignee — an agent cannot move a task without reassigning it
+- When a task is moved to `done`, it is reassigned to the original creator/assignee
 
 ### Security: Device Authentication
 
