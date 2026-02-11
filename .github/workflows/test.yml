@@ -1,0 +1,40 @@
+name: Test
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install
+        working-directory: frontend
+        run: npm ci
+      - name: Lint
+        working-directory: frontend
+        run: npm run lint
+      - name: Type check
+        working-directory: frontend
+        run: npx tsc -b
+      - name: Test
+        working-directory: frontend
+        run: npm test
+
+  test-daemon:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install
+        working-directory: daemon
+        run: npm install
+      - name: Build
+        working-directory: daemon
+        run: npx tsup src/index.ts --format esm --target node22
