@@ -1,67 +1,46 @@
-# Harbor App
+# Harbor Works
 
-Mission Control for agent teams — task management with Kanban board, comments, and notifications.
+Web dashboard for managing AI agent workforces. Built on [Convex](https://convex.dev) + React + a host daemon that bridges Convex to [OpenClaw](https://openclaw.ai).
 
-## Stack
+## Architecture
 
-- **Database:** Postgres + Drizzle ORM
-- **Backend:** Express + TypeScript
-- **Frontend:** React + ShadCN/ui + React Query
-- **Auth:** API key (agents) + password login (browser)
+See [ARCHITECTURE.md](./ARCHITECTURE.md) for the full system design.
 
-## Local Development
+## Structure
 
-```bash
-# Install
-yarn
-
-# Start Postgres
-docker-compose up -d
-
-# Create .env.local
-cat > .env.local <<EOF
-DATABASE_HOST=localhost
-DATABASE_PORT=54321
-DATABASE_USER=postgres
-DATABASE_PASSWORD=postgres
-DATABASE_NAME=postgres
-API_KEY=dev-api-key
-SESSION_SECRET=dev-session-secret
-ADMIN_PASSWORD=admin
-PORT=3001
-EOF
-
-# Build schema + migrate
-yarn workspace @harbor-app/schema build
-yarn db:migrate
-
-# Run backend
-cd packages/backend && env $(cat ../../.env.local | xargs) bun run src/server.ts
-
-# Run frontend (separate terminal)
-cd packages/frontend && VITE_API_URL=http://localhost:3001 yarn dev
+```
+harbor-app/
+├── frontend/          # React + Vite (deployed to app.harborworks.ai via S3 + CloudFront)
+├── daemon/            # Node.js daemon (runs on each harbor host alongside OpenClaw)
+├── docker-compose.host.yml   # Host stack: daemon + gateway + CLI
+├── docker-compose.dev.yml    # Local dev: frontend with hot reload
+└── cli.sh                    # Shortcut for OpenClaw CLI commands
 ```
 
-## Production
+## Development
 
 ```bash
-# Create .env.prod from example
-cp .env.prod.example .env.prod
-# Edit with real values
+# Start frontend with hot reload
+docker compose -f docker-compose.dev.yml up -d
+# → http://localhost:5173
 
-# Deploy
-set -a && source .env.prod && set +a
-docker-compose -f docker-compose.prod.yml up -d
+# Run tests
+cd frontend && npm test
 ```
 
-## Deploy Flow
+## Host Setup
 
-1. Work on a feature branch
-2. Open PR when ready
-3. Merge to `main`
-4. GitHub Action auto-deploys to devbox via self-hosted runner
+```bash
+cp .env.host.example .env.host
+# Fill in CONVEX_URL, HARBOR_API_KEY, OPENCLAW_GATEWAY_TOKEN
 
-## API Auth
+docker compose -f docker-compose.host.yml --env-file .env.host up -d
+```
 
-- **Browser:** POST `/api/auth/login` with `{ password }`, uses session cookie
-- **Agents:** Pass `X-API-Key` header on all requests
+## Deployment
+
+Frontend deploys automatically on push to `main` via GitHub Actions (S3 + CloudFront).
+
+Required repo config:
+- **Secrets:** `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`
+- **Vars:** `CLOUDFRONT_DISTRIBUTION_ID`

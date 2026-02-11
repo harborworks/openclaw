@@ -1,6 +1,6 @@
 ##
 ## Harbor Host stack — runs on each harbor host.
-## Daemon polls the remote Harbor API; gateway runs local OpenClaw agents.
+## Daemon polls Convex; gateway runs local OpenClaw agents.
 ##
 ## Usage:
 ##   docker compose -f docker-compose.host.yml --env-file .env.host up -d
@@ -9,26 +9,19 @@
 services:
   daemon:
     build:
-      context: .
-      dockerfile: Dockerfile.daemon
+      context: ./daemon
     environment:
-      HARBOR_API_URL: ${HARBOR_API_URL:-http://host.docker.internal:3001/api}
-      HARBOR_API_KEY: ${HARBOR_API_KEY:-dev-api-key}
+      CONVEX_URL: ${CONVEX_URL:-}
+      HARBOR_API_KEY: ${HARBOR_API_KEY:-}
       GATEWAY_URL: http://gateway:18789
       GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN:-}
       DAEMON_PORT: "4747"
       TICK_INTERVAL_MS: "10000"
-      ENV_FILE_PATH: /home/node/.openclaw/.env
       HOME: /home/node
-      # Path where gateway writes its PID (inside shared config volume)
-      GATEWAY_PID_FILE: /home/node/.openclaw/gateway.pid
     ports:
       - "${DAEMON_PORT:-4747}:4747"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     volumes:
       - ${OPENCLAW_CONFIG_DIR:-./.harbor-host/config}:/home/node/.openclaw
-    # Share PID namespace with gateway so daemon can send SIGUSR1
     pid: "service:gateway"
     depends_on:
       gateway:
@@ -46,7 +39,6 @@ services:
     volumes:
       - ${OPENCLAW_CONFIG_DIR:-./.harbor-host/config}:/home/node/.openclaw
       - ${OPENCLAW_WORKSPACE_DIR:-./.harbor-host/workspace}:/home/node/.openclaw/workspace
-    # Share gateway's network so CLI connects to ws://127.0.0.1:18789
     network_mode: "service:gateway"
     stdin_open: true
     tty: true
