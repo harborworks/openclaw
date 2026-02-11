@@ -18,7 +18,6 @@ jobs:
       - name: Resolve instance ID
         id: resolve
         run: |
-          # Find the instance that SSM can actually reach
           CANDIDATES=$(aws ec2 describe-instances \
             --filters "Name=tag:Name,Values=harbor-app" "Name=instance-state-name,Values=running" \
             --query "Reservations[].Instances[].InstanceId" \
@@ -46,11 +45,12 @@ jobs:
         env:
           INSTANCE_ID: ${{ steps.resolve.outputs.instance_id }}
         run: |
+          # Write deploy script to a temp file, then send via SSM
           COMMAND_ID=$(aws ssm send-command \
             --instance-ids "$INSTANCE_ID" \
             --document-name "AWS-RunShellScript" \
             --timeout-seconds 600 \
-            --parameters '{"commands":["set -e && export HOME=/root && export GIT_SSH_COMMAND=\"ssh -i /home/ubuntu/.ssh/id_ed25519 -o StrictHostKeyChecking=accept-new\" && git config --global --add safe.directory /opt/harbor-app && cd /opt/harbor-app && git fetch origin main && git reset --hard origin/main && cat > .env.prod << '"'"'ENVEOF'"'"'\nDATABASE_NAME=postgres\nDATABASE_USER=postgres\nDATABASE_PASSWORD=${{ secrets.DATABASE_PASSWORD }}\nAPI_KEY=${{ secrets.API_KEY }}\nENCRYPTION_KEY=${{ secrets.ENCRYPTION_KEY }}\nPORT=3001\nCOGNITO_USER_POOL_ID=${{ secrets.COGNITO_USER_POOL_ID }}\nCOGNITO_CLIENT_ID=${{ secrets.COGNITO_CLIENT_ID }}\nCOGNITO_REGION=us-east-1\nSUPERADMIN_EMAILS=${{ secrets.SUPERADMIN_EMAILS }}\nENVEOF\n && docker compose -f docker-compose.prod.yml build && docker compose -f docker-compose.prod.yml up -d && sleep 10 && curl -sf http://localhost:8000/health && echo DEPLOY_SUCCESS"]}' \
+            --parameters '{"commands":["#!/bin/bash","set -e","export HOME=/root","export GIT_SSH_COMMAND=\"ssh -i /home/ubuntu/.ssh/id_ed25519 -o StrictHostKeyChecking=accept-new\"","git config --global --add safe.directory /opt/harbor-app","cd /opt/harbor-app","git fetch origin main","git reset --hard origin/main","echo DATABASE_NAME=postgres > .env.prod","echo DATABASE_USER=postgres >> .env.prod","echo DATABASE_PASSWORD=${{ secrets.DATABASE_PASSWORD }} >> .env.prod","echo API_KEY=${{ secrets.API_KEY }} >> .env.prod","echo ENCRYPTION_KEY=${{ secrets.ENCRYPTION_KEY }} >> .env.prod","echo PORT=3001 >> .env.prod","echo COGNITO_USER_POOL_ID=${{ secrets.COGNITO_USER_POOL_ID }} >> .env.prod","echo COGNITO_CLIENT_ID=${{ secrets.COGNITO_CLIENT_ID }} >> .env.prod","echo COGNITO_REGION=us-east-1 >> .env.prod","echo SUPERADMIN_EMAILS=${{ secrets.SUPERADMIN_EMAILS }} >> .env.prod","docker compose -f docker-compose.prod.yml build","docker compose -f docker-compose.prod.yml up -d","sleep 15","curl -sf http://localhost:8000/health","echo DEPLOY_SUCCESS"]}' \
             --output text \
             --query "Command.CommandId")
           echo "command_id=$COMMAND_ID" >> "$GITHUB_OUTPUT"
