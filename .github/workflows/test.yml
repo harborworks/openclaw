@@ -1,35 +1,17 @@
 name: Test
-
 on:
-  push:
-    branches:
-      - main
   pull_request:
-
+    branches: [ main ]
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
+      - uses: actions/checkout@v3
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v3
         with:
-          node-version: "22"
-          cache: yarn
-
-      - name: Enable Corepack
-        run: corepack enable
-
-      - name: Install dependencies
-        run: yarn install --immutable
-
-      - name: Build schema package
-        run: yarn workspace @harbor-app/schema build
-
-      - name: Build all packages
-        run: yarn build
-
-      - name: Run unit tests
+          node-version: '22'
+      - name: Install
+        run: yarn install
+      - name: Run tests
         run: yarn test

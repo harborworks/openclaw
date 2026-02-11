@@ -16,5 +16,8 @@ export const db = drizzle(
 );
 
 export * from "./agents";
+export * from "./harbors";
 export * from "./notifications";
+export * from "./orgs";
 export * from "./secrets";
+export * from "./users";

@@ -1,2 +1,2 @@
-export { authMiddleware, requireAdmin } from "./authMiddleware";
+export { authMiddleware, requireOrgMember } from "./authMiddleware";
 export { errorHandler } from "./errorHandler";

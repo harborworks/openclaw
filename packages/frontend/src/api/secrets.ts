@@ -1,6 +1,4 @@
-import axios from "axios";
-
-const API_URL = import.meta.env.VITE_API_URL || "";
+import { api } from "./client";
 
 export interface Secret {
   id: number;
@@ -14,9 +12,7 @@ export interface Secret {
 }
 
 export async function getSecrets(): Promise<Secret[]> {
-  const { data } = await axios.get<Secret[]>(`${API_URL}/api/secrets`, {
-    withCredentials: true,
-  });
+  const { data } = await api.get<Secret[]>("/secrets");
   return data;
 }
 
@@ -26,14 +22,10 @@ export async function upsertSecret(params: {
   category?: "required" | "custom";
   description?: string;
 }): Promise<Secret> {
-  const { data } = await axios.post<Secret>(`${API_URL}/api/secrets`, params, {
-    withCredentials: true,
-  });
+  const { data } = await api.post<Secret>("/secrets", params);
   return data;
 }
 
 export async function deleteSecret(id: number): Promise<void> {
-  await axios.delete(`${API_URL}/api/secrets/${id}`, {
-    withCredentials: true,
-  });
+  await api.delete(`/secrets/${id}`);
 }

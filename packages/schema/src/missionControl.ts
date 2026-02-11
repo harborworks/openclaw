@@ -6,17 +6,15 @@ import {
   pgEnum,
   pgTable,
   text,
+  uniqueIndex,
   varchar,
 } from "drizzle-orm/pg-core";
 
 import { timestamps } from "./helpers";
 
-// Enums
-export const agentRoleEnum = pgEnum("agent_role", [
-  "pm",
-  "dev",
-  "qa",
-]);
+// ── Enums ──────────────────────────────────────────────────────
+
+export const agentRoleEnum = pgEnum("agent_role", ["pm", "dev", "qa"]);
 
 export const agentLevelEnum = pgEnum("agent_level", [
   "junior",
@@ -24,12 +22,89 @@ export const agentLevelEnum = pgEnum("agent_level", [
   "lead",
 ]);
 
-// Tables
-export const shires = pgTable("shires", {
+export const orgMemberRoleEnum = pgEnum("org_member_role", [
+  "owner",
+  "admin",
+  "member",
+]);
+
+export const secretCategoryEnum = pgEnum("secret_category", [
+  "required",
+  "custom",
+]);
+
+// ── Orgs & Users ───────────────────────────────────────────────
+
+/** An organization — top-level tenant that owns harbors */
+export const orgs = pgTable("orgs", {
   id: integer().primaryKey().generatedAlwaysAsIdentity(),
   name: varchar({ length: 255 }).notNull(),
+  slug: varchar({ length: 100 }).notNull().unique(),
   ...timestamps,
 });
+
+/** A user identified by Auth0 sub. Exists once across all orgs. */
+export const users = pgTable(
+  "users",
+  {
+    id: integer().primaryKey().generatedAlwaysAsIdentity(),
+    /** Auth0 user ID (e.g. "google-oauth2|123456") */
+    auth0Id: varchar({ length: 255 }).notNull().unique(),
+    email: varchar({ length: 255 }).notNull(),
+    name: varchar({ length: 255 }),
+    avatarUrl: varchar({ length: 500 }),
+    isSuperadmin: boolean().notNull().default(false),
+    ...timestamps,
+  },
+  (table) => ({
+    auth0IdIdx: uniqueIndex("user_auth0_id_idx").on(table.auth0Id),
+    emailIdx: index("user_email_idx").on(table.email),
+  })
+);
+
+/** Links users to orgs with a role */
+export const orgMembers = pgTable(
+  "org_members",
+  {
+    id: integer().primaryKey().generatedAlwaysAsIdentity(),
+    orgId: integer()
+      .references(() => orgs.id)
+      .notNull(),
+    userId: integer()
+      .references(() => users.id)
+      .notNull(),
+    role: orgMemberRoleEnum().notNull().default("member"),
+    ...timestamps,
+  },
+  (table) => ({
+    orgUserIdx: uniqueIndex("org_member_org_user_idx").on(
+      table.orgId,
+      table.userId
+    ),
+  })
+);
+
+// ── Harbors ────────────────────────────────────────────────────
+
+/** A harbor is a deployment environment — an EC2 instance, a customer server, etc. */
+export const harbors = pgTable(
+  "harbors",
+  {
+    id: integer().primaryKey().generatedAlwaysAsIdentity(),
+    orgId: integer()
+      .references(() => orgs.id)
+      .notNull(),
+    name: varchar({ length: 255 }).notNull(),
+    slug: varchar({ length: 100 }).notNull(),
+    ...timestamps,
+  },
+  (table) => ({
+    orgIdIdx: index("harbor_org_id_idx").on(table.orgId),
+    orgSlugIdx: uniqueIndex("harbor_org_slug_idx").on(table.orgId, table.slug),
+  })
+);
+
+// ── Agents ─────────────────────────────────────────────────────
 
 export const agents = pgTable(
   "agents",
@@ -39,13 +114,15 @@ export const agents = pgTable(
     role: agentRoleEnum().notNull(),
     sessionKey: varchar({ length: 255 }).notNull().unique(),
     level: agentLevelEnum(),
-    shireId: integer().references(() => shires.id),
+    harborId: integer().references(() => harbors.id),
     ...timestamps,
   },
   (table) => ({
     sessionKeyIdx: index("agent_session_key_idx").on(table.sessionKey),
   })
 );
+
+// ── Notifications ──────────────────────────────────────────────
 
 export const notifications = pgTable(
   "notifications",
@@ -66,10 +143,7 @@ export const notifications = pgTable(
   })
 );
 
-export const secretCategoryEnum = pgEnum("secret_category", [
-  "required",
-  "custom",
-]);
+// ── Secrets ────────────────────────────────────────────────────
 
 export const secrets = pgTable(
   "secrets",
@@ -78,42 +152,57 @@ export const secrets = pgTable(
     name: varchar({ length: 255 }).notNull(),
     category: secretCategoryEnum().notNull().default("custom"),
     description: varchar({ length: 500 }),
-    /** AES-256-GCM encrypted value (base64). Null when deleted but record kept. */
     encryptedValue: text(),
-    /** AES-256-GCM IV (base64) */
     iv: varchar({ length: 32 }),
-    /** AES-256-GCM auth tag (base64) */
     authTag: varchar({ length: 32 }),
     isSet: boolean().notNull().default(false),
-    /** True when value has been updated but not yet synced to host */
     pendingSync: boolean().notNull().default(true),
-    shireId: integer().references(() => shires.id),
+    harborId: integer().references(() => harbors.id),
     ...timestamps,
   },
   (table) => ({
-    shireNameIdx: index("secret_shire_name_idx").on(table.shireId, table.name),
+    harborNameIdx: index("secret_harbor_name_idx").on(
+      table.harborId,
+      table.name
+    ),
   })
 );
 
-// Relations
-export const shiresRelations = relations(shires, ({ many }) => ({
+// ── Relations ──────────────────────────────────────────────────
+
+export const orgsRelations = relations(orgs, ({ many }) => ({
+  members: many(orgMembers),
+  harbors: many(harbors),
+}));
+
+export const usersRelations = relations(users, ({ many }) => ({
+  memberships: many(orgMembers),
+}));
+
+export const orgMembersRelations = relations(orgMembers, ({ one }) => ({
+  org: one(orgs, { fields: [orgMembers.orgId], references: [orgs.id] }),
+  user: one(users, { fields: [orgMembers.userId], references: [users.id] }),
+}));
+
+export const harborsRelations = relations(harbors, ({ one, many }) => ({
+  org: one(orgs, { fields: [harbors.orgId], references: [orgs.id] }),
   agents: many(agents),
   secrets: many(secrets),
 }));
 
-export const secretsRelations = relations(secrets, ({ one }) => ({
-  shire: one(shires, {
-    fields: [secrets.shireId],
-    references: [shires.id],
-  }),
-}));
-
 export const agentsRelations = relations(agents, ({ one, many }) => ({
-  shire: one(shires, {
-    fields: [agents.shireId],
-    references: [shires.id],
+  harbor: one(harbors, {
+    fields: [agents.harborId],
+    references: [harbors.id],
   }),
   notifications: many(notifications),
+}));
+
+export const secretsRelations = relations(secrets, ({ one }) => ({
+  harbor: one(harbors, {
+    fields: [secrets.harborId],
+    references: [harbors.id],
+  }),
 }));
 
 export const notificationsRelations = relations(notifications, ({ one }) => ({

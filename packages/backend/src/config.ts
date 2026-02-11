@@ -6,9 +6,15 @@ interface Config {
   databasePort: number;
   databaseUser: string;
   databasePassword: string;
+  /** Global API key for daemon auth */
   apiKey: string;
-  sessionSecret: string;
-  adminPassword: string;
+  encryptionKey: string;
+  // Cognito
+  cognitoUserPoolId: string;
+  cognitoClientId: string;
+  cognitoRegion: string;
+  /** Comma-separated emails auto-promoted to superadmin on login */
+  superadminEmails: string[];
 }
 
 const config: Config = {
@@ -20,8 +26,15 @@ const config: Config = {
   databaseUser: process.env.DATABASE_USER!,
   databasePassword: process.env.DATABASE_PASSWORD!,
   apiKey: process.env.API_KEY || "dev-api-key",
-  sessionSecret: process.env.SESSION_SECRET || "dev-session-secret",
-  adminPassword: process.env.ADMIN_PASSWORD || "admin",
+  encryptionKey: process.env.ENCRYPTION_KEY || process.env.SESSION_SECRET || "dev-encryption-key",
+  // Cognito
+  cognitoUserPoolId: process.env.COGNITO_USER_POOL_ID || "",
+  cognitoClientId: process.env.COGNITO_CLIENT_ID || "",
+  cognitoRegion: process.env.COGNITO_REGION || "us-east-1",
+  superadminEmails: (process.env.SUPERADMIN_EMAILS || "ben@sparrow.dev")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean),
 };
 
 export default config;
