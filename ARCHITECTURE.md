@@ -174,7 +174,7 @@ The app routes as `/:orgSlug/:harborSlug/...`. Org slugs are globally unique. Ha
 
 **Convex backend**: `npx convex deploy` — that's it. No servers, no Docker, no ALB.
 
-**Frontend**: Static build (`vite build`) served from any CDN or static host. Currently runs in Docker with nginx, but could be S3+CloudFront.
+**Frontend**: Static build (`vite build`) hosted on S3 + CloudFront (same setup as landing page).
 
 **Daemon**: Runs as a Docker container or systemd service on the agent host alongside OpenClaw.
 
