@@ -162,7 +162,7 @@ The daemon (`daemon/index.ts`) is the bridge between Convex and the local OpenCl
 
 ### Frontend Pages
 
-The app routes as `/:orgSlug/:harborName/...`:
+The app routes as `/:orgSlug/:harborSlug/...`. Org slugs are globally unique. Harbor slugs are unique within an org.
 
 - **Tasks** — task board with drag-and-drop columns
 - **Agents** — manage agents, view status
