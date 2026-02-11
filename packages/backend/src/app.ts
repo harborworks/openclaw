@@ -1,4 +1,3 @@
-import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
 import { authMiddleware } from "./middlewares/authMiddleware";
@@ -11,7 +10,6 @@ import secretRoutes from "./routes/secretRoutes";
 const app = express();
 
 app.use(express.json());
-app.use(cookieParser());
 app.use(
   cors({
     origin: true,

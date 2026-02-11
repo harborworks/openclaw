@@ -1,6 +1,4 @@
-import axios from "axios";
-
-const API_URL = import.meta.env.VITE_API_URL || "";
+import { api } from "./client";
 
 export interface Agent {
   id: number;
@@ -14,17 +12,13 @@ export interface Agent {
 }
 
 export const getAgents = async (): Promise<Agent[]> => {
-  const response = await axios.get(`${API_URL}/api/agents`, {
-    withCredentials: true,
-  });
-  return response.data;
+  const { data } = await api.get<Agent[]>("/agents");
+  return data;
 };
 
 export const getAgentBySessionKey = async (
   sessionKey: string
 ): Promise<Agent> => {
-  const response = await axios.get(`${API_URL}/api/agents/${sessionKey}`, {
-    withCredentials: true,
-  });
-  return response.data;
+  const { data } = await api.get<Agent>(`/agents/${sessionKey}`);
+  return data;
 };

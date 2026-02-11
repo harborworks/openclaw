@@ -6,9 +6,13 @@ interface Config {
   databasePort: number;
   databaseUser: string;
   databasePassword: string;
+  /** Global API key for daemon auth */
   apiKey: string;
-  sessionSecret: string;
-  adminPassword: string;
+  encryptionKey: string;
+  // Auth0
+  auth0Domain: string;
+  auth0Audience: string;
+  auth0ClientId: string;
 }
 
 const config: Config = {
@@ -20,8 +24,11 @@ const config: Config = {
   databaseUser: process.env.DATABASE_USER!,
   databasePassword: process.env.DATABASE_PASSWORD!,
   apiKey: process.env.API_KEY || "dev-api-key",
-  sessionSecret: process.env.SESSION_SECRET || "dev-session-secret",
-  adminPassword: process.env.ADMIN_PASSWORD || "admin",
+  encryptionKey: process.env.ENCRYPTION_KEY || process.env.SESSION_SECRET || "dev-encryption-key",
+  // Auth0
+  auth0Domain: process.env.AUTH0_DOMAIN || "",
+  auth0Audience: process.env.AUTH0_AUDIENCE || "",
+  auth0ClientId: process.env.AUTH0_CLIENT_ID || "",
 };
 
 export default config;
