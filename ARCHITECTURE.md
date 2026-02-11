@@ -168,8 +168,6 @@ The app routes as `/:orgSlug/:harborName/...`:
 - **AgentList** — manage agents, view status
 - **SecretsManager** — set/view encrypted env vars
 - **HarborConfig** — template vars, heartbeat interval
-- **ActivityFeed** — audit log of all actions
-- **CommandPalette** — keyboard-driven search/navigation
 
 ## Deploy
 
