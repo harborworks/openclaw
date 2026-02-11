@@ -136,16 +136,16 @@ todo → in_progress → review → done
 - Exactly one assignee at all times
 - Status changes must also change the assignee — an agent cannot move a task without reassigning it
 
-### Security: Device Authentication
+### Security: Harbor API Keys
 
-The daemon authenticates to Convex using **RSA-PSS signatures**:
+Each harbor has an API key for daemon authentication:
 
-1. On first boot, daemon generates an RSA keypair
-2. Public key is sent to Convex (TOFU — Trust On First Use)
-3. Subsequent calls sign the payload with the private key
-4. Convex verifies the signature before executing sensitive operations
+1. When a harbor is created, the app generates a random API key (stored hashed in Convex)
+2. User copies the key and sets it as an env var on the host (`HARBOR_API_KEY`)
+3. Daemon sends it as a Bearer token on every request to Convex
+4. Convex verifies the hash and resolves the harbor
 
-This prevents unauthorized clients from reading secrets or modifying cron jobs even if they have the Convex URL.
+Keys can be rotated from the UI. Standard shared-secret pattern over HTTPS.
 
 ### The Daemon
 
