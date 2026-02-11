@@ -21,7 +21,7 @@
     "db:migrate": "drizzle-kit migrate",
     "deploy": "sst deploy",
     "dev": "sst dev",
-    "test": "yarn workspace @harbor-app/backend test && yarn workspace @harbor-app/frontend test && yarn workspace @harbor-app/daemon test"
+    "test": "yarn workspace @harbor-app/schema build && yarn workspace @harbor-app/backend test && yarn workspace @harbor-app/frontend test && yarn workspace @harbor-app/daemon test"
   },
   "dependencies": {
     "@types/jsonwebtoken": "^9.0.10",
