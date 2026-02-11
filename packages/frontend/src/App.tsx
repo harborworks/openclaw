@@ -5,7 +5,6 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { useAuth } from "./auth";
 import { Navbar } from "./components/Navbar";
 
-const BoardPage = lazy(() => import("./pages/BoardPage"));
 const LoginPage = lazy(() => import("./pages/LoginPage"));
 const SecretsPage = lazy(() => import("./pages/SecretsPage"));
 
@@ -43,10 +42,9 @@ export default function App() {
         <div className="flex-1">
           <Suspense fallback={<PageLoader />}>
             <Routes>
-              <Route path="/" element={<Navigate to="/board" replace />} />
-              <Route path="/board" element={<BoardPage />} />
+              <Route path="/" element={<Navigate to="/secrets" replace />} />
               <Route path="/secrets" element={<SecretsPage />} />
-              <Route path="*" element={<Navigate to="/board" replace />} />
+              <Route path="*" element={<Navigate to="/secrets" replace />} />
             </Routes>
           </Suspense>
         </div>

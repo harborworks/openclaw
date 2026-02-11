@@ -5,7 +5,6 @@
 import { agentSync } from "./jobs/agent-sync";
 import { notificationDispatch } from "./jobs/notification-dispatch";
 import { secretSync } from "./jobs/secret-sync";
-import { staleTaskCheck } from "./jobs/stale-task-check";
 
 export type Job = {
   name: string;
@@ -18,7 +17,6 @@ const jobs: Job[] = [
   { name: "secret-sync", fn: secretSync, everyNTicks: 1 }, // every tick — fast pickup
   { name: "notification-dispatch", fn: notificationDispatch, everyNTicks: 1 },
   { name: "agent-sync", fn: agentSync, everyNTicks: 6 }, // every ~60s at 10s tick
-  { name: "stale-task-check", fn: staleTaskCheck, everyNTicks: 60 }, // every ~10min
 ];
 
 let tickCount = 0;

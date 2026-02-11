@@ -38,22 +38,10 @@ export interface Agent {
   shireId: number | null;
 }
 
-export interface Task {
-  id: number;
-  title: string;
-  description: string | null;
-  status: string;
-  priority: string;
-  assigneeIds: number[];
-  tags: string[];
-  createdBy: number | null;
-}
-
 export interface Notification {
   id: number;
   agentId: number;
-  taskId: number;
-  commentId: number;
+  message: string;
   delivered: boolean;
 }
 
@@ -61,16 +49,6 @@ export interface Notification {
 
 export async function getAgents(): Promise<Agent[]> {
   return request<Agent[]>("/agents");
-}
-
-export async function getTasks(): Promise<Task[]> {
-  return request<Task[]>("/tasks");
-}
-
-export async function getTasksByAssignee(
-  sessionKey: string
-): Promise<Task[]> {
-  return request<Task[]>(`/tasks?assignee=${encodeURIComponent(sessionKey)}`);
 }
 
 export async function getNotifications(

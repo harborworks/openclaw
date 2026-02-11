@@ -7,7 +7,6 @@ import agentRoutes from "./routes/agentRoutes";
 import authRoutes from "./routes/authRoutes";
 import notificationRoutes from "./routes/notificationRoutes";
 import secretRoutes from "./routes/secretRoutes";
-import taskRoutes from "./routes/taskRoutes";
 
 const app = express();
 
@@ -24,7 +23,6 @@ app.use(authMiddleware);
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/agents", agentRoutes);
-app.use("/api/tasks", taskRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/secrets", secretRoutes);
 
