@@ -11,10 +11,10 @@ export function Navbar() {
 
   return (
     <nav className="navbar">
-      <div className="navbar-brand">
+      <a className="navbar-brand" href="/" style={{ textDecoration: "none", color: "inherit" }}>
         <img src="/logo.svg" alt="Harbor Works" width={28} height={32} />
         <span className="navbar-title">Harbor Works</span>
-      </div>
+      </a>
       {user && <OrgHarborSwitcher />}
       <div style={{ flex: 1 }} />
       {user && (
