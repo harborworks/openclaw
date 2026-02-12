@@ -102,3 +102,47 @@ body {
   background: var(--overlay-hover);
   color: var(--text-primary);
 }
+
+/* Admin cards */
+.admin-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--space-lg);
+  max-width: 760px;
+}
+
+.admin-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  padding: 20px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-light);
+  background: var(--overlay-light);
+  cursor: pointer;
+  transition: var(--transition-fast);
+  text-align: left;
+}
+
+.admin-card:hover {
+  background: var(--overlay-hover);
+  border-color: var(--border-hover);
+}
+
+.admin-card-icon {
+  font-size: 1.5rem;
+  margin-bottom: var(--space-xs);
+}
+
+.admin-card-title {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.admin-card-desc {
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+  line-height: 1.4;
+}

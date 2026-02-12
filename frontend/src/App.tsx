@@ -6,6 +6,9 @@ import { ConfirmPage } from "./pages/ConfirmPage";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { Layout } from "./components/Layout";
 import { AdminPage } from "./pages/AdminPage";
+import { AdminUsersPage } from "./pages/admin/AdminUsersPage";
+import { AdminOrgsPage } from "./pages/admin/AdminOrgsPage";
+import { AdminMembersPage } from "./pages/admin/AdminMembersPage";
 import { CONVEX_URL } from "./convex";
 
 const convex = new ConvexReactClient(CONVEX_URL);
@@ -40,11 +43,41 @@ function AppRoutes() {
         element={user ? <Navigate to="/" replace /> : <ConfirmPage />}
       />
       <Route
-        path="/admin/*"
+        path="/admin"
         element={
           <ProtectedRoute>
             <Layout>
               <AdminPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/users"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <AdminUsersPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/orgs"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <AdminOrgsPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/members"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <AdminMembersPage />
             </Layout>
           </ProtectedRoute>
         }
