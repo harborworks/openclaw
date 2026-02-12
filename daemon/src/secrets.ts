@@ -86,7 +86,14 @@ function readEnvFile(filePath: string): Map<string, string> {
       if (!trimmed || trimmed.startsWith("#")) continue;
       const eqIdx = trimmed.indexOf("=");
       if (eqIdx > 0) {
-        env.set(trimmed.substring(0, eqIdx), trimmed.substring(eqIdx + 1));
+        let val = trimmed.substring(eqIdx + 1);
+        // Strip surrounding double quotes and unescape
+        if (val.startsWith('"') && val.endsWith('"')) {
+          val = val.slice(1, -1).replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+        } else if (val.startsWith("'") && val.endsWith("'")) {
+          val = val.slice(1, -1);
+        }
+        env.set(trimmed.substring(0, eqIdx), val);
       }
     }
   } catch {
@@ -101,7 +108,7 @@ function writeEnvFile(filePath: string, env: Map<string, string>): void {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
   const lines = ["# Managed by Harbor daemon — do not edit manually"];
   for (const [key, val] of [...env.entries()].sort()) {
-    lines.push(`${key}=${val}`);
+    lines.push(`${key}="${val.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`);
   }
   fs.writeFileSync(filePath, lines.join("\n") + "\n", { mode: 0o600 });
 }
@@ -139,14 +146,83 @@ export async function registerPublicKey(
 }
 
 /**
+ * Config patches for known secret keys.
+ * When these secrets are set, the corresponding config is patched into the
+ * gateway so it knows how to use the env var.
+ */
+export const CONFIG_PATCHES: Record<string, Record<string, unknown>> = {
+  BRAVE_SEARCH_API_KEY: {
+    tools: {
+      web: {
+        search: {
+          apiKey: "${BRAVE_SEARCH_API_KEY}",
+          provider: "brave",
+        },
+      },
+    },
+  },
+  TELEGRAM_BOT_TOKEN: {
+    channels: {
+      telegram: {
+        botToken: "${TELEGRAM_BOT_TOKEN}",
+        enabled: true,
+        dmPolicy: "pairing",
+        groupPolicy: "allowlist",
+        streamMode: "block",
+      },
+    },
+    plugins: {
+      entries: {
+        telegram: {
+          enabled: true,
+        },
+      },
+    },
+  },
+};
+
+/**
+ * Config patches to REMOVE when a config-linked secret is deleted.
+ * Sets the values to empty/disabled so the gateway doesn't crash on missing env vars.
+ */
+const CONFIG_REMOVALS: Record<string, Record<string, unknown>> = {
+  BRAVE_SEARCH_API_KEY: {
+    tools: {
+      web: {
+        search: {
+          apiKey: "",
+          provider: "",
+        },
+      },
+    },
+  },
+  TELEGRAM_BOT_TOKEN: {
+    channels: {
+      telegram: {
+        enabled: false,
+      },
+    },
+    plugins: {
+      entries: {
+        telegram: {
+          enabled: false,
+        },
+      },
+    },
+  },
+};
+
+/**
  * Poll Convex HTTP API for pending secrets, decrypt, write to env file,
- * mark consumed.
+ * mark consumed. Also handles pending deletions.
+ * Returns names of secrets that were written.
  */
 export async function syncSecrets(
   api: ConvexApiConfig,
   envFilePath: string,
   onRestart?: () => Promise<void>,
-): Promise<void> {
+  onConfigPatch?: (patch: Record<string, unknown>) => Promise<void>,
+): Promise<string[]> {
   const pendingSecrets = (await convexApi(api, "GET", "/api/daemon/secrets")) as Array<{
     _id: string;
     name: string;
@@ -154,14 +230,15 @@ export async function syncSecrets(
   }>;
 
   const hash = JSON.stringify(pendingSecrets);
-  if (hash === lastSecretsHash) return;
+  if (hash === lastSecretsHash) return [];
   lastSecretsHash = hash;
 
-  if (pendingSecrets.length === 0) return;
+  if (pendingSecrets.length === 0) return [];
 
   console.log(`[secrets] ${pendingSecrets.length} pending secret(s) detected`);
 
   const env = readEnvFile(envFilePath);
+  const written: string[] = [];
 
   for (const secret of pendingSecrets) {
     if (SYSTEM_BLOCKLIST.has(secret.name)) {
@@ -170,6 +247,7 @@ export async function syncSecrets(
     }
     const plaintext = decryptOrPassthrough(secret.pendingValue);
     env.set(secret.name, plaintext);
+    written.push(secret.name);
     console.log(`[secrets]   Decrypted: ${secret.name}`);
 
     try {
@@ -183,7 +261,90 @@ export async function syncSecrets(
   writeEnvFile(envFilePath, env);
   console.log(`[secrets] Env file updated: ${envFilePath} (${env.size} vars)`);
 
-  if (onRestart) {
+  // Apply config patches for config-linked secrets
+  if (onConfigPatch) {
+    const mergedPatch: Record<string, unknown> = {};
+    for (const name of written) {
+      const patch = CONFIG_PATCHES[name];
+      if (patch) {
+        console.log(`[secrets]   Config patch for: ${name}`);
+        deepMerge(mergedPatch, patch);
+      }
+    }
+    if (Object.keys(mergedPatch).length > 0) {
+      try {
+        await onConfigPatch(mergedPatch);
+        console.log(`[secrets] Applied config patches for: ${written.filter((n) => CONFIG_PATCHES[n]).join(", ")}`);
+      } catch (err) {
+        console.error(`[secrets] Failed to apply config patches:`, err);
+      }
+    }
+  }
+
+  // Handle pending deletions
+  const pendingDeletes = (await convexApi(api, "GET", "/api/daemon/secrets/deletes")) as Array<{
+    _id: string;
+    name: string;
+  }>;
+
+  if (pendingDeletes.length > 0) {
+    console.log(`[secrets] ${pendingDeletes.length} pending deletion(s) detected`);
+    const env = written.length > 0 ? readEnvFile(envFilePath) : readEnvFile(envFilePath);
+
+    let envChanged = false;
+    for (const del of pendingDeletes) {
+      if (env.has(del.name)) {
+        env.delete(del.name);
+        envChanged = true;
+        console.log(`[secrets]   Removed from env: ${del.name}`);
+      }
+
+      // Apply config removal patch if config-linked
+      if (onConfigPatch && CONFIG_REMOVALS[del.name]) {
+        try {
+          await onConfigPatch(CONFIG_REMOVALS[del.name]);
+          console.log(`[secrets]   Removed config for: ${del.name}`);
+        } catch (err) {
+          console.error(`[secrets]   Failed to remove config for: ${del.name}`, err);
+        }
+      }
+
+      try {
+        await convexApi(api, "POST", "/api/daemon/secrets/deleted", { id: del._id });
+        console.log(`[secrets]   Deleted: ${del.name}`);
+      } catch (err) {
+        console.error(`[secrets]   Failed to confirm deletion: ${del.name}`, err);
+      }
+    }
+
+    if (envChanged) {
+      writeEnvFile(envFilePath, env);
+      console.log(`[secrets] Env file updated: ${envFilePath} (${env.size} vars)`);
+    }
+  }
+
+  const needsRestart = written.length > 0 || pendingDeletes.length > 0;
+  if (needsRestart && onRestart) {
     await onRestart();
+  }
+
+  return written;
+}
+
+/** Deep merge source into target (mutates target). */
+function deepMerge(target: Record<string, unknown>, source: Record<string, unknown>): void {
+  for (const key of Object.keys(source)) {
+    if (
+      source[key] &&
+      typeof source[key] === "object" &&
+      !Array.isArray(source[key]) &&
+      target[key] &&
+      typeof target[key] === "object" &&
+      !Array.isArray(target[key])
+    ) {
+      deepMerge(target[key] as Record<string, unknown>, source[key] as Record<string, unknown>);
+    } else {
+      target[key] = source[key];
+    }
   }
 }

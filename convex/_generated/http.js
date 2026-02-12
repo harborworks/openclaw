@@ -127,4 +127,36 @@ http.route({
         return json({ ok: true });
     }),
 });
+// GET /api/daemon/secrets/deletes — list pending deletions
+http.route({
+    path: "/api/daemon/secrets/deletes",
+    method: "GET",
+    handler: httpAction(async (ctx, request) => {
+        const auth = await authenticate(ctx, request);
+        if (!auth.ok)
+            return auth.response;
+        const deletes = await ctx.runQuery(internal.secrets.listPendingDeletesInternal, {
+            harborId: auth.harborId,
+        });
+        return json(deletes);
+    }),
+});
+// POST /api/daemon/secrets/deleted — confirm deletion (removes doc)
+http.route({
+    path: "/api/daemon/secrets/deleted",
+    method: "POST",
+    handler: httpAction(async (ctx, request) => {
+        const auth = await authenticate(ctx, request);
+        if (!auth.ok)
+            return auth.response;
+        const body = (await request.json());
+        if (!body.id) {
+            return json({ error: "Missing id" }, 400);
+        }
+        await ctx.runMutation(internal.secrets.deleteInternal, {
+            id: body.id,
+        });
+        return json({ ok: true });
+    }),
+});
 export default http;

@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@convex/api";
 import type { Id } from "@convex/dataModel";
 import { encryptWithPublicKey } from "../lib/crypto";
-import { REQUIRED_KEYS, type SecretInfo } from "../lib/secrets";
+import { REQUIRED_KEYS, RECOMMENDED_KEYS, type SecretInfo } from "../lib/secrets";
 import { SecretRow, AddSecretForm } from "../components/secrets";
 import { useHarbors } from "../hooks/useHarbors";
 
@@ -43,7 +43,7 @@ export function SecretsPage() {
   const handleSet = async (
     name: string,
     value: string,
-    category: "required" | "custom",
+    category: "required" | "recommended" | "custom",
     description?: string,
   ) => {
     if (!harborId) return;
@@ -115,12 +115,12 @@ export function SecretsPage() {
         </div>
       )}
 
-      {/* Required Keys */}
+      {/* Required Variables */}
       <section className="secrets-section">
         <div className="secrets-section-header">
-          <h2 className="secrets-section-title">🔑 Required Keys</h2>
+          <h2 className="secrets-section-title">🔑 Required Variables</h2>
           <span className="secrets-section-hint">
-            API keys needed for agent capabilities
+            Nothing works without these
           </span>
         </div>
         <div className="secrets-list">
@@ -135,6 +135,33 @@ export function SecretsPage() {
               onSave={(v) => handleSet(rk.name, v, "required", rk.description)}
             />
           ))}
+        </div>
+      </section>
+
+      {/* Recommended Variables */}
+      <section className="secrets-section">
+        <div className="secrets-section-header">
+          <h2 className="secrets-section-title">⭐ Recommended Variables</h2>
+          <span className="secrets-section-hint">
+            Unlock important agent capabilities
+          </span>
+        </div>
+        <div className="secrets-list">
+          {RECOMMENDED_KEYS.map((rk) => {
+            const secret = secretsByName.get(rk.name);
+            return (
+              <SecretRow
+                key={rk.name}
+                name={rk.name}
+                description={rk.description}
+                secret={secret}
+                disabled={!hasPublicKey}
+                saving={saving}
+                onSave={(v) => handleSet(rk.name, v, "recommended", rk.description)}
+                onDelete={secret?.isSet ? () => handleDelete(secret._id as Id<"secrets">) : undefined}
+              />
+            );
+          })}
         </div>
       </section>
 

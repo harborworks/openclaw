@@ -7,14 +7,18 @@ export function isReservedName(name: string): boolean {
   return RESERVED_PREFIXES.some((p) => name.startsWith(p));
 }
 
-/** Well-known required keys with descriptions. */
+/** Required keys — nothing works without these. */
 export const REQUIRED_KEYS = [
   { name: "ANTHROPIC_API_KEY", description: "Claude API key for agent reasoning" },
-  { name: "BRAVE_SEARCH_API_KEY", description: "Brave Search API for web search" },
-  { name: "OPENAI_API_KEY", description: "OpenAI API key (optional, for GPT models)" },
 ] as const;
 
-export type SecretCategory = "required" | "custom";
+/** Recommended keys — unlock important capabilities. */
+export const RECOMMENDED_KEYS = [
+  { name: "BRAVE_SEARCH_API_KEY", description: "Brave Search API for web search" },
+  { name: "OPENAI_API_KEY", description: "OpenAI API key for embeddings and image generation" },
+] as const;
+
+export type SecretCategory = "required" | "recommended" | "custom";
 
 export interface SecretInfo {
   _id: string;

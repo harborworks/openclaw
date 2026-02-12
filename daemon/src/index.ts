@@ -70,6 +70,21 @@ async function applyDefaultConfig(): Promise<void> {
   }
 }
 
+/** Patch additional config into the gateway (e.g. for config-linked secrets). */
+async function patchGatewayConfig(patch: Record<string, unknown>): Promise<void> {
+  if (!gateway.isConnected) {
+    log("Gateway not connected — skipping config patch");
+    return;
+  }
+  try {
+    const current = await configApi(gateway).get();
+    await configApi(gateway).patch(JSON.stringify(patch), current.hash!);
+    log(`Patched gateway config: ${Object.keys(patch).join(", ")}`);
+  } catch (err) {
+    log(`Failed to patch gateway config: ${err instanceof Error ? err.message : err}`);
+  }
+}
+
 /**
  * Wait for the gateway to restart after .env changes.
  * The gateway container has a file watcher that self-restarts when .env changes,
@@ -89,7 +104,7 @@ async function tick() {
   if (!gateway.isConnected) return;
 
   try {
-    await syncSecrets(convexApi, ENV_FILE_PATH, waitForGatewayRestart);
+    await syncSecrets(convexApi, ENV_FILE_PATH, waitForGatewayRestart, patchGatewayConfig);
   } catch (err) {
     log(`Secrets sync error: ${err instanceof Error ? err.message : err}`);
   }

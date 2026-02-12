@@ -7,7 +7,9 @@ export const list = query({
             .query("secrets")
             .withIndex("by_harbor", (q) => q.eq("harborId", args.harborId))
             .collect();
-        return secrets.map((s) => ({
+        return secrets
+            .filter((s) => !s.pendingDelete)
+            .map((s) => ({
             _id: s._id,
             _creationTime: s._creationTime,
             name: s.name,
@@ -25,7 +27,7 @@ export const set = mutation({
         harborId: v.id("harbors"),
         name: v.string(),
         value: v.string(),
-        category: v.optional(v.union(v.literal("required"), v.literal("custom"))),
+        category: v.optional(v.union(v.literal("required"), v.literal("recommended"), v.literal("custom"))),
         description: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
@@ -52,6 +54,32 @@ export const set = mutation({
     },
 });
 export const remove = mutation({
+    args: { id: v.id("secrets") },
+    handler: async (ctx, args) => {
+        await ctx.db.patch(args.id, {
+            pendingDelete: true,
+            pendingValue: undefined,
+        });
+    },
+});
+/** Internal: Daemon reads pending deletions via HTTP API. */
+export const listPendingDeletesInternal = internalQuery({
+    args: { harborId: v.id("harbors") },
+    handler: async (ctx, args) => {
+        const all = await ctx.db
+            .query("secrets")
+            .withIndex("by_harbor", (q) => q.eq("harborId", args.harborId))
+            .collect();
+        return all
+            .filter((s) => s.pendingDelete)
+            .map((s) => ({
+            _id: s._id,
+            name: s.name,
+        }));
+    },
+});
+/** Internal: Delete a secret doc after daemon has removed it from .env. */
+export const deleteInternal = internalMutation({
     args: { id: v.id("secrets") },
     handler: async (ctx, args) => {
         await ctx.db.delete(args.id);

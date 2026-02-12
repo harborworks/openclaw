@@ -1,27 +1,30 @@
 ##
-## Harbor Dev stack — frontend with hot reload.
+## Local dev overrides — use local builds instead of ECR images.
 ##
 ## Usage:
-##   1. Copy frontend/.env.example to frontend/.env and fill in Cognito values
-##   2. docker compose -f docker-compose.dev.yml up -d
+##   docker compose -f docker-compose.host.yml -f docker-compose.dev.yml --env-file .env.host up -d
 ##
 
 services:
-  frontend:
-    image: node:22-bookworm-slim
-    working_dir: /repo/frontend
-    command: sh -c "npm install && npm run dev"
-    ports:
-      - "5173:5173"
-    volumes:
-      - .:/repo
-      - frontend_node_modules:/repo/frontend/node_modules
-    env_file:
-      - path: ./frontend/.env
-        required: false
-    environment:
-      - CHOKIDAR_USEPOLLING=true
-    restart: unless-stopped
+  daemon:
+    image: harbor-daemon:local
+    build:
+      context: ./daemon
 
-volumes:
-  frontend_node_modules:
+  gateway:
+    image: harbor-gateway:local
+    build:
+      context: ./gateway
+
+  cli:
+    image: harbor-gateway:local
+    build:
+      context: ./gateway
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    ports:
+      - "${FRONTEND_PORT:-5173}:5173"
+    restart: unless-stopped

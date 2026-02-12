@@ -160,9 +160,10 @@ export default defineSchema({
     // Env vars encrypted with harbor's public key, synced to host by daemon.
     secrets: defineTable({
         name: v.string(),
-        category: v.union(v.literal("required"), v.literal("custom")),
+        category: v.union(v.literal("required"), v.literal("recommended"), v.literal("custom")),
         description: v.optional(v.string()),
-        pendingValue: v.optional(v.string()), // plaintext, cleared after daemon consumes
+        pendingValue: v.optional(v.string()), // encrypted, cleared after daemon consumes
+        pendingDelete: v.optional(v.boolean()), // true when user deletes, daemon removes from .env
         isSet: v.boolean(),
         updatedAt: v.optional(v.number()),
         harborId: v.id("harbors"),
