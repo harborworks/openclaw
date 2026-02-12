@@ -4,6 +4,7 @@ import { api } from "@convex/api";
 import type { Id } from "@convex/dataModel";
 import { PageHeader } from "../components/PageHeader";
 import { useHarborContext } from "../contexts/HarborContext";
+import { randomAgentName } from "../lib/agentNames";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const agentsApi = (api as any).agents;
@@ -53,12 +54,14 @@ interface AgentDoc {
 function AgentForm({
   initial,
   isEdit,
+  existingNames = [],
   saving,
   onSave,
   onCancel,
 }: {
   initial?: { name: string; sessionKey: string; role: string; model?: string };
   isEdit?: boolean;
+  existingNames?: string[];
   saving: boolean;
   onSave: (data: { name: string; sessionKey: string; role: string; model?: string }) => void;
   onCancel: () => void;
@@ -79,13 +82,23 @@ function AgentForm({
       <div className="agent-form-fields">
         <label className="agent-field">
           <span className="agent-field-label">Name</span>
-          <input
-            className="agent-input"
-            placeholder="Name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-          />
+          <div className="agent-name-row">
+            <input
+              className="agent-input"
+              placeholder="Name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+            />
+            <button
+              type="button"
+              className="agent-btn-dice"
+              title="Random name"
+              onClick={() => setName(randomAgentName(existingNames))}
+            >
+              🎲
+            </button>
+          </div>
         </label>
         <label className="agent-field">
           <span className="agent-field-label">Session Key</span>
@@ -227,6 +240,7 @@ export function AgentsPage() {
   };
 
   const sortedAgents = [...(agents ?? [])].sort((a, b) => a.name.localeCompare(b.name));
+  const existingNames = sortedAgents.map((a) => a.name);
 
   return (
     <div className="agents-page">
@@ -242,6 +256,7 @@ export function AgentsPage() {
               key={agent._id}
               initial={agent}
               isEdit
+              existingNames={existingNames}
               saving={saving}
               onSave={(data) => handleUpdate(agent._id, data)}
               onCancel={() => setEditingId(null)}
@@ -258,6 +273,7 @@ export function AgentsPage() {
         )}
         {adding && (
           <AgentForm
+            existingNames={existingNames}
             saving={saving}
             onSave={handleCreate}
             onCancel={() => setAdding(false)}
