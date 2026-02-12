@@ -77,45 +77,57 @@ function AgentForm({
   return (
     <form className="agent-form" onSubmit={handleSubmit}>
       <div className="agent-form-fields">
-        <input
-          className="agent-input"
-          placeholder="Name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          required
-        />
-        <input
-          className={`agent-input${isEdit ? " agent-input-readonly" : ""}`}
-          placeholder="Session Key"
-          value={sessionKey}
-          onChange={(e) => !isEdit && setSessionKey(e.target.value)}
-          readOnly={isEdit}
-          required
-        />
-        <select
-          className="agent-input"
-          value={role}
-          onChange={(e) => setRole(e.target.value)}
-          required
-        >
-          <option value="">Select Role</option>
-          {ROLE_OPTIONS.map((group) => (
-            <optgroup key={group.group} label={group.group}>
-              {group.roles.map((r) => (
-                <option key={r} value={roleToValue(r)}>{r}</option>
-              ))}
-            </optgroup>
-          ))}
-        </select>
-        <select
-          className="agent-input"
-          value={model}
-          onChange={(e) => setModel(e.target.value)}
-        >
-          {MODEL_OPTIONS.map((m) => (
-            <option key={m.value} value={m.value}>{m.label}</option>
-          ))}
-        </select>
+        <label className="agent-field">
+          <span className="agent-field-label">Name</span>
+          <input
+            className="agent-input"
+            placeholder="Name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+          />
+        </label>
+        <label className="agent-field">
+          <span className="agent-field-label">Session Key</span>
+          <input
+            className={`agent-input${isEdit ? " agent-input-readonly" : ""}`}
+            placeholder="Session Key"
+            value={sessionKey}
+            onChange={(e) => !isEdit && setSessionKey(e.target.value)}
+            readOnly={isEdit}
+            required
+          />
+        </label>
+        <label className="agent-field">
+          <span className="agent-field-label">Role</span>
+          <select
+            className="agent-input"
+            value={role}
+            onChange={(e) => setRole(e.target.value)}
+            required
+          >
+            <option value="">Select Role</option>
+            {ROLE_OPTIONS.map((group) => (
+              <optgroup key={group.group} label={group.group}>
+                {group.roles.map((r) => (
+                  <option key={r} value={roleToValue(r)}>{r}</option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
+        </label>
+        <label className="agent-field">
+          <span className="agent-field-label">Model</span>
+          <select
+            className="agent-input"
+            value={model}
+            onChange={(e) => setModel(e.target.value)}
+          >
+            {MODEL_OPTIONS.map((m) => (
+              <option key={m.value} value={m.value}>{m.label}</option>
+            ))}
+          </select>
+        </label>
       </div>
       <div className="agent-form-actions">
         <button type="submit" className="admin-btn" disabled={saving}>

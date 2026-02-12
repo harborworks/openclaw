@@ -845,6 +845,20 @@ body {
   font-size: var(--font-size-sm);
 }
 
+.agent-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.agent-field-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
 select.agent-input {
   padding-right: 28px;
   appearance: none;
