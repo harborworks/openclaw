@@ -18,6 +18,11 @@ jobs:
       - name: Install root deps
         run: npm ci
 
+      - name: Deploy Convex
+        run: npx convex deploy --cmd 'echo ok'
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
+
       - name: Install frontend
         working-directory: frontend
         run: npm ci
