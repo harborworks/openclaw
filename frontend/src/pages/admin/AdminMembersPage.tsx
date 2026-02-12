@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import { usePaginatedQuery, useMutation, useQuery } from "convex/react";
 import { api } from "@convex/api";
 import { useAuth } from "../../auth";
-import { AdminTable, Column } from "../../components/AdminTable";
+import { AdminTable, type Column } from "../../components/AdminTable";
 import { Modal } from "../../components/Modal";
 
 type Member = {
