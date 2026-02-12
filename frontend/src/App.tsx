@@ -1,11 +1,17 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { ConvexProvider, ConvexReactClient, useQuery } from "convex/react";
 import { AuthProvider, ProtectedRoute, useAuth } from "./auth";
 import { LoginPage } from "./pages/LoginPage";
 import { ConfirmPage } from "./pages/ConfirmPage";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
+import { CONVEX_URL } from "./convex";
+import { api } from "@convex/api";
+
+const convex = new ConvexReactClient(CONVEX_URL);
 
 function Dashboard() {
   const { user, logout } = useAuth();
+  const dbUser = useQuery(api.users.getByCognitoSub, user ? { cognitoSub: user.userId } : "skip");
 
   return (
     <>
@@ -34,6 +40,28 @@ function Dashboard() {
         <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "0.9rem" }}>
           Signed in as {user?.email}
         </p>
+        {dbUser && (
+          <div
+            style={{
+              padding: "12px 20px",
+              borderRadius: 8,
+              background: "rgba(255,255,255,0.05)",
+              border: "1px solid rgba(255,255,255,0.1)",
+              fontSize: "0.9rem",
+              textAlign: "center",
+            }}
+          >
+            <p style={{ fontWeight: 600 }}>{dbUser.name}</p>
+            <p style={{ color: "rgba(255,255,255,0.5)", fontSize: "0.8rem", marginTop: 4 }}>
+              {dbUser.isSuperAdmin ? "✦ Super Admin" : "Member"}
+            </p>
+          </div>
+        )}
+        {dbUser === null && (
+          <p style={{ color: "#f87171", fontSize: "0.85rem" }}>
+            No user record found in database
+          </p>
+        )}
         <button
           onClick={() => logout()}
           style={{
@@ -86,11 +114,13 @@ function AppRoutes() {
 
 function App() {
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <AppRoutes />
-      </AuthProvider>
-    </BrowserRouter>
+    <ConvexProvider client={convex}>
+      <BrowserRouter>
+        <AuthProvider>
+          <AppRoutes />
+        </AuthProvider>
+      </BrowserRouter>
+    </ConvexProvider>
   );
 }
 
