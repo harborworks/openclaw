@@ -356,12 +356,13 @@ body {
 
 .admin-btn-accent-muted {
   color: var(--text-secondary);
-  border-color: var(--color-ocean);
+  border-color: var(--text-secondary);
   background: transparent;
 }
 
 .admin-btn-accent-muted:hover {
   color: var(--text-primary);
+  border-color: var(--text-primary);
   background: var(--overlay-hover);
 }
 
@@ -852,10 +853,10 @@ body {
 }
 
 .agent-form-fields {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  flex-direction: column;
   gap: var(--space-sm);
-  margin-bottom: var(--space-sm);
+  margin-bottom: var(--space-md);
 }
 
 .agent-input {

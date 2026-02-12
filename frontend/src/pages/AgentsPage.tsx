@@ -46,6 +46,7 @@ function modelToDisplay(value: string): string {
 
 interface AgentDoc {
   _id: Id<"agents">;
+  _creationTime: number;
   name: string;
   sessionKey: string;
   role: string;
@@ -169,11 +170,13 @@ function AgentForm({
 function AgentRow({
   agent,
   saving,
+  canDelete,
   onEdit,
   onDelete,
 }: {
   agent: AgentDoc;
   saving: boolean;
+  canDelete: boolean;
   onEdit: () => void;
   onDelete: () => void;
 }) {
@@ -202,9 +205,11 @@ function AgentRow({
         <button className="admin-btn admin-btn-sm" onClick={onEdit} disabled={saving}>
           Edit
         </button>
-        <button className="admin-btn admin-btn-sm agent-btn-danger" onClick={onDelete} disabled={saving}>
-          Delete
-        </button>
+        {canDelete && (
+          <button className="admin-btn admin-btn-sm agent-btn-danger" onClick={onDelete} disabled={saving}>
+            Delete
+          </button>
+        )}
       </div>
     </div>
   );
@@ -252,7 +257,7 @@ export function AgentsPage() {
     }
   };
 
-  const sortedAgents = [...(agents ?? [])].sort((a, b) => a.name.localeCompare(b.name));
+  const sortedAgents = [...(agents ?? [])].sort((a, b) => a._creationTime - b._creationTime);
   const existingNames = sortedAgents.map((a) => a.name);
 
   return (
@@ -268,6 +273,7 @@ export function AgentsPage() {
             key={agent._id}
             agent={agent}
             saving={saving}
+            canDelete={agent.sessionKey !== "main"}
             onEdit={() => setEditingId(agent._id)}
             onDelete={() => handleDelete(agent._id)}
           />
