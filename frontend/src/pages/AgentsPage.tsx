@@ -5,6 +5,7 @@ import type { Id } from "@convex/dataModel";
 import { PageHeader } from "../components/PageHeader";
 import { useHarborContext } from "../contexts/HarborContext";
 import { randomAgentName } from "../lib/agentNames";
+import { toSlug } from "../lib/slug";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const agentsApi = (api as any).agents;
@@ -66,10 +67,17 @@ function AgentForm({
   onSave: (data: { name: string; sessionKey: string; role: string; model?: string }) => void;
   onCancel: () => void;
 }) {
-  const [name, setName] = useState(initial?.name ?? (isEdit ? "" : randomAgentName(existingNames)));
-  const [sessionKey, setSessionKey] = useState(initial?.sessionKey ?? "");
+  const defaultName = isEdit ? "" : randomAgentName(existingNames);
+  const [name, setName] = useState(initial?.name ?? defaultName);
+  const [sessionKey, setSessionKey] = useState(initial?.sessionKey ?? (isEdit ? "" : toSlug(defaultName)));
+  const [idTouched, setIdTouched] = useState(!!isEdit);
   const [role, setRole] = useState(initial?.role ?? "");
   const [model, setModel] = useState(initial?.model ?? "opus4.6");
+
+  const handleNameChange = (newName: string) => {
+    setName(newName);
+    if (!idTouched) setSessionKey(toSlug(newName));
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,14 +95,14 @@ function AgentForm({
               className="agent-input"
               placeholder="Name"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => handleNameChange(e.target.value)}
               required
             />
             <button
               type="button"
               className="agent-btn-dice"
               title="Random name"
-              onClick={() => setName(randomAgentName(existingNames))}
+              onClick={() => handleNameChange(randomAgentName(existingNames))}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21.5 2v6h-6" /><path d="M2.5 22v-6h6" />
@@ -109,7 +117,7 @@ function AgentForm({
             className={`agent-input${isEdit ? " agent-input-readonly" : ""}`}
             placeholder="Agent ID"
             value={sessionKey}
-            onChange={(e) => !isEdit && setSessionKey(e.target.value)}
+            onChange={(e) => { if (!isEdit) { setSessionKey(e.target.value); setIdTouched(true); } }}
             readOnly={isEdit}
             required
           />

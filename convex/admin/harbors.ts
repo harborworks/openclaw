@@ -50,9 +50,10 @@ export const create = mutation({
     });
 
     // Seed default "main" agent
+    const agentName = randomAgentName();
     await ctx.db.insert("agents", {
-      name: randomAgentName(),
-      sessionKey: "main",
+      name: agentName,
+      sessionKey: agentName.toLowerCase(),
       role: "project-manager",
       model: "opus4.6",
       status: "idle",
