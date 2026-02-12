@@ -892,17 +892,18 @@ select.agent-input {
 }
 
 .agent-btn-dice {
-  padding: 4px 8px;
-  border: 1px solid var(--border-medium);
-  border-radius: var(--radius-md);
+  padding: 4px;
+  border: none;
+  border-radius: var(--radius-sm);
   background: transparent;
+  color: var(--text-muted);
   cursor: pointer;
-  font-size: 1rem;
   line-height: 1;
   transition: var(--transition-fast);
 }
 
 .agent-btn-dice:hover {
+  color: var(--text-primary);
   background: var(--overlay-hover);
 }
 
