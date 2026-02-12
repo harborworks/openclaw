@@ -94,7 +94,7 @@ export function AdminUsersPage() {
         alert(e.message || "Failed to delete user");
       }
     },
-    [cognitoSub, removeUser]
+    [cognitoSub, deleteUserAction]
   );
 
   const columns: Column<User>[] = [
