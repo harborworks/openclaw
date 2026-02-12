@@ -18,11 +18,13 @@ services:
       DAEMON_PORT: "4747"
       TICK_INTERVAL_MS: "5000"
       ENV_FILE_PATH: /home/node/.openclaw/.env
+      WORKSPACES_DIR: /home/node/workspaces
       HOME: /home/node
     ports:
       - "${DAEMON_PORT:-4747}:4747"
     volumes:
       - ${OPENCLAW_CONFIG_DIR:-./.harbor-host/config}:/home/node/.openclaw
+      - ${OPENCLAW_WORKSPACE_DIR:-./.harbor-host/workspace}:/home/node/workspaces
     depends_on:
       gateway:
         condition: service_started
@@ -38,7 +40,7 @@ services:
       BROWSER: echo
     volumes:
       - ${OPENCLAW_CONFIG_DIR:-./.harbor-host/config}:/home/node/.openclaw
-      - ${OPENCLAW_WORKSPACE_DIR:-./.harbor-host/workspace}:/home/node/.openclaw/workspace
+      - ${OPENCLAW_WORKSPACE_DIR:-./.harbor-host/workspace}:/home/node/workspaces
     network_mode: "service:gateway"
     stdin_open: true
     tty: true
@@ -55,7 +57,7 @@ services:
       OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN:-}
     volumes:
       - ${OPENCLAW_CONFIG_DIR:-./.harbor-host/config}:/home/node/.openclaw
-      - ${OPENCLAW_WORKSPACE_DIR:-./.harbor-host/workspace}:/home/node/.openclaw/workspace
+      - ${OPENCLAW_WORKSPACE_DIR:-./.harbor-host/workspace}:/home/node/workspaces
     ports:
       - "${GATEWAY_PORT:-18789}:18789"
     extra_hosts:

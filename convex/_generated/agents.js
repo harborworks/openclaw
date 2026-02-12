@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { query, mutation } from "./_generated/server";
+import { query, mutation, internalQuery } from "./_generated/server";
 export const list = query({
     args: { harborId: v.id("harbors") },
     handler: async (ctx, args) => {
@@ -60,5 +60,24 @@ export const remove = mutation({
     args: { id: v.id("agents") },
     handler: async (ctx, args) => {
         await ctx.db.delete(args.id);
+    },
+});
+// ── Internal (for HTTP API / daemon) ─────────────────────────────────
+/** Internal: List all agents for a harbor (used by daemon sync). */
+export const listInternal = internalQuery({
+    args: { harborId: v.id("harbors") },
+    handler: async (ctx, args) => {
+        const agents = await ctx.db
+            .query("agents")
+            .withIndex("by_harbor", (q) => q.eq("harborId", args.harborId))
+            .collect();
+        return agents.map((a) => ({
+            _id: a._id,
+            name: a.name,
+            sessionKey: a.sessionKey,
+            role: a.role,
+            model: a.model,
+            status: a.status,
+        }));
     },
 });

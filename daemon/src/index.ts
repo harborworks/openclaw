@@ -10,6 +10,7 @@ import * as path from "path";
 import { initKeypair, syncSecrets, registerPublicKey } from "./secrets.js";
 import type { ConvexApiConfig } from "./secrets.js";
 import { GatewayClient, configApi } from "./gateway-client.js";
+import { syncAgents } from "./agents.js";
 
 // --- Config ---
 const TICK_INTERVAL_MS = parseInt(process.env.TICK_INTERVAL_MS || "5000", 10);
@@ -22,6 +23,9 @@ const DAEMON_PORT = parseInt(process.env.DAEMON_PORT || "4747", 10);
 
 const ENV_FILE_PATH = process.env.ENV_FILE_PATH ?? path.join(
   process.env.HOME ?? "/home/ubuntu", ".openclaw", ".env"
+);
+const WORKSPACES_DIR = process.env.WORKSPACES_DIR ?? path.join(
+  process.env.HOME ?? "/home/ubuntu", "workspaces"
 );
 const KEY_DIR = path.dirname(ENV_FILE_PATH);
 
@@ -109,7 +113,13 @@ async function tick() {
     log(`Secrets sync error: ${err instanceof Error ? err.message : err}`);
   }
 
-  // TODO: Sync agents, templates, cron jobs
+  try {
+    await syncAgents(convexApi, gateway, WORKSPACES_DIR);
+  } catch (err) {
+    log(`Agent sync error: ${err instanceof Error ? err.message : err}`);
+  }
+
+  // TODO: Sync templates, cron jobs
 }
 
 async function startHttpServer() {
@@ -140,6 +150,7 @@ async function main() {
   log(`  HARBOR_API_KEY=${HARBOR_API_KEY ? "(set)" : "(not set)"}`);
   log(`  GATEWAY_URL=${GATEWAY_URL}`);
   log(`  ENV_FILE_PATH=${ENV_FILE_PATH}`);
+  log(`  WORKSPACES_DIR=${WORKSPACES_DIR}`);
   log(`  TICK_INTERVAL_MS=${TICK_INTERVAL_MS}`);
 
   checkConfig();

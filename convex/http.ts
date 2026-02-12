@@ -192,4 +192,20 @@ http.route({
   }),
 });
 
+// GET /api/daemon/agents — list all agents for the harbor
+http.route({
+  path: "/api/daemon/agents",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    const auth = await authenticate(ctx, request);
+    if (!auth.ok) return auth.response;
+
+    const agents = await ctx.runQuery(internal.agents.listInternal, {
+      harborId: auth.harborId as any,
+    });
+
+    return json(agents);
+  }),
+});
+
 export default http;
