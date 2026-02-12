@@ -15,6 +15,9 @@ jobs:
         with:
           node-version: "22"
 
+      - name: Install root deps
+        run: npm ci
+
       - name: Install frontend
         working-directory: frontend
         run: npm ci
