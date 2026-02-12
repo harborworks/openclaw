@@ -44,7 +44,7 @@ export const create = mutation({
         await ctx.db.insert("agents", {
             name: "Main",
             sessionKey: "main",
-            role: "entry-point",
+            role: "project-manager",
             model: "opus4.6",
             status: "idle",
             harborId,

@@ -10,7 +10,7 @@ const agentsApi = (api as any).agents;
 
 /** Role categories and options */
 const ROLE_OPTIONS = [
-  { group: "Entry Point", roles: ["Project Manager", "Executive Assistant"] },
+  { group: "Leadership", roles: ["Project Manager", "Executive Assistant"] },
   { group: "Operations", roles: ["Software Developer", "DevOps", "Sales", "Marketing"] },
   { group: "Testing", roles: ["Software Quality Assurance", "Copy Editor"] },
   { group: "Research", roles: ["Software Architect", "Business Analyst", "Data Analyst"] },
