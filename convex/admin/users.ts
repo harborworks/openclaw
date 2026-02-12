@@ -1,4 +1,4 @@
-import { query, mutation } from "../_generated/server";
+import { query, mutation, internalMutation, internalQuery } from "../_generated/server";
 import { v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { requireSuperAdmin } from "../lib/admin";
@@ -25,21 +25,30 @@ export const getById = query({
   },
 });
 
-export const create = mutation({
+// Internal helpers used by the invite action
+export const verifySuperAdmin = internalQuery({
+  args: { cognitoSub: v.string() },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_cognito_sub", (q) => q.eq("cognitoSub", args.cognitoSub))
+      .unique();
+    return user?.isSuperAdmin === true;
+  },
+});
+
+export const insertUser = internalMutation({
   args: {
-    cognitoSub: v.string(),
-    name: v.string(),
     email: v.string(),
-    userCognitoSub: v.string(),
-    isSuperAdmin: v.optional(v.boolean()),
+    cognitoSub: v.string(),
+    isSuperAdmin: v.boolean(),
   },
   handler: async (ctx, args) => {
-    await requireSuperAdmin(ctx, args.cognitoSub);
     return await ctx.db.insert("users", {
-      name: args.name,
+      name: args.email.split("@")[0],
       email: args.email,
-      cognitoSub: args.userCognitoSub,
-      isSuperAdmin: args.isSuperAdmin,
+      cognitoSub: args.cognitoSub,
+      isSuperAdmin: args.isSuperAdmin || undefined,
     });
   },
 });
@@ -48,25 +57,37 @@ export const update = mutation({
   args: {
     cognitoSub: v.string(),
     id: v.id("users"),
-    name: v.optional(v.string()),
     email: v.optional(v.string()),
     isSuperAdmin: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    await requireSuperAdmin(ctx, args.cognitoSub);
-    const { cognitoSub, id, ...fields } = args;
+    const caller = await requireSuperAdmin(ctx, args.cognitoSub);
+    const target = await ctx.db.get(args.id);
+    if (!target) throw new Error("User not found");
+
+    // Prevent removing own superAdmin
+    if (target._id === caller._id && args.isSuperAdmin === false) {
+      throw new Error("Cannot remove your own superAdmin status");
+    }
+
     const patch: Record<string, unknown> = {};
-    if (fields.name !== undefined) patch.name = fields.name;
-    if (fields.email !== undefined) patch.email = fields.email;
-    if (fields.isSuperAdmin !== undefined) patch.isSuperAdmin = fields.isSuperAdmin;
-    await ctx.db.patch(id, patch);
+    if (args.email !== undefined) patch.email = args.email;
+    if (args.isSuperAdmin !== undefined) patch.isSuperAdmin = args.isSuperAdmin;
+    await ctx.db.patch(args.id, patch);
   },
 });
 
 export const remove = mutation({
   args: { cognitoSub: v.string(), id: v.id("users") },
   handler: async (ctx, args) => {
-    await requireSuperAdmin(ctx, args.cognitoSub);
+    const caller = await requireSuperAdmin(ctx, args.cognitoSub);
+    const target = await ctx.db.get(args.id);
+    if (!target) throw new Error("User not found");
+
+    if (target._id === caller._id) {
+      throw new Error("Cannot delete yourself");
+    }
+
     await ctx.db.delete(args.id);
   },
 });
