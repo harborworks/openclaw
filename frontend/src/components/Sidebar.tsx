@@ -2,6 +2,7 @@ import { NavLink } from "react-router-dom";
 import { useOptionalHarborContext } from "../contexts/HarborContext";
 
 const navItems = [
+  { path: "agents", label: "Agents", icon: "🤖" },
   { path: "secrets", label: "Secrets", icon: "🔑" },
 ];
 

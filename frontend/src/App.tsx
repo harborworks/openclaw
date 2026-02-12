@@ -12,6 +12,7 @@ import { AdminOrgsPage } from "./pages/admin/AdminOrgsPage";
 import { AdminMembersPage } from "./pages/admin/AdminMembersPage";
 import { AdminHarborsPage } from "./pages/admin/AdminHarborsPage";
 import { SecretsPage } from "./pages/SecretsPage";
+import { AgentsPage } from "./pages/AgentsPage";
 import { HarborProvider } from "./contexts/HarborContext";
 import { HarborRedirect } from "./components/HarborRedirect";
 import { CONVEX_URL } from "./convex";
@@ -147,6 +148,7 @@ function AppRoutes() {
 function HarborRoutes() {
   return (
     <Routes>
+      <Route path="agents" element={<AgentsPage />} />
       <Route path="secrets" element={<SecretsPage />} />
       <Route path="*" element={<HarborDashboard />} />
     </Routes>
