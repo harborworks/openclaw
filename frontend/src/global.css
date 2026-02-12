@@ -342,6 +342,18 @@ body {
   cursor: not-allowed;
 }
 
+.admin-btn-accent {
+  color: var(--color-ocean);
+  border-color: var(--color-ocean);
+  background: transparent;
+}
+
+.admin-btn-accent:hover {
+  background: rgba(59, 130, 246, 0.1);
+  color: #93bbfd;
+  border-color: #93bbfd;
+}
+
 .admin-btn-primary {
   background: var(--color-ocean);
   border-color: var(--color-ocean);
