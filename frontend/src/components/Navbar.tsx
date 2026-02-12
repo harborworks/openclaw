@@ -25,7 +25,7 @@ export function Navbar() {
       {user && (
         <div className="navbar-menu" ref={menuRef}>
           <button className="navbar-menu-trigger" onClick={() => setOpen(!open)}>
-            {"jbenjamincook@gmail.com"}
+            {user.email}
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ marginLeft: 6 }}>
               <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
