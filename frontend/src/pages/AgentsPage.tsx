@@ -3,6 +3,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@convex/api";
 import type { Id } from "@convex/dataModel";
 import { PageHeader } from "../components/PageHeader";
+import { Modal } from "../components/Modal";
 import { useHarborContext } from "../contexts/HarborContext";
 import { randomAgentName } from "../lib/agentNames";
 import { toSlug } from "../lib/slug";
@@ -259,13 +260,47 @@ export function AgentsPage() {
       <PageHeader title="Agents" />
 
       <div className="agents-list">
-        {sortedAgents.length === 0 && !adding && (
+        {sortedAgents.length === 0 && (
           <p className="agents-empty">No agents configured yet</p>
         )}
-        {sortedAgents.map((agent) =>
-          editingId === agent._id ? (
+        {sortedAgents.map((agent) => (
+          <AgentRow
+            key={agent._id}
+            agent={agent}
+            saving={saving}
+            onEdit={() => setEditingId(agent._id)}
+            onDelete={() => handleDelete(agent._id)}
+          />
+        ))}
+      </div>
+
+      <button
+        className="admin-btn"
+        onClick={() => setAdding(true)}
+        style={{ marginTop: "var(--space-md)" }}
+      >
+        + Add Agent
+      </button>
+
+      <Modal open={adding} onClose={() => setAdding(false)} title="Add Agent">
+        <AgentForm
+          existingNames={existingNames}
+          saving={saving}
+          onSave={handleCreate}
+          onCancel={() => setAdding(false)}
+        />
+      </Modal>
+
+      <Modal
+        open={!!editingId}
+        onClose={() => setEditingId(null)}
+        title="Edit Agent"
+      >
+        {editingId && (() => {
+          const agent = sortedAgents.find((a) => a._id === editingId);
+          if (!agent) return null;
+          return (
             <AgentForm
-              key={agent._id}
               initial={agent}
               isEdit
               existingNames={existingNames}
@@ -273,35 +308,9 @@ export function AgentsPage() {
               onSave={(data) => handleUpdate(agent._id, data)}
               onCancel={() => setEditingId(null)}
             />
-          ) : (
-            <AgentRow
-              key={agent._id}
-              agent={agent}
-              saving={saving}
-              onEdit={() => setEditingId(agent._id)}
-              onDelete={() => handleDelete(agent._id)}
-            />
-          ),
-        )}
-        {adding && (
-          <AgentForm
-            existingNames={existingNames}
-            saving={saving}
-            onSave={handleCreate}
-            onCancel={() => setAdding(false)}
-          />
-        )}
-      </div>
-
-      {!adding && (
-        <button
-          className="admin-btn"
-          onClick={() => setAdding(true)}
-          style={{ marginTop: "var(--space-md)" }}
-        >
-          + Add Agent
-        </button>
-      )}
+          );
+        })()}
+      </Modal>
     </div>
   );
 }
