@@ -8,6 +8,12 @@
  * @module
  */
 
+import type * as admin_cognitoActions from "../admin/cognitoActions.js";
+import type * as admin_harbors from "../admin/harbors.js";
+import type * as admin_members from "../admin/members.js";
+import type * as admin_orgs from "../admin/orgs.js";
+import type * as admin_users from "../admin/users.js";
+import type * as lib_admin from "../lib/admin.js";
 import type * as seed from "../seed.js";
 import type * as users from "../users.js";
 
@@ -18,6 +24,12 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  "admin/cognitoActions": typeof admin_cognitoActions;
+  "admin/harbors": typeof admin_harbors;
+  "admin/members": typeof admin_members;
+  "admin/orgs": typeof admin_orgs;
+  "admin/users": typeof admin_users;
+  "lib/admin": typeof lib_admin;
   seed: typeof seed;
   users: typeof users;
 }>;
