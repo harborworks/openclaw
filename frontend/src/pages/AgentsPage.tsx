@@ -205,11 +205,14 @@ function AgentRow({
         <button className="admin-btn admin-btn-sm" onClick={onEdit} disabled={saving}>
           Edit
         </button>
-        {canDelete && (
-          <button className="admin-btn admin-btn-sm agent-btn-danger" onClick={onDelete} disabled={saving}>
-            Delete
-          </button>
-        )}
+        <button
+          className="admin-btn admin-btn-sm agent-btn-danger"
+          onClick={onDelete}
+          disabled={saving}
+          style={canDelete ? undefined : { visibility: "hidden" }}
+        >
+          Delete
+        </button>
       </div>
     </div>
   );

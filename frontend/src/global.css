@@ -836,8 +836,6 @@ body {
   display: flex;
   gap: var(--space-xs);
   flex-shrink: 0;
-  min-width: 120px;
-  justify-content: flex-end;
 }
 
 .agent-btn-danger {
