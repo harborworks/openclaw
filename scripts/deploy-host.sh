@@ -109,23 +109,33 @@ ssm_run() {
     --instance-id "$INSTANCE_ID" 2>/dev/null || true
 
   # Get output
-  local result
-  result=$(aws ssm get-command-invocation \
+  local status
+  status=$(aws ssm get-command-invocation \
     --region "$AWS_REGION" \
     --command-id "$cmd_id" \
     --instance-id "$INSTANCE_ID" \
-    --query "[Status, StandardOutputContent, StandardErrorContent]" \
+    --query "Status" \
     --output text)
 
-  local status
-  status=$(echo "$result" | head -1 | awk '{print $1}')
   if [[ "$status" != "Success" ]]; then
+    local stderr
+    stderr=$(aws ssm get-command-invocation \
+      --region "$AWS_REGION" \
+      --command-id "$cmd_id" \
+      --instance-id "$INSTANCE_ID" \
+      --query "StandardErrorContent" \
+      --output text)
     echo "Error: Command failed with status $status"
-    echo "$result"
+    echo "$stderr"
     return 1
   fi
 
-  echo "$result" | tail -n +2
+  aws ssm get-command-invocation \
+    --region "$AWS_REGION" \
+    --command-id "$cmd_id" \
+    --instance-id "$INSTANCE_ID" \
+    --query "StandardOutputContent" \
+    --output text
 }
 
 # --- Helper to write a file on remote via SSM ---
