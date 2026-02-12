@@ -1,7 +1,7 @@
 const CONVEX_URLS = {
   dev: "https://intent-pika-628.convex.cloud",
-  stage: "", // TODO
-  prod: "", // TODO
+  stage: "https://cool-kingfisher-264.convex.cloud", // same as prod for now
+  prod: "https://cool-kingfisher-264.convex.cloud",
 } as const;
 
 type Environment = keyof typeof CONVEX_URLS;
