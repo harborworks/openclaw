@@ -22,10 +22,10 @@ const PLAN_BADGE: Record<string, string> = {
 
 export function AdminOrgsPage() {
   const { user: authUser } = useAuth();
-  const cognitoSub = authUser?.userId ?? "";
+  const cognitoSub = authUser?.userId;
   const { results, status, loadMore } = usePaginatedQuery(
     api.admin.orgs.list,
-    cognitoSub ? { cognitoSub } : "skip",
+    cognitoSub != null ? { cognitoSub } : "skip",
     { initialNumItems: PAGE_SIZE }
   );
 

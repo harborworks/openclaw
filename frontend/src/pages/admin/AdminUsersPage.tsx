@@ -17,10 +17,10 @@ const PAGE_SIZE = 25;
 
 export function AdminUsersPage() {
   const { user: authUser } = useAuth();
-  const cognitoSub = authUser?.userId ?? "";
+  const cognitoSub = authUser?.userId;
   const { results, status, loadMore } = usePaginatedQuery(
     api.admin.users.list,
-    cognitoSub ? { cognitoSub } : "skip",
+    cognitoSub != null ? { cognitoSub } : "skip",
     { initialNumItems: PAGE_SIZE }
   );
 
@@ -44,6 +44,7 @@ export function AdminUsersPage() {
   };
 
   const handleSubmit = async () => {
+    if (!cognitoSub) return;
     if (modal === "create") {
       await createUser({
         cognitoSub,
@@ -67,7 +68,7 @@ export function AdminUsersPage() {
 
   const handleDelete = useCallback(
     async (row: User) => {
-      if (!confirm(`Delete user "${row.name}"?`)) return;
+      if (!cognitoSub || !confirm(`Delete user "${row.name}"?`)) return;
       await removeUser({ cognitoSub, id: row._id as any });
     },
     [cognitoSub, removeUser]

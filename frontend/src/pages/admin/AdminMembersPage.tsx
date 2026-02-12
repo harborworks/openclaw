@@ -25,22 +25,22 @@ const ROLE_BADGE: Record<string, string> = {
 
 export function AdminMembersPage() {
   const { user: authUser } = useAuth();
-  const cognitoSub = authUser?.userId ?? "";
+  const cognitoSub = authUser?.userId;
   const { results, status, loadMore } = usePaginatedQuery(
     api.admin.members.list,
-    cognitoSub ? { cognitoSub } : "skip",
+    cognitoSub != null ? { cognitoSub } : "skip",
     { initialNumItems: PAGE_SIZE }
   );
 
   // For the create modal, we need lists of users and orgs
   const allUsers = usePaginatedQuery(
     api.admin.users.list,
-    cognitoSub ? { cognitoSub } : "skip",
+    cognitoSub != null ? { cognitoSub } : "skip",
     { initialNumItems: 100 }
   );
   const allOrgs = usePaginatedQuery(
     api.admin.orgs.list,
-    cognitoSub ? { cognitoSub } : "skip",
+    cognitoSub != null ? { cognitoSub } : "skip",
     { initialNumItems: 100 }
   );
 
