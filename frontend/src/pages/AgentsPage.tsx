@@ -182,14 +182,14 @@ function AgentRow({
 }) {
   return (
     <div className="agent-row">
-      <span className="agent-row-name">{agent.name}</span>
-      <span className="agent-row-meta"><code>{agent.sessionKey}</code></span>
-      <span className="agent-row-detail">{roleToDisplay(agent.role)}</span>
-      <span className="agent-row-detail">{agent.model ? modelToDisplay(agent.model) : "—"}</span>
-      <span className="agent-row-status">
+      <div className="agent-row-info">
+        <span className="agent-row-name">{agent.name}</span>
+        <span className="agent-row-meta"><code>{agent.sessionKey}</code></span>
+        <span className="agent-row-detail">{roleToDisplay(agent.role)}</span>
+        <span className="agent-row-detail">{agent.model ? modelToDisplay(agent.model) : "—"}</span>
+      </div>
+      <div className="agent-row-right">
         <span className={`agent-status agent-status-${agent.status}`}>{agent.status}</span>
-      </span>
-      <span className="agent-row-actions">
         <button className="admin-btn admin-btn-sm" onClick={onEdit} disabled={saving}>Edit</button>
         <button
           className="admin-btn admin-btn-sm agent-btn-danger"
@@ -197,7 +197,7 @@ function AgentRow({
           disabled={saving}
           style={canDelete ? undefined : { visibility: "hidden" }}
         >Delete</button>
-      </span>
+      </div>
     </div>
   );
 }

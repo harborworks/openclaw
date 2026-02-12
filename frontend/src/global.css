@@ -751,40 +751,46 @@ body {
 
 /* Agents */
 .agents-list {
-  display: table;
+  display: grid;
+  grid-template-columns: auto auto auto auto 1fr;
   border: 1px solid var(--border-light);
   border-radius: var(--radius-lg);
-  border-spacing: 0;
   overflow: hidden;
 }
 
 .agents-empty {
+  grid-column: 1 / -1;
   padding: 1rem;
   color: var(--text-muted);
   font-size: var(--font-size-sm);
 }
 
 .agent-row {
-  display: table-row;
-}
-
-.agent-row:not(:last-child) > * {
+  display: grid;
+  grid-template-columns: subgrid;
+  grid-column: 1 / -1;
+  align-items: center;
+  padding: 0.75rem 1rem;
   border-bottom: 1px solid var(--border-subtle);
 }
 
-.agent-row > * {
-  display: table-cell;
-  padding: 0.75rem var(--space-md);
-  vertical-align: middle;
-  white-space: nowrap;
+.agent-row:last-child {
+  border-bottom: none;
 }
 
-.agent-row > *:first-child {
-  padding-left: 1rem;
+.agent-row-info {
+  display: grid;
+  grid-template-columns: subgrid;
+  grid-column: 1 / 5;
+  gap: 0 var(--space-lg);
+  align-items: center;
 }
 
-.agent-row > *:last-child {
-  padding-right: 1rem;
+.agent-row-right {
+  display: flex;
+  gap: var(--space-xs);
+  align-items: center;
+  justify-content: flex-end;
 }
 
 .agent-row-name {
@@ -810,9 +816,7 @@ body {
   color: var(--text-muted);
 }
 
-.agent-row-status {
-  flex-shrink: 0;
-}
+/* removed */
 
 .agent-status {
   font-size: 0.75rem;
@@ -836,11 +840,7 @@ body {
   color: #f87171;
 }
 
-.agent-row-actions {
-  display: flex;
-  gap: var(--space-xs);
-  justify-content: flex-end;
-}
+/* removed */
 
 .agent-btn-danger {
   color: #f87171;
