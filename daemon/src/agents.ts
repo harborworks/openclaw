@@ -187,16 +187,12 @@ export async function syncAgents(
   const newList = convexAgents.map((a) => buildAgentListEntry(a, workspacesDir));
 
   // 9. Build the config patch
-  // Determine the default model from the first agent or fallback
-  const defaultModel = convexAgents[0]?.model && MODEL_MAP[convexAgents[0].model]
-    ? MODEL_MAP[convexAgents[0].model].alias
-    : "Opus 4.6";
-
+  // Only manage models catalog + agent list. Leave defaults.model alone
+  // (that's the harbor-wide default, set by static config).
   const patch: Record<string, unknown> = {
     agents: {
       defaults: {
         ...defaults,
-        model: { primary: defaultModel },
         models: buildModelsMap(),
       },
       list: newList,

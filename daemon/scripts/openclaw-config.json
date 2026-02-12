@@ -20,6 +20,9 @@
     "defaults": {
       "heartbeat": {
         "every": "0m"
+      },
+      "model": {
+        "primary": "Opus 4.6"
       }
     }
   },
