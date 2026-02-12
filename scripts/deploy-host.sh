@@ -159,7 +159,12 @@ fi
 
 # --- Step 1: Ensure deploy directory exists with correct ownership ---
 log "Creating deploy directory..."
-ssm_run "mkdir -p ${DEPLOY_DIR}/.harbor-host/config ${DEPLOY_DIR}/.harbor-host/workspace && chown -R 1000:1000 ${DEPLOY_DIR}/.harbor-host"
+HARBOR_HOME="/root/.harbor"
+ssm_run "mkdir -p ${HARBOR_HOME}/config ${HARBOR_HOME}/workspaces && chown -R 1000:1000 ${HARBOR_HOME}"
+
+# Migrate from old .harbor-host layout if present
+log "Checking for legacy .harbor-host layout..."
+ssm_run "if [ -d ${DEPLOY_DIR}/.harbor-host/config ] && [ ! -f ${HARBOR_HOME}/config/.migrated ]; then cp -a ${DEPLOY_DIR}/.harbor-host/config/. ${HARBOR_HOME}/config/ 2>/dev/null; cp -a ${DEPLOY_DIR}/.harbor-host/workspace/. ${HARBOR_HOME}/workspaces/ 2>/dev/null; rm -rf ${HARBOR_HOME}/workspaces/.git; touch ${HARBOR_HOME}/config/.migrated; chown -R 1000:1000 ${HARBOR_HOME}; echo MIGRATED; else echo SKIP; fi"
 
 # --- Step 2: Copy docker-compose.host.yml ---
 log "Copying docker-compose.yml..."
@@ -174,13 +179,18 @@ HARBOR_API_KEY=${API_KEY}
 OPENCLAW_GATEWAY_TOKEN=${GATEWAY_TOKEN}
 GATEWAY_PORT=${GATEWAY_PORT}
 DAEMON_VERSION=${DAEMON_VERSION}
-GATEWAY_VERSION=${GATEWAY_VERSION}"
+GATEWAY_VERSION=${GATEWAY_VERSION}
+OPENCLAW_CONFIG_DIR=${HARBOR_HOME}/config
+OPENCLAW_WORKSPACE_DIR=${HARBOR_HOME}/workspaces"
 else
   # Update versions in existing .env.host
   if [[ "$DAEMON_VERSION" != "latest" || "$GATEWAY_VERSION" != "latest" ]]; then
     log "Updating image versions..."
     ssm_run "cd ${DEPLOY_DIR} && sed -i 's/^DAEMON_VERSION=.*/DAEMON_VERSION=${DAEMON_VERSION}/' .env.host && sed -i 's/^GATEWAY_VERSION=.*/GATEWAY_VERSION=${GATEWAY_VERSION}/' .env.host"
   fi
+  # Ensure config/workspace dirs point to new layout
+  log "Updating config/workspace paths..."
+  ssm_run "cd ${DEPLOY_DIR} && grep -q OPENCLAW_CONFIG_DIR .env.host && sed -i 's|^OPENCLAW_CONFIG_DIR=.*|OPENCLAW_CONFIG_DIR=${HARBOR_HOME}/config|' .env.host || echo 'OPENCLAW_CONFIG_DIR=${HARBOR_HOME}/config' >> .env.host && grep -q OPENCLAW_WORKSPACE_DIR .env.host && sed -i 's|^OPENCLAW_WORKSPACE_DIR=.*|OPENCLAW_WORKSPACE_DIR=${HARBOR_HOME}/workspaces|' .env.host || echo 'OPENCLAW_WORKSPACE_DIR=${HARBOR_HOME}/workspaces' >> .env.host"
 fi
 
 # --- Step 4: Copy cli.sh ---
@@ -193,7 +203,7 @@ ssm_run "chmod +x ${DEPLOY_DIR}/cli.sh"
 # previous version can reference env vars that don't exist yet, crashing the
 # gateway before the daemon can connect. Always start from a clean slate.
 log "Clearing stale gateway config..."
-ssm_run "rm -f ${DEPLOY_DIR}/.harbor-host/config/openclaw.json"
+ssm_run "rm -f ${HARBOR_HOME}/config/openclaw.json"
 
 # --- Step 6: ECR login on remote host ---
 log "Logging into ECR..."
