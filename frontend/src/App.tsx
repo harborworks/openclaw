@@ -5,7 +5,7 @@ import { LoginPage } from "./pages/LoginPage";
 import { ConfirmPage } from "./pages/ConfirmPage";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { CONVEX_URL } from "./convex";
-import { api } from "../../convex/_generated/api";
+import { api } from "@convex/api";
 
 const convex = new ConvexReactClient(CONVEX_URL);
 
