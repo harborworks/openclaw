@@ -19,6 +19,12 @@ const adminSections = [
     path: "/admin/members",
     icon: "👥",
   },
+  {
+    title: "Harbors",
+    description: "Manage agent harbors",
+    path: "/admin/harbors",
+    icon: "⚓",
+  },
 ];
 
 export function AdminPage() {
