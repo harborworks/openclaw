@@ -183,11 +183,18 @@ else
   fi
 fi
 
-# --- Step 4: ECR login on remote host ---
+# --- Step 4: Clear stale gateway config ---
+# The daemon patches config via WS on startup. Stale openclaw.json from a
+# previous version can reference env vars that don't exist yet, crashing the
+# gateway before the daemon can connect. Always start from a clean slate.
+log "Clearing stale gateway config..."
+ssm_run "rm -f ${DEPLOY_DIR}/.harbor-host/config/openclaw.json"
+
+# --- Step 5: ECR login on remote host ---
 log "Logging into ECR..."
 ssm_run "aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}"
 
-# --- Step 5: Pull and start ---
+# --- Step 6: Pull and start ---
 log "Pulling images..."
 ssm_run "cd ${DEPLOY_DIR} && docker compose --env-file .env.host pull"
 
