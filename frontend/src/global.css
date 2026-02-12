@@ -779,9 +779,10 @@ body {
 
 .agent-row-info {
   display: grid;
-  grid-template-columns: minmax(80px, auto) minmax(80px, auto) auto auto;
-  gap: 0 var(--space-md);
+  grid-template-columns: auto auto auto auto;
+  gap: 0 var(--space-lg);
   align-items: center;
+  justify-content: start;
 }
 
 .agent-row-name {
