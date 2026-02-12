@@ -317,7 +317,7 @@ export function AgentsPage() {
           return (
             <div className="agent-delete-confirm">
               <p className="agent-delete-warning">
-                ⚠️ This will permanently remove <strong>{agent.name}</strong> ({agent.sessionKey}) from this harbor. This cannot be undone.
+                ⚠️ This will permanently remove <strong>{agent.name}</strong> from this harbor. This cannot be undone.
               </p>
               <div className="agent-form-actions">
                 <button
