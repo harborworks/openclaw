@@ -1,6 +1,11 @@
 :root {
   --navy: #0a1628;
+  --ocean: #2563eb;
+  --sky: #38bdf8;
   --white: #ffffff;
+  --gray-400: #94a3b8;
+  --gray-500: #64748b;
+  --gray-600: #475569;
 }
 
 * {
@@ -62,8 +67,8 @@ body {
   border-radius: 6px;
   border: 1px solid rgba(255, 255, 255, 0.15);
   background: rgba(255, 255, 255, 0.04);
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 0.85rem;
+  color: var(--gray-400);
+  font-size: 0.925rem;
   cursor: pointer;
   transition: all 0.15s;
 }
@@ -71,7 +76,7 @@ body {
 .navbar-menu-trigger:hover {
   background: rgba(255, 255, 255, 0.08);
   border-color: rgba(255, 255, 255, 0.25);
-  color: #fff;
+  color: var(--white);
 }
 
 .navbar-dropdown {
@@ -94,8 +99,8 @@ body {
   border: none;
   border-radius: 4px;
   background: transparent;
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 0.85rem;
+  color: var(--gray-400);
+  font-size: 0.925rem;
   text-align: left;
   cursor: pointer;
   transition: all 0.15s;
@@ -103,5 +108,5 @@ body {
 
 .navbar-dropdown-item:hover {
   background: rgba(255, 255, 255, 0.08);
-  color: #fff;
+  color: var(--white);
 }
