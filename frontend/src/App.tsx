@@ -19,16 +19,6 @@ import { CONVEX_URL } from "./convex";
 
 const convex = new ConvexReactClient(CONVEX_URL);
 
-function HarborDashboard() {
-  return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "calc(100vh - 56px)" }}>
-      <p style={{ color: "rgba(255,255,255,0.4)", fontSize: "0.95rem" }}>
-        Welcome to Harbor Works
-      </p>
-    </div>
-  );
-}
-
 function AppRoutes() {
   const { user, loading } = useAuth();
 
@@ -150,7 +140,8 @@ function HarborRoutes() {
     <Routes>
       <Route path="agents" element={<AgentsPage />} />
       <Route path="secrets" element={<SecretsPage />} />
-      <Route path="*" element={<HarborDashboard />} />
+      <Route index element={<Navigate to="agents" replace />} />
+      <Route path="*" element={<Navigate to="agents" replace />} />
     </Routes>
   );
 }

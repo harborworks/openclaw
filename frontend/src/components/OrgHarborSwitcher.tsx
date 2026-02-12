@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useQuery } from "convex/react";
 import { api } from "@convex/api";
 import { useAuth } from "../auth";
@@ -26,6 +26,12 @@ export function OrgHarborSwitcher() {
   const { user } = useAuth();
   const harbor = useOptionalHarborContext();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Extract the current sub-page (e.g. "agents", "secrets") from the URL
+  const currentPage = harbor
+    ? location.pathname.replace(`/${harbor.orgSlug}/${harbor.harborSlug}`, "").replace(/^\//, "") || "agents"
+    : "agents";
 
   const cognitoSub = user?.userId;
   const orgs = useQuery(
@@ -81,7 +87,7 @@ export function OrgHarborSwitcher() {
                     className={`switcher-item${active ? " switcher-item-active" : ""}`}
                     onClick={() => {
                       close();
-                      navigate(`/${org.slug}/${h.slug}`);
+                      navigate(`/${org.slug}/${h.slug}/${currentPage}`);
                     }}
                   >
                     {h.name}
