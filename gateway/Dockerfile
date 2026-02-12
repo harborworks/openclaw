@@ -15,6 +15,7 @@ COPY scripts/gateway-entrypoint.sh /app/gateway-entrypoint.sh
 RUN chmod +x /app/gateway-entrypoint.sh
 
 ENV NODE_ENV=production
+USER node
 
 ENTRYPOINT ["/app/gateway-entrypoint.sh"]
 CMD ["--allow-unconfigured", "--bind", "lan", "--port", "18789"]
