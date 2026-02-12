@@ -5,6 +5,7 @@ import { LoginPage } from "./pages/LoginPage";
 import { ConfirmPage } from "./pages/ConfirmPage";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { Layout } from "./components/Layout";
+import { AdminRoute } from "./components/AdminRoute";
 import { AdminPage } from "./pages/AdminPage";
 import { AdminUsersPage } from "./pages/admin/AdminUsersPage";
 import { AdminOrgsPage } from "./pages/admin/AdminOrgsPage";
@@ -46,9 +47,11 @@ function AppRoutes() {
         path="/admin"
         element={
           <ProtectedRoute>
-            <Layout>
-              <AdminPage />
-            </Layout>
+            <AdminRoute>
+              <Layout>
+                <AdminPage />
+              </Layout>
+            </AdminRoute>
           </ProtectedRoute>
         }
       />
@@ -56,9 +59,11 @@ function AppRoutes() {
         path="/admin/users"
         element={
           <ProtectedRoute>
-            <Layout>
-              <AdminUsersPage />
-            </Layout>
+            <AdminRoute>
+              <Layout>
+                <AdminUsersPage />
+              </Layout>
+            </AdminRoute>
           </ProtectedRoute>
         }
       />
@@ -66,9 +71,11 @@ function AppRoutes() {
         path="/admin/orgs"
         element={
           <ProtectedRoute>
-            <Layout>
-              <AdminOrgsPage />
-            </Layout>
+            <AdminRoute>
+              <Layout>
+                <AdminOrgsPage />
+              </Layout>
+            </AdminRoute>
           </ProtectedRoute>
         }
       />
@@ -76,9 +83,11 @@ function AppRoutes() {
         path="/admin/members"
         element={
           <ProtectedRoute>
-            <Layout>
-              <AdminMembersPage />
-            </Layout>
+            <AdminRoute>
+              <Layout>
+                <AdminMembersPage />
+              </Layout>
+            </AdminRoute>
           </ProtectedRoute>
         }
       />
