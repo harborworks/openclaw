@@ -1,8 +1,11 @@
 FROM node:22-bookworm-slim
 
-ARG OPENCLAW_VERSION=latest
+ARG OPENCLAW_VERSION=2026.2.9
 
 WORKDIR /app
+
+# git is needed for some npm dependencies
+RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
 
 # Install openclaw globally
 RUN npm install -g openclaw@${OPENCLAW_VERSION}
