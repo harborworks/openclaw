@@ -233,7 +233,8 @@ export function AgentsPage() {
   const handleUpdate = async (id: Id<"agents">, data: { name: string; sessionKey: string; role: string; model?: string }) => {
     setSaving(true);
     try {
-      await updateAgent({ id, ...data });
+      const { sessionKey: _, ...updateData } = data;
+      await updateAgent({ id, ...updateData });
       setEditingId(null);
     } finally {
       setSaving(false);
