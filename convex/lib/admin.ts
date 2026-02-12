@@ -1,4 +1,4 @@
-import { QueryCtx, MutationCtx } from "../_generated/server";
+import type { QueryCtx, MutationCtx } from "../_generated/server";
 
 /**
  * Verify the caller is a superAdmin. Throws if not.

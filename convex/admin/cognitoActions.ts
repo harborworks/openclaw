@@ -1,3 +1,6 @@
+/* eslint-disable no-var */
+declare var process: { env: Record<string, string | undefined> };
+
 import { action } from "../_generated/server";
 import { v } from "convex/values";
 import { internal } from "../_generated/api";

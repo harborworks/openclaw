@@ -54,6 +54,7 @@ export function AdminMembersPage() {
   };
 
   const handleSubmit = async () => {
+    if (!cognitoSub) return;
     if (modal === "create") {
       await createMember({
         cognitoSub,
@@ -67,7 +68,7 @@ export function AdminMembersPage() {
 
   const handleDelete = useCallback(
     async (row: Member) => {
-      if (!confirm(`Remove ${row.userEmail} from ${row.orgName}?`)) return;
+      if (!cognitoSub || !confirm(`Remove ${row.userEmail} from ${row.orgName}?`)) return;
       await removeMember({ cognitoSub, id: row._id });
     },
     [cognitoSub, removeMember]
