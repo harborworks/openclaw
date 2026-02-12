@@ -20,6 +20,7 @@ export default defineSchema({
     name: v.string(),
     email: v.string(),
     cognitoSub: v.string(), // Cognito User Pool "sub" (unique identifier)
+    isSuperAdmin: v.optional(v.boolean()),
   })
     .index("by_email", ["email"])
     .index("by_cognito_sub", ["cognitoSub"]),
