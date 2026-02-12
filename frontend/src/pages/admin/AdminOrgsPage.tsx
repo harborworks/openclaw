@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { usePaginatedQuery, useMutation } from "convex/react";
 import { api } from "@convex/api";
 import { useAuth } from "../../auth";
@@ -21,6 +22,7 @@ const PLAN_BADGE: Record<string, string> = {
 };
 
 export function AdminOrgsPage() {
+  const navigate = useNavigate();
   const { user: authUser } = useAuth();
   const cognitoSub = authUser?.userId;
   const { results, status, loadMore } = usePaginatedQuery(
@@ -79,7 +81,10 @@ export function AdminOrgsPage() {
   return (
     <div>
       <div className="admin-header">
-        <h1>Organizations</h1>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <button className="admin-btn admin-btn-sm" onClick={() => navigate("/admin")}>← Back</button>
+          <h1>Organizations</h1>
+        </div>
         <button className="admin-btn admin-btn-primary" onClick={openCreate}>
           Create org
         </button>
