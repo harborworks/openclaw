@@ -5,6 +5,7 @@ import { api } from "@convex/api";
 import { useAuth } from "../../auth";
 import { AdminTable, type Column } from "../../components/AdminTable";
 import { Modal } from "../../components/Modal";
+import { toSlug } from "../../lib/slug";
 
 type Org = {
   _id: string;
@@ -33,8 +34,6 @@ export function AdminOrgsPage() {
   const [form, setForm] = useState({ name: "", slug: "" });
   const [slugTouched, setSlugTouched] = useState(false);
 
-  const toSlug = (s: string) =>
-    s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
   const openCreate = () => {
     setForm({ name: "", slug: "" });
