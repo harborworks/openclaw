@@ -2,14 +2,15 @@ import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { usePaginatedQuery, useMutation } from "convex/react";
 import { api } from "@convex/api";
+import type { Id } from "@convex/dataModel";
 import { useAuth } from "../../auth";
 import { AdminTable, type Column } from "../../components/AdminTable";
 import { Modal } from "../../components/Modal";
 
 type Member = {
-  _id: string;
-  userId: string;
-  orgId: string;
+  _id: Id<"memberships">;
+  userId: Id<"users">;
+  orgId: Id<"orgs">;
   role: "owner" | "admin" | "member";
   userName: string;
   userEmail: string;
@@ -56,8 +57,8 @@ export function AdminMembersPage() {
     if (modal === "create") {
       await createMember({
         cognitoSub,
-        userId: form.userId as any,
-        orgId: form.orgId as any,
+        userId: form.userId as Id<"users">,
+        orgId: form.orgId as Id<"orgs">,
         role: DEFAULT_ROLE,
       });
     }
@@ -67,7 +68,7 @@ export function AdminMembersPage() {
   const handleDelete = useCallback(
     async (row: Member) => {
       if (!confirm(`Remove ${row.userEmail} from ${row.orgName}?`)) return;
-      await removeMember({ cognitoSub, id: row._id as any });
+      await removeMember({ cognitoSub, id: row._id });
     },
     [cognitoSub, removeMember]
   );

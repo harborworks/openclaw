@@ -3,12 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { usePaginatedQuery, useMutation, useAction } from "convex/react";
 
 import { api } from "@convex/api";
+import type { Id } from "@convex/dataModel";
 import { useAuth } from "../../auth";
 import { AdminTable, type Column } from "../../components/AdminTable";
 import { Modal } from "../../components/Modal";
 
 type User = {
-  _id: string;
+  _id: Id<"users">;
   name: string;
   email: string;
   cognitoSub: string;
@@ -50,7 +51,7 @@ export function AdminUsersPage() {
     setModal("edit");
   };
 
-  const isSelf = (row: User) => row.cognitoSub === cognitoSub;
+  const isSelf = useCallback((row: User) => row.cognitoSub === cognitoSub, [cognitoSub]);
 
   const handleSubmit = async () => {
     if (!cognitoSub) return;
@@ -66,15 +67,15 @@ export function AdminUsersPage() {
       } else if (modal === "edit" && editing) {
         await updateUser({
           cognitoSub,
-          id: editing._id as any,
+          id: editing._id,
           email: form.email,
           isSuperAdmin: form.isSuperAdmin,
         });
       }
       setModal(null);
       setEditing(null);
-    } catch (e: any) {
-      setError(e.message || "Something went wrong");
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Something went wrong");
     } finally {
       setSubmitting(false);
     }
@@ -89,12 +90,12 @@ export function AdminUsersPage() {
       }
       if (!confirm(`Delete user "${row.email}"? This will also remove their Cognito account.`)) return;
       try {
-        await deleteUserAction({ cognitoSub, userId: row._id as any });
-      } catch (e: any) {
-        alert(e.message || "Failed to delete user");
+        await deleteUserAction({ cognitoSub, userId: row._id });
+      } catch (e: unknown) {
+        alert(e instanceof Error ? e.message : "Failed to delete user");
       }
     },
-    [cognitoSub, deleteUserAction]
+    [cognitoSub, deleteUserAction, isSelf]
   );
 
   const columns: Column<User>[] = [

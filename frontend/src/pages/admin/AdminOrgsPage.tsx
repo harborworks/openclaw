@@ -2,13 +2,14 @@ import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { usePaginatedQuery, useMutation } from "convex/react";
 import { api } from "@convex/api";
+import type { Id } from "@convex/dataModel";
 import { useAuth } from "../../auth";
 import { AdminTable, type Column } from "../../components/AdminTable";
 import { Modal } from "../../components/Modal";
 import { toSlug } from "../../lib/slug";
 
 type Org = {
-  _id: string;
+  _id: Id<"orgs">;
   name: string;
   slug: string;
 };
@@ -52,7 +53,7 @@ export function AdminOrgsPage() {
     if (modal === "create") {
       await createOrg({ cognitoSub, name: form.name, slug: form.slug, plan: "free" });
     } else if (modal === "edit" && editing) {
-      await updateOrg({ cognitoSub, id: editing._id as any, name: form.name, slug: form.slug });
+      await updateOrg({ cognitoSub, id: editing._id, name: form.name, slug: form.slug });
     }
     setModal(null);
     setEditing(null);
@@ -61,7 +62,7 @@ export function AdminOrgsPage() {
   const handleDelete = useCallback(
     async (row: Org) => {
       if (!cognitoSub || !confirm(`Delete org "${row.name}"?`)) return;
-      await removeOrg({ cognitoSub, id: row._id as any });
+      await removeOrg({ cognitoSub, id: row._id });
     },
     [cognitoSub, removeOrg]
   );

@@ -2,16 +2,17 @@ import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { usePaginatedQuery, useMutation } from "convex/react";
 import { api } from "@convex/api";
+import type { Id } from "@convex/dataModel";
 import { useAuth } from "../../auth";
 import { AdminTable, type Column } from "../../components/AdminTable";
 import { Modal } from "../../components/Modal";
 import { toSlug } from "../../lib/slug";
 
 type Harbor = {
-  _id: string;
+  _id: Id<"harbors">;
   name: string;
   slug: string;
-  orgId: string;
+  orgId: Id<"orgs">;
   orgName: string;
 };
 
@@ -59,9 +60,9 @@ export function AdminHarborsPage() {
   const handleSubmit = async () => {
     if (!cognitoSub) return;
     if (modal === "create") {
-      await createHarbor({ cognitoSub, name: form.name, slug: form.slug, orgId: form.orgId as any });
+      await createHarbor({ cognitoSub, name: form.name, slug: form.slug, orgId: form.orgId as Id<"orgs"> });
     } else if (modal === "edit" && editing) {
-      await updateHarbor({ cognitoSub, id: editing._id as any, name: form.name, slug: form.slug, orgId: form.orgId as any });
+      await updateHarbor({ cognitoSub, id: editing._id, name: form.name, slug: form.slug, orgId: form.orgId as Id<"orgs"> });
     }
     setModal(null);
     setEditing(null);
@@ -70,7 +71,7 @@ export function AdminHarborsPage() {
   const handleDelete = useCallback(
     async (row: Harbor) => {
       if (!cognitoSub || !confirm(`Delete harbor "${row.name}"?`)) return;
-      await removeHarbor({ cognitoSub, id: row._id as any });
+      await removeHarbor({ cognitoSub, id: row._id });
     },
     [cognitoSub, removeHarbor]
   );
