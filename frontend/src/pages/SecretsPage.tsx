@@ -68,7 +68,7 @@ export function SecretsPage() {
   return (
     <div className="secrets-page">
       <div className="secrets-page-header">
-        <h1 className="secrets-page-title">Secrets</h1>
+        <h1 className="page-title">Secrets</h1>
       </div>
 
       {!hasPublicKey && (
