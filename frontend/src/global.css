@@ -858,3 +858,8 @@ body {
 .agent-btn-cancel {
   color: var(--text-muted);
 }
+
+.agent-input-readonly {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

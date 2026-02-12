@@ -52,11 +52,13 @@ interface AgentDoc {
 
 function AgentForm({
   initial,
+  isEdit,
   saving,
   onSave,
   onCancel,
 }: {
   initial?: { name: string; sessionKey: string; role: string; model?: string };
+  isEdit?: boolean;
   saving: boolean;
   onSave: (data: { name: string; sessionKey: string; role: string; model?: string }) => void;
   onCancel: () => void;
@@ -83,10 +85,11 @@ function AgentForm({
           required
         />
         <input
-          className="agent-input"
+          className={`agent-input${isEdit ? " agent-input-readonly" : ""}`}
           placeholder="Session Key"
           value={sessionKey}
-          onChange={(e) => setSessionKey(e.target.value)}
+          onChange={(e) => !isEdit && setSessionKey(e.target.value)}
+          readOnly={isEdit}
           required
         />
         <select
@@ -226,6 +229,7 @@ export function AgentsPage() {
             <AgentForm
               key={agent._id}
               initial={agent}
+              isEdit
               saving={saving}
               onSave={(data) => handleUpdate(agent._id, data)}
               onCancel={() => setEditingId(null)}

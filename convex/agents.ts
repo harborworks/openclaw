@@ -43,7 +43,6 @@ export const update = mutation({
   args: {
     id: v.id("agents"),
     name: v.optional(v.string()),
-    sessionKey: v.optional(v.string()),
     role: v.optional(v.string()),
     model: v.optional(v.string()),
   },
@@ -51,19 +50,8 @@ export const update = mutation({
     const agent = await ctx.db.get(args.id);
     if (!agent) throw new Error("Agent not found");
 
-    if (args.sessionKey && args.sessionKey !== agent.sessionKey) {
-      const siblings = await ctx.db
-        .query("agents")
-        .withIndex("by_harbor", (q) => q.eq("harborId", agent.harborId))
-        .collect();
-      if (siblings.some((a) => a._id !== args.id && a.sessionKey === args.sessionKey)) {
-        throw new Error("An agent with this session key already exists in this harbor");
-      }
-    }
-
     const patch: Record<string, unknown> = {};
     if (args.name !== undefined) patch.name = args.name;
-    if (args.sessionKey !== undefined) patch.sessionKey = args.sessionKey;
     if (args.role !== undefined) patch.role = args.role;
     if (args.model !== undefined) patch.model = args.model;
     await ctx.db.patch(args.id, patch);
