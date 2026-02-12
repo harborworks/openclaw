@@ -1,17 +1,25 @@
 import { NavLink } from "react-router-dom";
+import { useOptionalHarborContext } from "../contexts/HarborContext";
 
 const navItems = [
-  { to: "/secrets", label: "Secrets", icon: "🔑" },
+  { path: "secrets", label: "Secrets", icon: "🔑" },
 ];
 
 export function Sidebar() {
+  const harbor = useOptionalHarborContext();
+
+  // Outside HarborProvider (e.g., root redirect, admin pages) — hide sidebar
+  if (!harbor) return null;
+
+  const { basePath } = harbor;
+
   return (
     <aside className="sidebar">
       <nav className="sidebar-nav">
         {navItems.map((item) => (
           <NavLink
-            key={item.to}
-            to={item.to}
+            key={item.path}
+            to={`${basePath}/${item.path}`}
             className={({ isActive }) =>
               `sidebar-link${isActive ? " sidebar-link-active" : ""}`
             }

@@ -10,7 +10,6 @@ import { Modal } from "../../components/Modal";
 
 type User = {
   _id: Id<"users">;
-  name: string;
   email: string;
   cognitoSub: string;
   isSuperAdmin?: boolean;

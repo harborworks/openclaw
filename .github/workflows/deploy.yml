@@ -41,7 +41,7 @@ jobs:
             --query "UserAttributes[?Name=='sub'].Value" \
             --output text)
           npx convex run seed:createUser \
-            "{\"name\":\"Ben Cook\",\"email\":\"ben@sparrow.dev\",\"cognitoSub\":\"${COGNITO_SUB}\",\"isSuperAdmin\":true}"
+            "{\"email\":\"ben@sparrow.dev\",\"cognitoSub\":\"${COGNITO_SUB}\",\"isSuperAdmin\":true}"
 
       - name: Install frontend
         working-directory: frontend

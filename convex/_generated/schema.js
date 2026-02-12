@@ -11,10 +11,12 @@ export default defineSchema({
     // ── Users ──────────────────────────────────────────────────────────
     // Human accounts, linked to Cognito via cognitoSub.
     users: defineTable({
-        name: v.string(),
+        name: v.optional(v.string()), // deprecated, no longer collected
         email: v.string(),
         cognitoSub: v.string(), // Cognito User Pool "sub" (unique identifier)
         isSuperAdmin: v.optional(v.boolean()),
+        lastOrgSlug: v.optional(v.string()),
+        lastHarborSlug: v.optional(v.string()),
     })
         .index("by_email", ["email"])
         .index("by_cognito_sub", ["cognitoSub"]),

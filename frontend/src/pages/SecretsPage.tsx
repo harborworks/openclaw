@@ -5,18 +5,13 @@ import type { Id } from "@convex/dataModel";
 import { encryptWithPublicKey } from "../lib/crypto";
 import { REQUIRED_KEYS, RECOMMENDED_KEYS, type SecretInfo } from "../lib/secrets";
 import { SecretRow, AddSecretForm } from "../components/secrets";
-import { useHarbors } from "../hooks/useHarbors";
+import { useHarborContext } from "../contexts/HarborContext";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const secretsApi = (api as any).secrets;
 
 export function SecretsPage() {
-  const harbors = useHarbors();
-  const [selectedHarborId, setSelectedHarborId] = useState<string | null>(null);
-
-  // Auto-select first harbor, or use user selection
-  const harborId = selectedHarborId ?? harbors?.[0]?._id ?? null;
-  const harbor = harbors?.find((h: { _id: string }) => h._id === harborId);
+  const { harborId, publicKey: publicKeyJson } = useHarborContext();
 
   const secrets = useQuery(
     secretsApi.list,
@@ -28,7 +23,6 @@ export function SecretsPage() {
   const [addingCustom, setAddingCustom] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const publicKeyJson: string | undefined = harbor?.publicKey;
   const hasPublicKey = !!publicKeyJson;
 
   const encrypt = useCallback(
@@ -65,25 +59,6 @@ export function SecretsPage() {
     }
   };
 
-  if (harbors === undefined) {
-    return (
-      <div style={{ color: "rgba(255,255,255,0.4)", padding: "2rem" }}>
-        Loading…
-      </div>
-    );
-  }
-
-  if (harbors.length === 0) {
-    return (
-      <div className="secrets-page">
-        <h1 className="secrets-page-title">Secrets</h1>
-        <p style={{ color: "rgba(255,255,255,0.4)" }}>
-          No harbors found. Create a harbor first.
-        </p>
-      </div>
-    );
-  }
-
   const secretsList = (secrets ?? []) as SecretInfo[];
   const secretsByName = new Map(secretsList.map((s) => [s.name, s]));
   const customSecrets = secretsList
@@ -94,18 +69,6 @@ export function SecretsPage() {
     <div className="secrets-page">
       <div className="secrets-page-header">
         <h1 className="secrets-page-title">Secrets</h1>
-        {harbors.length > 1 && (
-          <select
-            className="form-select"
-            style={{ width: "auto" }}
-            value={harborId ?? ""}
-            onChange={(e) => setSelectedHarborId(e.target.value)}
-          >
-            {harbors.map((h: { _id: string; name: string }) => (
-              <option key={h._id} value={h._id}>{h.name}</option>
-            ))}
-          </select>
-        )}
       </div>
 
       {!hasPublicKey && (

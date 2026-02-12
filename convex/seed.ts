@@ -3,7 +3,6 @@ import { v } from "convex/values";
 
 export const createUser = mutation({
   args: {
-    name: v.string(),
     email: v.string(),
     cognitoSub: v.string(),
     isSuperAdmin: v.optional(v.boolean()),

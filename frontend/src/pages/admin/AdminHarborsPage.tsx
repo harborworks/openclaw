@@ -42,11 +42,12 @@ export function AdminHarborsPage() {
   const [editing, setEditing] = useState<Harbor | null>(null);
   const [form, setForm] = useState({ name: "", slug: "", orgId: "" });
   const [slugTouched, setSlugTouched] = useState(false);
-
+  const [error, setError] = useState<string | null>(null);
 
   const openCreate = () => {
     setForm({ name: "", slug: "", orgId: "" });
     setSlugTouched(false);
+    setError(null);
     setModal("create");
   };
 
@@ -54,18 +55,32 @@ export function AdminHarborsPage() {
     setEditing(row);
     setForm({ name: row.name, slug: row.slug, orgId: row.orgId });
     setSlugTouched(true);
+    setError(null);
     setModal("edit");
   };
 
   const handleSubmit = async () => {
     if (!cognitoSub) return;
-    if (modal === "create") {
-      await createHarbor({ cognitoSub, name: form.name, slug: form.slug, orgId: form.orgId as Id<"orgs"> });
-    } else if (modal === "edit" && editing) {
-      await updateHarbor({ cognitoSub, id: editing._id, name: form.name, slug: form.slug, orgId: form.orgId as Id<"orgs"> });
+    setError(null);
+    if (!form.name.trim()) { setError("Name is required."); return; }
+    if (!form.slug.trim()) { setError("Slug is required."); return; }
+    if (!form.orgId) { setError("Please select an organization."); return; }
+    try {
+      if (modal === "create") {
+        await createHarbor({ cognitoSub, name: form.name, slug: form.slug, orgId: form.orgId as Id<"orgs"> });
+      } else if (modal === "edit" && editing) {
+        await updateHarbor({ cognitoSub, id: editing._id, name: form.name, slug: form.slug, orgId: form.orgId as Id<"orgs"> });
+      }
+      setModal(null);
+      setEditing(null);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Something went wrong";
+      if (msg.toLowerCase().includes("slug already taken")) {
+        setError(`The slug "${form.slug}" is already in use within this org. Please choose a different one.`);
+      } else {
+        setError(msg);
+      }
     }
-    setModal(null);
-    setEditing(null);
   };
 
   const handleDelete = useCallback(
@@ -109,9 +124,10 @@ export function AdminHarborsPage() {
 
       <Modal
         open={modal !== null}
-        onClose={() => { setModal(null); setEditing(null); }}
+        onClose={() => { setModal(null); setEditing(null); setError(null); }}
         title={modal === "create" ? "Create Harbor" : "Edit Harbor"}
       >
+        {error && <div className="form-alert form-alert-error">{error}</div>}
         <div className="form-group">
           <label className="form-label">Name</label>
           <input

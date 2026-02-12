@@ -89,6 +89,8 @@ body {
   display: flex;
   align-items: center;
   gap: var(--space-md);
+  width: calc(220px - var(--space-xl));
+  flex-shrink: 0;
 }
 
 .navbar-title {
@@ -120,10 +122,11 @@ body {
   color: var(--text-primary);
 }
 
-.navbar-dropdown {
+/* Shared dropdown panel (from Dropdown component) */
+
+.dropdown-panel {
   position: absolute;
   top: calc(100% + var(--space-sm));
-  right: 0;
   min-width: 160px;
   padding: var(--space-xs);
   border-radius: var(--radius-lg);
@@ -133,6 +136,14 @@ body {
   z-index: 100;
 }
 
+.dropdown-panel[data-align="left"] {
+  left: 0;
+}
+
+.dropdown-panel[data-align="right"] {
+  right: 0;
+}
+
 .navbar-dropdown-item {
   display: block;
   width: 100%;
@@ -140,7 +151,7 @@ body {
   border: none;
   border-radius: var(--radius-sm);
   background: transparent;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   font-size: var(--font-size-base);
   text-align: left;
   cursor: pointer;
@@ -150,6 +161,87 @@ body {
 .navbar-dropdown-item:hover {
   background: var(--overlay-hover);
   color: var(--text-primary);
+}
+
+/* Org/Harbor Switcher */
+
+.switcher {
+  position: relative;
+  margin-left: 0;
+}
+
+.switcher-label {
+  font-size: var(--font-size-base);
+  color: var(--text-secondary);
+}
+
+.switcher-sep {
+  color: var(--text-muted);
+  margin: 0 2px;
+}
+
+.switcher-trigger {
+  display: flex;
+  align-items: center;
+  padding: var(--space-sm) 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-medium);
+  background: var(--overlay-light);
+  color: var(--text-secondary);
+  font-size: var(--font-size-base);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.switcher-trigger:hover {
+  background: var(--overlay-hover);
+  border-color: var(--border-hover);
+  color: var(--text-primary);
+}
+
+.switcher .dropdown-panel {
+  min-width: 280px;
+}
+
+.switcher-org-group {
+  padding: var(--space-xs) 0;
+}
+
+.switcher-org-group + .switcher-org-group {
+  border-top: 1px solid var(--border-subtle);
+}
+
+.switcher-org-name {
+  padding: var(--space-xs) 12px;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.switcher-item {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: var(--font-size-base);
+  text-align: left;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.switcher-item:hover {
+  background: var(--overlay-hover);
+  color: var(--text-primary);
+}
+
+.switcher-item-active {
+  color: var(--text-primary);
+  background: var(--overlay-subtle);
 }
 
 /* Admin cards */
@@ -419,6 +511,19 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.form-alert {
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
+  margin-bottom: var(--space-lg);
+}
+
+.form-alert-error {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
 }
 
 .form-actions {

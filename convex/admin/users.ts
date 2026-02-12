@@ -52,7 +52,6 @@ export const insertUser = internalMutation({
   },
   handler: async (ctx, args) => {
     return await ctx.db.insert("users", {
-      name: args.email.split("@")[0],
       email: args.email,
       cognitoSub: args.cognitoSub,
       isSuperAdmin: args.isSuperAdmin || undefined,

@@ -12,11 +12,13 @@ import { AdminOrgsPage } from "./pages/admin/AdminOrgsPage";
 import { AdminMembersPage } from "./pages/admin/AdminMembersPage";
 import { AdminHarborsPage } from "./pages/admin/AdminHarborsPage";
 import { SecretsPage } from "./pages/SecretsPage";
+import { HarborProvider } from "./contexts/HarborContext";
+import { HarborRedirect } from "./components/HarborRedirect";
 import { CONVEX_URL } from "./convex";
 
 const convex = new ConvexReactClient(CONVEX_URL);
 
-function Dashboard() {
+function HarborDashboard() {
   return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "calc(100vh - 56px)" }}>
       <p style={{ color: "rgba(255,255,255,0.4)", fontSize: "0.95rem" }}>
@@ -33,6 +35,7 @@ function AppRoutes() {
 
   return (
     <Routes>
+      {/* Auth routes */}
       <Route
         path="/login"
         element={user ? <Navigate to="/" replace /> : <LoginPage />}
@@ -45,6 +48,8 @@ function AppRoutes() {
         path="/confirm"
         element={user ? <Navigate to="/" replace /> : <ConfirmPage />}
       />
+
+      {/* Admin routes */}
       <Route
         path="/admin"
         element={
@@ -105,26 +110,45 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+
+      {/* Harbor routes: /:orgSlug/:harborSlug/... */}
       <Route
-        path="/secrets"
+        path="/:orgSlug/:harborSlug/*"
+        element={
+          <ProtectedRoute>
+            <HarborProvider>
+              <Layout>
+                <HarborRoutes />
+              </Layout>
+            </HarborProvider>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Root: redirect to first org/harbor */}
+      <Route
+        path="/"
         element={
           <ProtectedRoute>
             <Layout>
-              <SecretsPage />
+              <HarborRedirect />
             </Layout>
           </ProtectedRoute>
         }
       />
-      <Route
-        path="/*"
-        element={
-          <ProtectedRoute>
-            <Layout>
-              <Dashboard />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
+
+      {/* Catch-all: redirect to root */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+}
+
+/** Sub-routes within a harbor context */
+function HarborRoutes() {
+  return (
+    <Routes>
+      <Route path="secrets" element={<SecretsPage />} />
+      <Route path="*" element={<HarborDashboard />} />
     </Routes>
   );
 }
