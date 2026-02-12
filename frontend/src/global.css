@@ -752,7 +752,6 @@ body {
 /* Agents */
 .agents-list {
   display: table;
-  width: 100%;
   border: 1px solid var(--border-light);
   border-radius: var(--radius-lg);
   border-spacing: 0;
