@@ -1,8 +1,12 @@
 import { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth";
+import { useCurrentUser } from "../hooks/useCurrentUser";
 
 export function Navbar() {
   const { user, logout } = useAuth();
+  const dbUser = useCurrentUser();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -32,7 +36,18 @@ export function Navbar() {
           </button>
           {open && (
             <div className="navbar-dropdown">
-              <button className="navbar-dropdown-item" onClick={() => { setOpen(false); logout(); }}>
+              {dbUser?.isSuperAdmin && (
+                <button
+                  className="navbar-dropdown-item"
+                  onClick={() => { setOpen(false); navigate("/admin"); }}
+                >
+                  Admin
+                </button>
+              )}
+              <button
+                className="navbar-dropdown-item"
+                onClick={() => { setOpen(false); logout(); }}
+              >
                 Sign out
               </button>
             </div>
