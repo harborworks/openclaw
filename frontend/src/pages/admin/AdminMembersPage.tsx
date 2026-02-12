@@ -17,12 +17,7 @@ type Member = {
 };
 
 const PAGE_SIZE = 25;
-const ROLES = ["owner", "admin", "member"] as const;
-const ROLE_BADGE: Record<string, string> = {
-  owner: "badge-amber",
-  admin: "badge-green",
-  member: "badge-blue",
-};
+const DEFAULT_ROLE = "admin" as const;
 
 export function AdminMembersPage() {
   const navigate = useNavigate();
@@ -47,22 +42,14 @@ export function AdminMembersPage() {
   );
 
   const createMember = useMutation(api.admin.members.create);
-  const updateMember = useMutation(api.admin.members.update);
   const removeMember = useMutation(api.admin.members.remove);
 
-  const [modal, setModal] = useState<"create" | "edit" | null>(null);
-  const [editing, setEditing] = useState<Member | null>(null);
-  const [form, setForm] = useState({ userId: "", orgId: "", role: "member" as Member["role"] });
+  const [modal, setModal] = useState<"create" | null>(null);
+  const [form, setForm] = useState({ userId: "", orgId: "" });
 
   const openCreate = () => {
-    setForm({ userId: "", orgId: "", role: "member" });
+    setForm({ userId: "", orgId: "" });
     setModal("create");
-  };
-
-  const openEdit = (row: Member) => {
-    setEditing(row);
-    setForm({ userId: row.userId, orgId: row.orgId, role: row.role });
-    setModal("edit");
   };
 
   const handleSubmit = async () => {
@@ -71,13 +58,10 @@ export function AdminMembersPage() {
         cognitoSub,
         userId: form.userId as any,
         orgId: form.orgId as any,
-        role: form.role,
+        role: DEFAULT_ROLE,
       });
-    } else if (modal === "edit" && editing) {
-      await updateMember({ cognitoSub, id: editing._id as any, role: form.role });
     }
     setModal(null);
-    setEditing(null);
   };
 
   const handleDelete = useCallback(
@@ -91,11 +75,6 @@ export function AdminMembersPage() {
   const columns: Column<Member>[] = [
     { key: "email", header: "Email", render: (r) => r.userEmail },
     { key: "org", header: "Organization", render: (r) => r.orgName },
-    {
-      key: "role",
-      header: "Role",
-      render: (r) => <span className={`badge ${ROLE_BADGE[r.role]}`}>{r.role}</span>,
-    },
   ];
 
   const users = (allUsers.results ?? []) as { _id: string; name: string; email: string }[];
@@ -117,7 +96,6 @@ export function AdminMembersPage() {
         columns={columns}
         rows={(results ?? []) as Member[]}
         getRowId={(r) => r._id}
-        onEdit={openEdit}
         onDelete={handleDelete}
         hasMore={status === "CanLoadMore"}
         isLoadingMore={status === "LoadingMore"}
@@ -126,57 +104,41 @@ export function AdminMembersPage() {
 
       <Modal
         open={modal !== null}
-        onClose={() => { setModal(null); setEditing(null); }}
-        title={modal === "create" ? "Add Member" : "Edit Member"}
+        onClose={() => setModal(null)}
+        title="Add Member"
       >
-        {modal === "create" && (
-          <>
-            <div className="form-group">
-              <label className="form-label">User</label>
-              <select
-                className="form-select"
-                value={form.userId}
-                onChange={(e) => setForm({ ...form, userId: e.target.value })}
-              >
-                <option value="">Select user…</option>
-                {users.map((u) => (
-                  <option key={u._id} value={u._id}>{u.email}</option>
-                ))}
-              </select>
-            </div>
-            <div className="form-group">
-              <label className="form-label">Organization</label>
-              <select
-                className="form-select"
-                value={form.orgId}
-                onChange={(e) => setForm({ ...form, orgId: e.target.value })}
-              >
-                <option value="">Select org…</option>
-                {orgs.map((o) => (
-                  <option key={o._id} value={o._id}>{o.name}</option>
-                ))}
-              </select>
-            </div>
-          </>
-        )}
         <div className="form-group">
-          <label className="form-label">Role</label>
+          <label className="form-label">User</label>
           <select
             className="form-select"
-            value={form.role}
-            onChange={(e) => setForm({ ...form, role: e.target.value as Member["role"] })}
+            value={form.userId}
+            onChange={(e) => setForm({ ...form, userId: e.target.value })}
           >
-            {ROLES.map((r) => (
-              <option key={r} value={r}>{r}</option>
+            <option value="">Select user…</option>
+            {users.map((u) => (
+              <option key={u._id} value={u._id}>{u.email}</option>
+            ))}
+          </select>
+        </div>
+        <div className="form-group">
+          <label className="form-label">Organization</label>
+          <select
+            className="form-select"
+            value={form.orgId}
+            onChange={(e) => setForm({ ...form, orgId: e.target.value })}
+          >
+            <option value="">Select org…</option>
+            {orgs.map((o) => (
+              <option key={o._id} value={o._id}>{o.name}</option>
             ))}
           </select>
         </div>
         <div className="form-actions">
-          <button className="admin-btn" onClick={() => { setModal(null); setEditing(null); }}>
+          <button className="admin-btn" onClick={() => setModal(null)}>
             Cancel
           </button>
           <button className="admin-btn admin-btn-primary" onClick={handleSubmit}>
-            {modal === "create" ? "Add" : "Save"}
+            Add
           </button>
         </div>
       </Modal>
