@@ -724,3 +724,137 @@ body {
   color: var(--text-muted);
   line-height: 1.5;
 }
+
+/* Agents */
+.agents-list {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.agents-empty {
+  padding: 1rem;
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.agent-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.agent-row:last-child {
+  border-bottom: none;
+}
+
+.agent-row-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.agent-row-name {
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+}
+
+.agent-row-meta {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.agent-row-meta code {
+  background: var(--overlay-hover);
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+}
+
+.agent-row-sep {
+  margin: 0 4px;
+  opacity: 0.4;
+}
+
+.agent-row-status {
+  flex-shrink: 0;
+}
+
+.agent-status {
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-weight: 500;
+}
+
+.agent-status-idle {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-muted);
+}
+
+.agent-status-active {
+  background: rgba(74, 222, 128, 0.15);
+  color: #4ade80;
+}
+
+.agent-status-blocked {
+  background: rgba(248, 113, 113, 0.15);
+  color: #f87171;
+}
+
+.agent-row-actions {
+  display: flex;
+  gap: var(--space-xs);
+  flex-shrink: 0;
+}
+
+.agent-btn-danger {
+  color: #f87171;
+  border-color: rgba(248, 113, 113, 0.3);
+}
+
+.agent-btn-danger:hover {
+  background: rgba(248, 113, 113, 0.1);
+  color: #fca5a5;
+}
+
+.agent-form {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.agent-form-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+
+.agent-input {
+  padding: 6px 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-medium);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+}
+
+.agent-input:focus {
+  outline: none;
+  border-color: var(--color-ocean);
+}
+
+.agent-form-actions {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+.agent-btn-cancel {
+  color: var(--text-muted);
+}
