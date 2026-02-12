@@ -12,7 +12,7 @@ export function Navbar() {
   return (
     <nav className="navbar">
       <div className="navbar-brand">
-        <img src="/logo.svg" alt="Harbor Works" width={28} height={28} />
+        <img src="/logo.svg" alt="Harbor Works" width={28} height={32} />
         <span className="navbar-title">Harbor Works</span>
       </div>
       {user && <OrgHarborSwitcher />}

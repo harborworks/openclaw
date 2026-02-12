@@ -94,7 +94,7 @@ body {
 }
 
 .navbar-title {
-  font-size: var(--font-size-md);
+  font-size: 1.35rem;
   font-weight: 700;
   letter-spacing: -0.025em;
 }
