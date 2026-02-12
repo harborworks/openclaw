@@ -8,7 +8,7 @@
  * @module
  */
 
-import type * as admin_inviteUser from "../admin/inviteUser.js";
+import type * as admin_cognitoActions from "../admin/cognitoActions.js";
 import type * as admin_members from "../admin/members.js";
 import type * as admin_orgs from "../admin/orgs.js";
 import type * as admin_users from "../admin/users.js";
@@ -23,7 +23,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
-  "admin/inviteUser": typeof admin_inviteUser;
+  "admin/cognitoActions": typeof admin_cognitoActions;
   "admin/members": typeof admin_members;
   "admin/orgs": typeof admin_orgs;
   "admin/users": typeof admin_users;

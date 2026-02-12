@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { usePaginatedQuery, useMutation, useAction } from "convex/react";
+
 import { api } from "@convex/api";
 import { useAuth } from "../../auth";
 import { AdminTable, type Column } from "../../components/AdminTable";
@@ -26,9 +27,9 @@ export function AdminUsersPage() {
     { initialNumItems: PAGE_SIZE }
   );
 
-  const inviteUser = useAction(api.admin.inviteUser.invite);
+  const inviteUser = useAction(api.admin.cognitoActions.invite);
   const updateUser = useMutation(api.admin.users.update);
-  const removeUser = useMutation(api.admin.users.remove);
+  const deleteUserAction = useAction(api.admin.cognitoActions.deleteUser);
 
   const [modal, setModal] = useState<"invite" | "edit" | null>(null);
   const [editing, setEditing] = useState<User | null>(null);
@@ -86,9 +87,9 @@ export function AdminUsersPage() {
         alert("You cannot delete yourself.");
         return;
       }
-      if (!confirm(`Delete user "${row.email}"?`)) return;
+      if (!confirm(`Delete user "${row.email}"? This will also remove their Cognito account.`)) return;
       try {
-        await removeUser({ cognitoSub, id: row._id as any });
+        await deleteUserAction({ cognitoSub, userId: row._id as any });
       } catch (e: any) {
         alert(e.message || "Failed to delete user");
       }

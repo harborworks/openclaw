@@ -33,6 +33,12 @@ export const verifySuperAdmin = internalQuery({
         return user?.isSuperAdmin === true;
     },
 });
+export const getByIdInternal = internalQuery({
+    args: { id: v.id("users") },
+    handler: async (ctx, args) => {
+        return await ctx.db.get(args.id);
+    },
+});
 export const insertUser = internalMutation({
     args: {
         email: v.string(),
@@ -72,16 +78,9 @@ export const update = mutation({
         await ctx.db.patch(args.id, patch);
     },
 });
-export const remove = mutation({
-    args: { cognitoSub: v.string(), id: v.id("users") },
+export const deleteUser = internalMutation({
+    args: { id: v.id("users") },
     handler: async (ctx, args) => {
-        const caller = await requireSuperAdmin(ctx, args.cognitoSub);
-        const target = await ctx.db.get(args.id);
-        if (!target)
-            throw new Error("User not found");
-        if (target._id === caller._id) {
-            throw new Error("Cannot delete yourself");
-        }
         await ctx.db.delete(args.id);
     },
 });
