@@ -2,33 +2,99 @@
  * Harbor Daemon
  *
  * Bridges the Harbor app (Convex) with the local OpenClaw gateway.
- * Polls Convex for changes and syncs agents, templates, secrets, and cron jobs.
+ * Polls Convex for changes and syncs secrets to the host environment.
  */
 
-const TICK_INTERVAL_MS = parseInt(process.env.TICK_INTERVAL_MS || "10000", 10);
-const HARBOR_API_KEY = process.env.HARBOR_API_KEY || "";
+import * as fs from "fs";
+import * as path from "path";
+import { initKeypair, syncSecrets, registerPublicKey } from "./secrets.js";
+import type { ConvexApiConfig } from "./secrets.js";
+import { GatewayClient, configApi } from "./gateway-client.js";
+
+// --- Config ---
+const TICK_INTERVAL_MS = parseInt(process.env.TICK_INTERVAL_MS || "5000", 10);
 const CONVEX_URL = process.env.CONVEX_URL || "";
+const HARBOR_ID = process.env.HARBOR_ID || "";
+const HARBOR_API_KEY = process.env.HARBOR_API_KEY || "";
 const GATEWAY_URL = process.env.GATEWAY_URL || "http://localhost:18789";
 const GATEWAY_TOKEN = process.env.GATEWAY_TOKEN || "";
 const DAEMON_PORT = parseInt(process.env.DAEMON_PORT || "4747", 10);
 
+const ENV_FILE_PATH = process.env.ENV_FILE_PATH ?? path.join(
+  process.env.HOME ?? "/home/ubuntu", ".openclaw", ".env"
+);
+const KEY_DIR = path.dirname(ENV_FILE_PATH);
+
+// Path to default config that gets merged into gateway config on startup
+const DEFAULT_CONFIG_PATH = process.env.DEFAULT_CONFIG_PATH
+  ?? path.resolve(import.meta.dirname ?? ".", "../scripts/openclaw-config.json");
+
+function log(msg: string) {
+  console.log(`[daemon] ${new Date().toISOString()} ${msg}`);
+}
+
 function checkConfig() {
   const missing: string[] = [];
-  if (!HARBOR_API_KEY) missing.push("HARBOR_API_KEY");
   if (!CONVEX_URL) missing.push("CONVEX_URL");
+  if (!HARBOR_ID) missing.push("HARBOR_ID");
+  if (!HARBOR_API_KEY) missing.push("HARBOR_API_KEY");
   if (missing.length) {
     console.error(`Missing required env vars: ${missing.join(", ")}`);
     process.exit(1);
   }
 }
 
+let convexApi: ConvexApiConfig;
+let gateway: GatewayClient;
+
+/** Load default config and patch it into the gateway. */
+async function applyDefaultConfig(): Promise<void> {
+  let defaults: Record<string, unknown> = {};
+  try {
+    const raw = fs.readFileSync(DEFAULT_CONFIG_PATH, "utf-8");
+    defaults = JSON.parse(raw);
+    log(`Loaded default config from ${DEFAULT_CONFIG_PATH}`);
+  } catch (err) {
+    log(`No default config found at ${DEFAULT_CONFIG_PATH} — skipping`);
+    return;
+  }
+
+  if (Object.keys(defaults).length === 0) return;
+
+  try {
+    const current = await configApi(gateway).get();
+    await configApi(gateway).patch(JSON.stringify(defaults), current.hash!);
+    log(`Patched gateway config with defaults: ${Object.keys(defaults).join(", ")}`);
+  } catch (err) {
+    log(`Failed to patch gateway config: ${err instanceof Error ? err.message : err}`);
+  }
+}
+
+/**
+ * Wait for the gateway to restart after .env changes.
+ * The gateway container has a file watcher that self-restarts when .env changes,
+ * so the daemon just needs to wait for the reconnect.
+ */
+export async function waitForGatewayRestart(): Promise<void> {
+  log("Waiting for gateway to restart (env watcher will trigger it)...");
+  try {
+    await gateway.waitForConnection(30_000);
+    log("Gateway reconnected after restart");
+  } catch {
+    log("Gateway reconnect timed out — will retry on next tick");
+  }
+}
+
 async function tick() {
-  // TODO: Poll Convex for harbor state and sync to gateway
-  // - Agents
-  // - Template vars → workspace files
-  // - Secrets → ~/.openclaw/.env
-  // - Cron jobs → gateway cron API
-  console.log(`[tick] polling convex (stub)`);
+  if (!gateway.isConnected) return;
+
+  try {
+    await syncSecrets(convexApi, ENV_FILE_PATH, waitForGatewayRestart);
+  } catch (err) {
+    log(`Secrets sync error: ${err instanceof Error ? err.message : err}`);
+  }
+
+  // TODO: Sync agents, templates, cron jobs
 }
 
 async function startHttpServer() {
@@ -43,32 +109,71 @@ async function startHttpServer() {
       return;
     }
 
-    // TODO: Task/message/notification endpoints for agents
     res.writeHead(404, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ error: "not found" }));
   });
 
   server.listen(DAEMON_PORT, () => {
-    console.log(`[daemon] HTTP server listening on :${DAEMON_PORT}`);
+    log(`HTTP server listening on :${DAEMON_PORT}`);
   });
 }
 
 async function main() {
-  console.log("[daemon] Harbor Daemon starting");
-  console.log(`[daemon] CONVEX_URL=${CONVEX_URL || "(not set)"}`);
-  console.log(`[daemon] GATEWAY_URL=${GATEWAY_URL}`);
-  console.log(`[daemon] TICK_INTERVAL_MS=${TICK_INTERVAL_MS}`);
+  log("Harbor Daemon starting");
+  log(`  CONVEX_URL=${CONVEX_URL || "(not set)"}`);
+  log(`  HARBOR_ID=${HARBOR_ID || "(not set)"}`);
+  log(`  HARBOR_API_KEY=${HARBOR_API_KEY ? "(set)" : "(not set)"}`);
+  log(`  GATEWAY_URL=${GATEWAY_URL}`);
+  log(`  ENV_FILE_PATH=${ENV_FILE_PATH}`);
+  log(`  TICK_INTERVAL_MS=${TICK_INTERVAL_MS}`);
 
   checkConfig();
 
+  // Configure Convex HTTP API client
+  // HTTP actions are served at .convex.site, not .convex.cloud
+  const siteUrl = CONVEX_URL.replace(/\.convex\.cloud$/, ".convex.site");
+  convexApi = { convexUrl: siteUrl, harborId: HARBOR_ID, apiKey: HARBOR_API_KEY };
+  log(`  CONVEX_SITE_URL=${siteUrl}`);
+
+  // Init keypair and publish public key via HTTP API
+  const publicKeyJwk = initKeypair(KEY_DIR);
+  await registerPublicKey(convexApi, publicKeyJwk);
+  log("Published public key to Convex");
+
+  // Connect to gateway via WebSocket
+  let defaultsApplied = false;
+  const gwWsUrl = GATEWAY_URL.replace(/^http/, "ws");
+  gateway = new GatewayClient({
+    url: gwWsUrl,
+    token: GATEWAY_TOKEN || undefined,
+    onConnect: async () => {
+      log("Gateway WebSocket connected");
+      if (!defaultsApplied) {
+        defaultsApplied = true;
+        await applyDefaultConfig();
+      }
+    },
+    onDisconnect: () => log("Gateway WebSocket disconnected (will reconnect)"),
+    onError: (err) => log(`Gateway WebSocket error: ${err.message}`),
+  });
+
+  try {
+    await gateway.connect();
+  } catch (err) {
+    log(`Initial gateway connection failed: ${err instanceof Error ? err.message : err}`);
+    log("Will retry in background...");
+  }
+
   await startHttpServer();
+
+  log("Starting poll loop...");
 
   // Main loop
   while (true) {
     try {
       await tick();
     } catch (err) {
-      console.error("[tick] error:", err);
+      log(`Tick error: ${err instanceof Error ? err.message : err}`);
     }
     await new Promise((r) => setTimeout(r, TICK_INTERVAL_MS));
   }

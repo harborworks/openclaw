@@ -1,0 +1,55 @@
+name: Build and push host images
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Image tag override (defaults to git tag)"
+        required: false
+
+env:
+  AWS_REGION: us-east-1
+  ECR_DAEMON: 429056709468.dkr.ecr.us-east-1.amazonaws.com/harbor-daemon
+  ECR_GATEWAY: 429056709468.dkr.ecr.us-east-1.amazonaws.com/harbor-gateway
+
+jobs:
+  build-and-push:
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Determine image tag
+        id: tag
+        run: |
+          if [ -n "${{ inputs.tag }}" ]; then
+            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push daemon
+        uses: docker/build-push-action@v6
+        with:
+          context: ./daemon
+          push: true
+          tags: ${{ env.ECR_DAEMON }}:${{ steps.tag.outputs.tag }}
+
+      - name: Build and push gateway
+        uses: docker/build-push-action@v6
+        with:
+          context: ./gateway
+          push: true
+          tags: ${{ env.ECR_GATEWAY }}:${{ steps.tag.outputs.tag }}

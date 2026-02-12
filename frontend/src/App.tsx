@@ -11,6 +11,7 @@ import { AdminUsersPage } from "./pages/admin/AdminUsersPage";
 import { AdminOrgsPage } from "./pages/admin/AdminOrgsPage";
 import { AdminMembersPage } from "./pages/admin/AdminMembersPage";
 import { AdminHarborsPage } from "./pages/admin/AdminHarborsPage";
+import { SecretsPage } from "./pages/SecretsPage";
 import { CONVEX_URL } from "./convex";
 
 const convex = new ConvexReactClient(CONVEX_URL);
@@ -101,6 +102,16 @@ function AppRoutes() {
                 <AdminHarborsPage />
               </Layout>
             </AdminRoute>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/secrets"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <SecretsPage />
+            </Layout>
           </ProtectedRoute>
         }
       />

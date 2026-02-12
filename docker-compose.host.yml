@@ -8,21 +8,21 @@
 
 services:
   daemon:
-    build:
-      context: ./daemon
+    image: 429056709468.dkr.ecr.us-east-1.amazonaws.com/harbor-daemon:${DAEMON_VERSION:-latest}
     environment:
       CONVEX_URL: ${CONVEX_URL:-}
+      HARBOR_ID: ${HARBOR_ID:-}
       HARBOR_API_KEY: ${HARBOR_API_KEY:-}
       GATEWAY_URL: http://gateway:18789
       GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN:-}
       DAEMON_PORT: "4747"
-      TICK_INTERVAL_MS: "10000"
+      TICK_INTERVAL_MS: "5000"
+      ENV_FILE_PATH: /home/node/.openclaw/.env
       HOME: /home/node
     ports:
       - "${DAEMON_PORT:-4747}:4747"
     volumes:
       - ${OPENCLAW_CONFIG_DIR:-./.harbor-host/config}:/home/node/.openclaw
-    pid: "service:gateway"
     depends_on:
       gateway:
         condition: service_started
@@ -30,7 +30,7 @@ services:
     init: true
 
   cli:
-    image: ${OPENCLAW_IMAGE:-openclaw:local}
+    image: 429056709468.dkr.ecr.us-east-1.amazonaws.com/harbor-gateway:${GATEWAY_VERSION:-latest}
     environment:
       HOME: /home/node
       TERM: xterm-256color
@@ -43,12 +43,12 @@ services:
     stdin_open: true
     tty: true
     init: true
-    entrypoint: ["node", "dist/index.js"]
+    entrypoint: ["openclaw"]
     profiles:
       - cli
 
   gateway:
-    image: ${OPENCLAW_IMAGE:-openclaw:local}
+    image: 429056709468.dkr.ecr.us-east-1.amazonaws.com/harbor-gateway:${GATEWAY_VERSION:-latest}
     environment:
       HOME: /home/node
       TERM: xterm-256color
@@ -62,14 +62,3 @@ services:
       - "host.docker.internal:host-gateway"
     init: true
     restart: unless-stopped
-    command:
-      [
-        "node",
-        "dist/index.js",
-        "gateway",
-        "--allow-unconfigured",
-        "--bind",
-        "lan",
-        "--port",
-        "18789",
-      ]
