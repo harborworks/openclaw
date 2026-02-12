@@ -37,22 +37,6 @@
       }
     ]
   },
-  "channels": {
-    "telegram": {
-      "botToken": "${TELEGRAM_BOT_TOKEN}",
-      "enabled": true,
-      "dmPolicy": "pairing",
-      "groupPolicy": "allowlist",
-      "streamMode": "block"
-    }
-  },
-  "plugins": {
-    "entries": {
-      "telegram": {
-        "enabled": true
-      }
-    }
-  },
   "tools": {
     "sandbox": {
       "tools": {
@@ -69,12 +53,6 @@
           "session_status",
           "web_search"
         ]
-      }
-    },
-    "web": {
-      "search": {
-        "apiKey": "${BRAVE_SEARCH_API_KEY}",
-        "provider": "brave"
       }
     }
   }
