@@ -184,16 +184,10 @@ function AgentRow({
     <div className="agent-row">
       <div className="agent-row-info">
         <span className="agent-row-name">{agent.name}</span>
-        <span className="agent-row-meta">
-          <code>{agent.sessionKey}</code>
-          <span className="agent-row-sep">·</span>
-          {roleToDisplay(agent.role)}
-          {agent.model && (
-            <>
-              <span className="agent-row-sep">·</span>
-              {modelToDisplay(agent.model)}
-            </>
-          )}
+        <span className="agent-row-meta"><code>{agent.sessionKey}</code></span>
+        <span className="agent-row-detail">{roleToDisplay(agent.role)}</span>
+        <span className="agent-row-detail">
+          {agent.model ? modelToDisplay(agent.model) : "—"}
         </span>
       </div>
       <div className="agent-row-status">
