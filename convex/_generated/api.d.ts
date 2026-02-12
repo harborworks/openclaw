@@ -13,6 +13,7 @@ import type * as admin_harbors from "../admin/harbors.js";
 import type * as admin_members from "../admin/members.js";
 import type * as admin_orgs from "../admin/orgs.js";
 import type * as admin_users from "../admin/users.js";
+import type * as agents from "../agents.js";
 import type * as harbors from "../harbors.js";
 import type * as http from "../http.js";
 import type * as lib_admin from "../lib/admin.js";
@@ -33,6 +34,7 @@ declare const fullApi: ApiFromModules<{
   "admin/members": typeof admin_members;
   "admin/orgs": typeof admin_orgs;
   "admin/users": typeof admin_users;
+  agents: typeof agents;
   harbors: typeof harbors;
   http: typeof http;
   "lib/admin": typeof lib_admin;

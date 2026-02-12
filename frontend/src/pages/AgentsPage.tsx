@@ -8,18 +8,47 @@ import { useHarborContext } from "../contexts/HarborContext";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const agentsApi = (api as any).agents;
 
-type AgentLevel = "intern" | "specialist" | "lead";
+/** Role categories and options */
+const ROLE_OPTIONS = [
+  { group: "Entry Point", roles: ["Project Manager", "Executive Assistant"] },
+  { group: "Operations", roles: ["Software Developer", "DevOps", "Sales", "Marketing"] },
+  { group: "Testing", roles: ["Software Quality Assurance", "Copy Editor"] },
+  { group: "Research", roles: ["Software Architect", "Business Analyst", "Data Analyst"] },
+  { group: "Maintenance", roles: ["System Administrator"] },
+] as const;
+
+/** Map display name → stored value (kebab-case) */
+function roleToValue(display: string): string {
+  return display.toLowerCase().replace(/\s+/g, "-");
+}
+
+/** Map stored value → display name */
+function roleToDisplay(value: string): string {
+  for (const group of ROLE_OPTIONS) {
+    for (const role of group.roles) {
+      if (roleToValue(role) === value) return role;
+    }
+  }
+  return value;
+}
+
+/** Model options */
+const MODEL_OPTIONS = [
+  { value: "opus4.6", label: "Opus 4.6" },
+] as const;
+
+function modelToDisplay(value: string): string {
+  return MODEL_OPTIONS.find((m) => m.value === value)?.label ?? value;
+}
 
 interface AgentDoc {
   _id: Id<"agents">;
   name: string;
   sessionKey: string;
   role: string;
-  level?: AgentLevel;
+  model?: string;
   status: "idle" | "active" | "blocked";
 }
-
-const LEVELS: AgentLevel[] = ["intern", "specialist", "lead"];
 
 function AgentForm({
   initial,
@@ -27,20 +56,20 @@ function AgentForm({
   onSave,
   onCancel,
 }: {
-  initial?: { name: string; sessionKey: string; role: string; level?: AgentLevel };
+  initial?: { name: string; sessionKey: string; role: string; model?: string };
   saving: boolean;
-  onSave: (data: { name: string; sessionKey: string; role: string; level?: AgentLevel }) => void;
+  onSave: (data: { name: string; sessionKey: string; role: string; model?: string }) => void;
   onCancel: () => void;
 }) {
   const [name, setName] = useState(initial?.name ?? "");
   const [sessionKey, setSessionKey] = useState(initial?.sessionKey ?? "");
   const [role, setRole] = useState(initial?.role ?? "");
-  const [level, setLevel] = useState<AgentLevel | "">(initial?.level ?? "");
+  const [model, setModel] = useState(initial?.model ?? "opus4.6");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !sessionKey.trim() || !role.trim()) return;
-    onSave({ name: name.trim(), sessionKey: sessionKey.trim(), role: role.trim(), level: level || undefined });
+    if (!name.trim() || !sessionKey.trim() || !role) return;
+    onSave({ name: name.trim(), sessionKey: sessionKey.trim(), role, model: model || undefined });
   };
 
   return (
@@ -60,21 +89,28 @@ function AgentForm({
           onChange={(e) => setSessionKey(e.target.value)}
           required
         />
-        <input
+        <select
           className="agent-input"
-          placeholder="Role"
           value={role}
           onChange={(e) => setRole(e.target.value)}
           required
-        />
+        >
+          <option value="">Select Role</option>
+          {ROLE_OPTIONS.map((group) => (
+            <optgroup key={group.group} label={group.group}>
+              {group.roles.map((r) => (
+                <option key={r} value={roleToValue(r)}>{r}</option>
+              ))}
+            </optgroup>
+          ))}
+        </select>
         <select
           className="agent-input"
-          value={level}
-          onChange={(e) => setLevel(e.target.value as AgentLevel | "")}
+          value={model}
+          onChange={(e) => setModel(e.target.value)}
         >
-          <option value="">Level (optional)</option>
-          {LEVELS.map((l) => (
-            <option key={l} value={l}>{l}</option>
+          {MODEL_OPTIONS.map((m) => (
+            <option key={m.value} value={m.value}>{m.label}</option>
           ))}
         </select>
       </div>
@@ -108,11 +144,11 @@ function AgentRow({
         <span className="agent-row-meta">
           <code>{agent.sessionKey}</code>
           <span className="agent-row-sep">·</span>
-          {agent.role}
-          {agent.level && (
+          {roleToDisplay(agent.role)}
+          {agent.model && (
             <>
               <span className="agent-row-sep">·</span>
-              {agent.level}
+              {modelToDisplay(agent.model)}
             </>
           )}
         </span>
@@ -145,7 +181,7 @@ export function AgentsPage() {
   const [editingId, setEditingId] = useState<Id<"agents"> | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const handleCreate = async (data: { name: string; sessionKey: string; role: string; level?: AgentLevel }) => {
+  const handleCreate = async (data: { name: string; sessionKey: string; role: string; model?: string }) => {
     setSaving(true);
     try {
       await createAgent({ harborId, ...data });
@@ -155,7 +191,7 @@ export function AgentsPage() {
     }
   };
 
-  const handleUpdate = async (id: Id<"agents">, data: { name: string; sessionKey: string; role: string; level?: AgentLevel }) => {
+  const handleUpdate = async (id: Id<"agents">, data: { name: string; sessionKey: string; role: string; model?: string }) => {
     setSaving(true);
     try {
       await updateAgent({ id, ...data });

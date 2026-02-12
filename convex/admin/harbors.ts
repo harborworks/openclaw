@@ -52,8 +52,8 @@ export const create = mutation({
     await ctx.db.insert("agents", {
       name: "Main",
       sessionKey: "main",
-      role: "general",
-      level: "lead",
+      role: "entry-point",
+      model: "opus4.6",
       status: "idle",
       harborId,
     });

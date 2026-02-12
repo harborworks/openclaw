@@ -49,7 +49,7 @@ export default defineSchema({
         name: v.string(),
         sessionKey: v.string(),
         role: v.string(),
-        level: v.optional(v.union(v.literal("intern"), v.literal("specialist"), v.literal("lead"))),
+        model: v.optional(v.string()),
         status: v.union(v.literal("idle"), v.literal("active"), v.literal("blocked")),
         currentTaskId: v.optional(v.id("tasks")),
         harborId: v.id("harbors"),

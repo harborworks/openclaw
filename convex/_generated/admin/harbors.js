@@ -35,11 +35,21 @@ export const create = mutation({
             .unique();
         if (existing)
             throw new Error("Slug already taken for this org");
-        return await ctx.db.insert("harbors", {
+        const harborId = await ctx.db.insert("harbors", {
             name: args.name,
             slug: args.slug,
             orgId: args.orgId,
         });
+        // Seed default "main" agent
+        await ctx.db.insert("agents", {
+            name: "Main",
+            sessionKey: "main",
+            role: "entry-point",
+            model: "opus4.6",
+            status: "idle",
+            harborId,
+        });
+        return harborId;
     },
 });
 export const update = mutation({
