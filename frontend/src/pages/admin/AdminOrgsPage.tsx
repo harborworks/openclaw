@@ -31,9 +31,14 @@ export function AdminOrgsPage() {
   const [modal, setModal] = useState<"create" | "edit" | null>(null);
   const [editing, setEditing] = useState<Org | null>(null);
   const [form, setForm] = useState({ name: "", slug: "" });
+  const [slugTouched, setSlugTouched] = useState(false);
+
+  const toSlug = (s: string) =>
+    s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
   const openCreate = () => {
     setForm({ name: "", slug: "" });
+    setSlugTouched(false);
     setModal("create");
   };
 
@@ -100,7 +105,10 @@ export function AdminOrgsPage() {
           <input
             className="form-input"
             value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            onChange={(e) => {
+              const name = e.target.value;
+              setForm({ ...form, name, ...(!slugTouched ? { slug: toSlug(name) } : {}) });
+            }}
           />
         </div>
         <div className="form-group">
@@ -108,7 +116,7 @@ export function AdminOrgsPage() {
           <input
             className="form-input"
             value={form.slug}
-            onChange={(e) => setForm({ ...form, slug: e.target.value })}
+            onChange={(e) => { setSlugTouched(true); setForm({ ...form, slug: e.target.value }); }}
           />
         </div>
         <div className="form-actions">
