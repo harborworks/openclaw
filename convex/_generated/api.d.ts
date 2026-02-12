@@ -17,6 +17,7 @@ import type * as agents from "../agents.js";
 import type * as harbors from "../harbors.js";
 import type * as http from "../http.js";
 import type * as lib_admin from "../lib/admin.js";
+import type * as lib_agentNames from "../lib/agentNames.js";
 import type * as orgs from "../orgs.js";
 import type * as secrets from "../secrets.js";
 import type * as seed from "../seed.js";
@@ -38,6 +39,7 @@ declare const fullApi: ApiFromModules<{
   harbors: typeof harbors;
   http: typeof http;
   "lib/admin": typeof lib_admin;
+  "lib/agentNames": typeof lib_agentNames;
   orgs: typeof orgs;
   secrets: typeof secrets;
   seed: typeof seed;

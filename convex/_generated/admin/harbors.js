@@ -2,6 +2,7 @@ import { query, mutation } from "../_generated/server";
 import { v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { requireSuperAdmin } from "../lib/admin";
+import { randomAgentName } from "../lib/agentNames";
 export const list = query({
     args: {
         cognitoSub: v.string(),
@@ -42,7 +43,7 @@ export const create = mutation({
         });
         // Seed default "main" agent
         await ctx.db.insert("agents", {
-            name: "Main",
+            name: randomAgentName(),
             sessionKey: "main",
             role: "project-manager",
             model: "opus4.6",

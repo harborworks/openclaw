@@ -66,7 +66,7 @@ function AgentForm({
   onSave: (data: { name: string; sessionKey: string; role: string; model?: string }) => void;
   onCancel: () => void;
 }) {
-  const [name, setName] = useState(initial?.name ?? "");
+  const [name, setName] = useState(initial?.name ?? (isEdit ? "" : randomAgentName(existingNames)));
   const [sessionKey, setSessionKey] = useState(initial?.sessionKey ?? "");
   const [role, setRole] = useState(initial?.role ?? "");
   const [model, setModel] = useState(initial?.model ?? "opus4.6");
@@ -104,10 +104,10 @@ function AgentForm({
           </div>
         </label>
         <label className="agent-field">
-          <span className="agent-field-label">Session Key</span>
+          <span className="agent-field-label">Agent ID</span>
           <input
             className={`agent-input${isEdit ? " agent-input-readonly" : ""}`}
-            placeholder="Session Key"
+            placeholder="Agent ID"
             value={sessionKey}
             onChange={(e) => !isEdit && setSessionKey(e.target.value)}
             readOnly={isEdit}
