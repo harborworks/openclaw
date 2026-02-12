@@ -32,6 +32,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(
     async (email: string, password: string) => {
+      // Clear any existing session to avoid "already signed in" error
+      try { await signOut(); } catch { /* ignore */ }
       const result = await signIn({ username: email, password });
       if (result.isSignedIn) {
         const user = await resolveUser();
@@ -62,6 +64,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setState({ user: null, loading: false });
   }, []);
 
+  const refresh = useCallback(async () => {
+    const user = await resolveUser();
+    setState({ user, loading: false });
+  }, [resolveUser]);
+
   const getIdToken = useCallback(async () => {
     const session = await fetchAuthSession();
     return session.tokens?.idToken?.toString();
@@ -69,7 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ ...state, login, register, confirmRegistration, logout, getIdToken }}
+      value={{ ...state, login, register, confirmRegistration, logout, refresh, getIdToken }}
     >
       {children}
     </AuthContext.Provider>

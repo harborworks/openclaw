@@ -3,7 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../auth";
 
 export function LoginPage() {
-  const { login } = useAuth();
+  const { login, refresh } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -49,6 +49,7 @@ export function LoginPage() {
       const { confirmSignIn } = await import("aws-amplify/auth");
       const result = await confirmSignIn({ challengeResponse: newPassword });
       if (result.isSignedIn) {
+        await refresh();
         navigate("/", { replace: true });
       }
     } catch (err: unknown) {
