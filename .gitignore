@@ -5,4 +5,3 @@ dist/
 .env.local
 .harbor-host/
 *.tsbuildinfo
-convex/_generated/

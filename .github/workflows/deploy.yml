@@ -15,12 +15,6 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Install root deps
-        run: npm ci
-
-      - name: Generate Convex types
-        run: npx convex codegen
-
       - name: Install frontend
         working-directory: frontend
         run: npm ci
