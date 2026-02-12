@@ -157,7 +157,7 @@ function AgentForm({
         <button type="submit" className="admin-btn admin-btn-accent" disabled={saving}>
           {initial ? "Save" : "Create"}
         </button>
-        <button type="button" className="admin-btn admin-btn-accent" onClick={onCancel} disabled={saving}>
+        <button type="button" className="admin-btn admin-btn-accent-muted" onClick={onCancel} disabled={saving}>
           Cancel
         </button>
       </div>

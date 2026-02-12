@@ -354,6 +354,17 @@ body {
   border-color: #93bbfd;
 }
 
+.admin-btn-accent-muted {
+  color: var(--text-secondary);
+  border-color: var(--color-ocean);
+  background: transparent;
+}
+
+.admin-btn-accent-muted:hover {
+  color: var(--text-primary);
+  background: var(--overlay-hover);
+}
+
 .admin-btn-primary {
   background: var(--color-ocean);
   border-color: var(--color-ocean);
