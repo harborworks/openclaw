@@ -751,10 +751,11 @@ body {
 
 /* Agents */
 .agents-list {
-  display: flex;
-  flex-direction: column;
+  display: table;
+  width: 100%;
   border: 1px solid var(--border-light);
   border-radius: var(--radius-lg);
+  border-spacing: 0;
   overflow: hidden;
 }
 
@@ -765,24 +766,26 @@ body {
 }
 
 .agent-row {
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  align-items: center;
-  gap: var(--space-md);
-  padding: 0.75rem 1rem;
+  display: table-row;
+}
+
+.agent-row:not(:last-child) > * {
   border-bottom: 1px solid var(--border-subtle);
 }
 
-.agent-row:last-child {
-  border-bottom: none;
+.agent-row > * {
+  display: table-cell;
+  padding: 0.75rem var(--space-md);
+  vertical-align: middle;
+  white-space: nowrap;
 }
 
-.agent-row-info {
-  display: grid;
-  grid-template-columns: auto auto auto auto;
-  gap: 0 var(--space-lg);
-  align-items: center;
-  justify-content: start;
+.agent-row > *:first-child {
+  padding-left: 1rem;
+}
+
+.agent-row > *:last-child {
+  padding-right: 1rem;
 }
 
 .agent-row-name {
@@ -837,7 +840,7 @@ body {
 .agent-row-actions {
   display: flex;
   gap: var(--space-xs);
-  flex-shrink: 0;
+  justify-content: flex-end;
 }
 
 .agent-btn-danger {
