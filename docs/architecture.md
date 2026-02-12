@@ -1,5 +1,35 @@
 # Harbor App Architecture
 
+## URL Structure & Navigation
+
+Routes follow the pattern `/:orgSlug/:harborSlug/<feature>`:
+
+```
+/sparrow/main/secrets
+/sparrow/main/agents    (future)
+/sparrow/staging/secrets
+```
+
+### Resolution Flow
+
+1. `HarborProvider` reads `orgSlug` and `harborSlug` from URL params
+2. `orgs.resolveBySlug` verifies the user has membership in the org and the harbor exists
+3. If invalid → redirect to `/`
+4. If valid → provides `HarborContext` (harborId, orgId, basePath, etc.) to all child routes
+
+### Auto-redirect
+
+On `/`, `HarborRedirect` checks:
+1. `lastOrgSlug`/`lastHarborSlug` on the user record (set on every navigation)
+2. Falls back to first org/first harbor via `orgs.listWithHarbors`
+
+### Data Model Notes
+
+- **Org slugs** are globally unique (`orgs.by_slug` index)
+- **Harbor slugs** are unique within an org (`harbors.by_org_slug` index)
+- **Users** no longer have a `name` field (deprecated, optional). Identified by email.
+- **Users** store `lastOrgSlug`/`lastHarborSlug` for redirect preference
+
 ## Secrets & Config Pipeline
 
 ### Overview
