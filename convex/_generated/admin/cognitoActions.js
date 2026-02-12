@@ -51,7 +51,8 @@ async function cognitoRequest(region, accessKeyId, secretAccessKey, target, body
         const text = await res.text();
         throw new Error(`Cognito ${target.split(".").pop()} failed: ${res.status} ${text}`);
     }
-    return (await res.json());
+    const text = await res.text();
+    return text ? JSON.parse(text) : {};
 }
 function getAwsConfig() {
     const userPoolId = process.env.COGNITO_USER_POOL_ID;

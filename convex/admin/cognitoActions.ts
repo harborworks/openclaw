@@ -72,7 +72,8 @@ async function cognitoRequest(
     throw new Error(`Cognito ${target.split(".").pop()} failed: ${res.status} ${text}`);
   }
 
-  return (await res.json()) as any;
+  const text = await res.text();
+  return text ? JSON.parse(text) : {};
 }
 
 function getAwsConfig() {
