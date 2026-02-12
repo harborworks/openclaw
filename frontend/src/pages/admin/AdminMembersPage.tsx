@@ -82,14 +82,13 @@ export function AdminMembersPage() {
 
   const handleDelete = useCallback(
     async (row: Member) => {
-      if (!confirm(`Remove ${row.userName} from ${row.orgName}?`)) return;
+      if (!confirm(`Remove ${row.userEmail} from ${row.orgName}?`)) return;
       await removeMember({ cognitoSub, id: row._id as any });
     },
     [cognitoSub, removeMember]
   );
 
   const columns: Column<Member>[] = [
-    { key: "user", header: "User", render: (r) => r.userName },
     { key: "email", header: "Email", render: (r) => r.userEmail },
     { key: "org", header: "Organization", render: (r) => r.orgName },
     {
@@ -141,7 +140,7 @@ export function AdminMembersPage() {
               >
                 <option value="">Select user…</option>
                 {users.map((u) => (
-                  <option key={u._id} value={u._id}>{u.name} ({u.email})</option>
+                  <option key={u._id} value={u._id}>{u.email}</option>
                 ))}
               </select>
             </div>
