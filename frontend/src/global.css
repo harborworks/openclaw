@@ -938,3 +938,16 @@ select.agent-input {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* Agent delete confirmation */
+.agent-delete-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.agent-delete-warning {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  line-height: 1.5;
+}

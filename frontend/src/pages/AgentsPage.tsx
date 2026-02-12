@@ -211,6 +211,7 @@ export function AgentsPage() {
 
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState<Id<"agents"> | null>(null);
+  const [deletingId, setDeletingId] = useState<Id<"agents"> | null>(null);
   const [saving, setSaving] = useState(false);
 
   const handleCreate = async (data: { name: string; sessionKey: string; role: string; model?: string }) => {
@@ -235,10 +236,10 @@ export function AgentsPage() {
   };
 
   const handleDelete = async (id: Id<"agents">) => {
-    if (!confirm("Delete this agent? This cannot be undone.")) return;
     setSaving(true);
     try {
       await removeAgent({ id });
+      setDeletingId(null);
     } finally {
       setSaving(false);
     }
@@ -262,7 +263,7 @@ export function AgentsPage() {
             saving={saving}
             canDelete={agent.sessionKey !== "main"}
             onEdit={() => setEditingId(agent._id)}
-            onDelete={() => handleDelete(agent._id)}
+            onDelete={() => setDeletingId(agent._id)}
           />
         ))}
       </div>
@@ -301,6 +302,40 @@ export function AgentsPage() {
               onSave={(data) => handleUpdate(agent._id, data)}
               onCancel={() => setEditingId(null)}
             />
+          );
+        })()}
+      </Modal>
+
+      <Modal
+        open={!!deletingId}
+        onClose={() => setDeletingId(null)}
+        title="Delete Agent"
+      >
+        {deletingId && (() => {
+          const agent = sortedAgents.find((a) => a._id === deletingId);
+          if (!agent) return null;
+          return (
+            <div className="agent-delete-confirm">
+              <p className="agent-delete-warning">
+                ⚠️ This will permanently remove <strong>{agent.name}</strong> ({agent.sessionKey}) from this harbor. This cannot be undone.
+              </p>
+              <div className="agent-form-actions">
+                <button
+                  className="admin-btn admin-btn-danger"
+                  disabled={saving}
+                  onClick={() => handleDelete(agent._id)}
+                >
+                  Delete Agent
+                </button>
+                <button
+                  className="admin-btn admin-btn-accent-muted"
+                  disabled={saving}
+                  onClick={() => setDeletingId(null)}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
           );
         })()}
       </Modal>
