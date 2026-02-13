@@ -15,8 +15,7 @@ set -euo pipefail
 ##   --api-key <key>          Harbor API key (required on first deploy)
 ##   --convex-url <url>       Convex deployment URL (default: production)
 ##   --gateway-token <token>  Gateway auth token (auto-generated if not set)
-##   --daemon-version <tag>   Daemon image tag (default: latest)
-##   --gateway-version <tag>  Gateway image tag (default: latest)
+##   --version <tag>          Image tag for daemon + gateway (default: latest)
 ##   --gateway-port <port>    Gateway port on host (default: 18789)
 ##   --deploy-dir <path>      Remote deploy directory (default: /home/ubuntu/harbor)
 ##   --dry-run                Print what would be done without executing
@@ -28,8 +27,7 @@ REPO_DIR="$(dirname "$SCRIPT_DIR")"
 # Defaults
 CONVEX_URL="https://cool-kingfisher-264.convex.cloud"  # production
 GATEWAY_TOKEN=""
-DAEMON_VERSION="latest"
-GATEWAY_VERSION="latest"
+VERSION="latest"
 GATEWAY_PORT="18789"
 DEPLOY_DIR="/home/ubuntu/harbor"
 HARBOR_ID=""
@@ -52,8 +50,7 @@ while [[ $# -gt 0 ]]; do
     --api-key)         API_KEY="$2";          shift 2 ;;
     --convex-url)      CONVEX_URL="$2";       shift 2 ;;
     --gateway-token)   GATEWAY_TOKEN="$2";    shift 2 ;;
-    --daemon-version)  DAEMON_VERSION="$2";   shift 2 ;;
-    --gateway-version) GATEWAY_VERSION="$2";  shift 2 ;;
+    --version)         VERSION="$2";          shift 2 ;;
     --gateway-port)    GATEWAY_PORT="$2";     shift 2 ;;
     --deploy-dir)      DEPLOY_DIR="$2";       shift 2 ;;
     --dry-run)         DRY_RUN=true;          shift ;;
@@ -196,15 +193,15 @@ HARBOR_ID=${HARBOR_ID}
 HARBOR_API_KEY=${API_KEY}
 OPENCLAW_GATEWAY_TOKEN=${GATEWAY_TOKEN}
 GATEWAY_PORT=${GATEWAY_PORT}
-DAEMON_VERSION=${DAEMON_VERSION}
-GATEWAY_VERSION=${GATEWAY_VERSION}
+DAEMON_VERSION=${VERSION}
+GATEWAY_VERSION=${VERSION}
 OPENCLAW_CONFIG_DIR=${DEPLOY_DIR}/config
 OPENCLAW_WORKSPACE_DIR=${DEPLOY_DIR}/workspaces"
 else
   # Update versions in existing .env.host
-  if [[ "$DAEMON_VERSION" != "latest" || "$GATEWAY_VERSION" != "latest" ]]; then
+  if [[ "$VERSION" != "latest" ]]; then
     log "Updating image versions..."
-    ssm_run_as "cd ${DEPLOY_DIR} && sed -i 's/^DAEMON_VERSION=.*/DAEMON_VERSION=${DAEMON_VERSION}/' .env.host && sed -i 's/^GATEWAY_VERSION=.*/GATEWAY_VERSION=${GATEWAY_VERSION}/' .env.host"
+    ssm_run_as "cd ${DEPLOY_DIR} && sed -i 's/^DAEMON_VERSION=.*/DAEMON_VERSION=${VERSION}/' .env.host && sed -i 's/^GATEWAY_VERSION=.*/GATEWAY_VERSION=${VERSION}/' .env.host"
   fi
   # Ensure config/workspace dirs point to new layout
   log "Updating config/workspace paths..."
