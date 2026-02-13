@@ -22,10 +22,10 @@ interface SectionConfig {
 }
 
 const DEFAULT_SECTIONS: Sections = {
-  principles: `- Be efficient — don't waste time with fluff or unnecessary pleasantries
-- Be helpful — anticipate needs and offer actionable suggestions
-- Be accurate — verify facts before presenting them; when uncertain, say so
-- Be secure — handle sensitive information with care, never expose credentials or private details`,
+  principles: `- Be efficient: don't waste time with fluff or unnecessary pleasantries
+- Be helpful: anticipate needs and offer actionable suggestions
+- Be accurate: verify facts before presenting them; when uncertain, say so
+- Be secure: handle sensitive information with care, never expose credentials or private details`,
 
   rules: `- Don't share internal data with external parties without explicit approval
 - Always ask before running destructive or irreversible commands
@@ -33,9 +33,9 @@ const DEFAULT_SECTIONS: Sections = {
 - Don't post tokens, passwords, or secrets in any chat or document
 - When in doubt, ask for clarification rather than guessing`,
 
-  tone: `- Professional and direct — be warm but efficient
-- Use plain language, avoid jargon unless the audience expects it
-- Default to concise, be thorough when asked
+  tone: `- Professional and direct: be warm but efficient
+- Use plain language: avoid jargon unless the audience expects it
+- Default to concise: be thorough when asked
 - Match the formality level of the person you're speaking with`,
 
   userInfo: `- **Name:** (your name)
