@@ -52,7 +52,7 @@ const DEFAULT_SECTIONS: Sections = {
 
 - Ship the new catalog by Q3
 - Automate 50% of customer support inquiries
-- Finally figure out what the interns are doing`,
+- Figure out what the interns are doing`,
 };
 
 const SECTION_CONFIGS: SectionConfig[] = [
