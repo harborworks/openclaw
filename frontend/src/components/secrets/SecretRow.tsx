@@ -43,15 +43,16 @@ export function SecretRow({
               >
                 {secret?.isSet ? "Replace" : "Set"}
               </button>
-              {onDelete && !confirmDelete && (
+              {!confirmDelete && (
                 <button
                   className="admin-btn admin-btn-sm admin-btn-danger"
                   onClick={() => setConfirmDelete(true)}
+                  style={onDelete ? undefined : { visibility: "hidden" }}
                 >
                   Delete
                 </button>
               )}
-              {onDelete && confirmDelete && (
+              {confirmDelete && (
                 <div className="secret-delete-confirm">
                   <button
                     className="admin-btn admin-btn-sm"
@@ -62,7 +63,7 @@ export function SecretRow({
                   <button
                     className="admin-btn admin-btn-sm admin-btn-danger"
                     onClick={() => {
-                      onDelete();
+                      onDelete?.();
                       setConfirmDelete(false);
                     }}
                   >
