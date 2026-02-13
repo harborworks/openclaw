@@ -1088,10 +1088,18 @@ select.agent-input {
   max-width: 720px;
 }
 
+.prompts-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+  gap: 1rem;
+}
+
 .prompts-intro {
   font-size: 0.85rem;
   color: var(--text-muted);
-  margin: 0 0 1.5rem 0;
+  margin: 0;
 }
 
 .prompts-sections {
