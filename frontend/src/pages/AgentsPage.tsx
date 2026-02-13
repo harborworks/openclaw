@@ -227,6 +227,7 @@ export function AgentsPage() {
   const handleUpdate = async (id: Id<"agents">, data: { name: string; sessionKey: string; role: string; model?: string }) => {
     setSaving(true);
     try {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { sessionKey: _, ...updateData } = data;
       await updateAgent({ id, ...updateData });
       setEditingId(null);
