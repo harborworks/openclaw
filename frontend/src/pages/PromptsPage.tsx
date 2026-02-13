@@ -38,9 +38,14 @@ const DEFAULT_SECTIONS: Sections = {
 - Default to concise: be thorough when asked
 - Match the formality level of the person you're speaking with`,
 
-  userInfo: `- **Name:** (your name)
-- **Timezone:** (your timezone, e.g. America/New_York)
-- **Preferences:** (communication style, formatting preferences, etc.)`,
+  userInfo: `- Name: (your name)
+- Timezone: (your timezone, e.g. America/Chicago)
+- Preferences: (communication style, formatting preferences, etc.)
+
+## Goals
+
+- Grow revenue by 30%
+- Decrease churn by 10%`,
 };
 
 const SECTION_CONFIGS: SectionConfig[] = [
