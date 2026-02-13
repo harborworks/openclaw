@@ -52,6 +52,8 @@ export default defineSchema({
         model: v.optional(v.string()),
         status: v.union(v.literal("idle"), v.literal("active"), v.literal("blocked")),
         currentTaskId: v.optional(v.id("tasks")),
+        roleDescription: v.optional(v.string()),
+        additionalInstructions: v.optional(v.string()),
         harborId: v.id("harbors"),
         telegramBotToken: v.optional(v.string()),
     })
@@ -172,6 +174,31 @@ export default defineSchema({
     })
         .index("by_harbor", ["harborId"])
         .index("by_harbor_name", ["harborId", "name"]),
+    // ── Prompt Templates ────────────────────────────────────────────────
+    // Platform-wide templates managed by super admins. Rendered with
+    // Handlebars and synced to agent workspaces by the daemon.
+    promptTemplates: defineTable({
+        fileKey: v.string(), // e.g. "SOUL.md", "IDENTITY.md"
+        content: v.string(), // Handlebars template markdown
+        version: v.number(), // incrementing, used for sync detection
+        updatedBy: v.optional(v.string()), // cognitoSub
+        updatedAt: v.number(),
+    })
+        .index("by_file", ["fileKey"]),
+    // ── Harbor Prompts ─────────────────────────────────────────────────
+    // Harbor-level section overrides that fill template placeholders.
+    harborPrompts: defineTable({
+        harborId: v.id("harbors"),
+        sections: v.object({
+            principles: v.optional(v.string()),
+            rules: v.optional(v.string()),
+            tone: v.optional(v.string()),
+            userInfo: v.optional(v.string()),
+            toolNotes: v.optional(v.string()),
+        }),
+        updatedAt: v.number(),
+    })
+        .index("by_harbor", ["harborId"]),
     // ── Subscriptions ──────────────────────────────────────────────────
     // Agents subscribed to task threads for notifications.
     subscriptions: defineTable({

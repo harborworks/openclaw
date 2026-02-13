@@ -45,7 +45,7 @@ export const create = mutation({
         const agentName = randomAgentName();
         await ctx.db.insert("agents", {
             name: agentName,
-            sessionKey: agentName.toLowerCase(),
+            sessionKey: "main",
             role: "project-manager",
             model: "opus4.6",
             status: "idle",

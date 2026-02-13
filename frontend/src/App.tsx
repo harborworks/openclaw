@@ -11,6 +11,7 @@ import { AdminUsersPage } from "./pages/admin/AdminUsersPage";
 import { AdminOrgsPage } from "./pages/admin/AdminOrgsPage";
 import { AdminMembersPage } from "./pages/admin/AdminMembersPage";
 import { AdminHarborsPage } from "./pages/admin/AdminHarborsPage";
+import { AdminPromptsPage } from "./pages/admin/AdminPromptsPage";
 import { SecretsPage } from "./pages/SecretsPage";
 import { AgentsPage } from "./pages/AgentsPage";
 import { HarborProvider } from "./contexts/HarborContext";
@@ -96,6 +97,19 @@ function AppRoutes() {
             <AdminRoute>
               <Layout>
                 <AdminHarborsPage />
+              </Layout>
+            </AdminRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/prompts"
+        element={
+          <ProtectedRoute>
+            <AdminRoute>
+              <Layout>
+                <AdminPromptsPage />
               </Layout>
             </AdminRoute>
           </ProtectedRoute>

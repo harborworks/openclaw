@@ -25,6 +25,12 @@ const adminSections = [
     path: "/admin/harbors",
     icon: "⚓",
   },
+  {
+    title: "Prompt Templates",
+    description: "Manage platform-wide prompt templates",
+    path: "/admin/prompts",
+    icon: "📝",
+  },
 ];
 
 export function AdminPage() {

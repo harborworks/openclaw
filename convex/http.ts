@@ -208,4 +208,30 @@ http.route({
   }),
 });
 
+// GET /api/daemon/prompts — get templates + harbor sections for rendering
+http.route({
+  path: "/api/daemon/prompts",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    const auth = await authenticate(ctx, request);
+    if (!auth.ok) return auth.response;
+
+    const [templates, harborPrompts, harbor] = await Promise.all([
+      ctx.runQuery(internal.promptTemplates.listInternal, {}),
+      ctx.runQuery(internal.harborPrompts.getInternal, {
+        harborId: auth.harborId as any,
+      }),
+      ctx.runQuery(internal.harbors.getById, {
+        id: auth.harborId as any,
+      }),
+    ]);
+
+    return json({
+      templates,
+      harborPrompts,
+      harbor: harbor ? { name: harbor.name, slug: harbor.slug } : null,
+    });
+  }),
+});
+
 export default http;

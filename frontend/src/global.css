@@ -951,3 +951,133 @@ select.agent-input {
   color: var(--text-secondary);
   line-height: 1.5;
 }
+
+/* ── Prompt Templates ──────────────────────────────────────────────── */
+
+.prompt-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  background: var(--surface-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.prompt-card {
+  display: block;
+  width: 100%;
+  padding: 1rem 1.25rem;
+  border: none;
+  border-bottom: 1px solid var(--border-subtle);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s;
+  color: inherit;
+  font: inherit;
+}
+
+.prompt-card:last-child {
+  border-bottom: none;
+}
+
+.prompt-card:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.prompt-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.25rem;
+}
+
+.prompt-card-file {
+  font-size: var(--font-size-sm);
+  color: var(--color-sky);
+  font-family: 'SF Mono', Monaco, Consolas, monospace;
+  font-weight: 600;
+}
+
+.prompt-card-version {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.prompt-card-desc {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+/* ── Prompt Editor ─────────────────────────────────────────────────── */
+
+.prompt-editor {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 120px);
+}
+
+.prompt-editor-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 1rem;
+}
+
+.prompt-editor-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.prompt-editor-meta {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.prompt-editor-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.prompt-editor-textarea {
+  flex: 1;
+  width: 100%;
+  padding: 1rem;
+  background: var(--surface-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-family: 'SF Mono', Monaco, Consolas, monospace;
+  font-size: 0.8rem;
+  line-height: 1.6;
+  resize: none;
+  outline: none;
+}
+
+.prompt-editor-textarea:focus {
+  border-color: var(--color-accent);
+}
+
+.prompt-editor-hint {
+  margin-top: 0.75rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.prompt-editor-hint code {
+  background: rgba(255, 255, 255, 0.06);
+  padding: 0.1rem 0.3rem;
+  border-radius: 3px;
+  font-size: 0.7rem;
+}
+
+.admin-loading {
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+  padding: 2rem 0;
+}

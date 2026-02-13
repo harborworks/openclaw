@@ -10,7 +10,8 @@ import * as path from "path";
 import { initKeypair, syncSecrets, registerPublicKey } from "./secrets.js";
 import type { ConvexApiConfig } from "./secrets.js";
 import { GatewayClient, configApi } from "./gateway-client.js";
-import { syncAgents } from "./agents.js";
+import { syncAgents, fetchAgents } from "./agents.js";
+import { syncPrompts } from "./prompts.js";
 
 // --- Config ---
 const TICK_INTERVAL_MS = parseInt(process.env.TICK_INTERVAL_MS || "5000", 10);
@@ -113,13 +114,21 @@ async function tick() {
     log(`Secrets sync error: ${err instanceof Error ? err.message : err}`);
   }
 
+  let agents: Awaited<ReturnType<typeof fetchAgents>> = [];
   try {
+    agents = await fetchAgents(convexApi);
     await syncAgents(convexApi, gateway, WORKSPACES_DIR);
   } catch (err) {
     log(`Agent sync error: ${err instanceof Error ? err.message : err}`);
   }
 
-  // TODO: Sync templates, cron jobs
+  try {
+    await syncPrompts(convexApi, agents, WORKSPACES_DIR);
+  } catch (err) {
+    log(`Prompt sync error: ${err instanceof Error ? err.message : err}`);
+  }
+
+  // TODO: Sync cron jobs
 }
 
 async function startHttpServer() {

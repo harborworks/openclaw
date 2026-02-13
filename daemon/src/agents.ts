@@ -25,6 +25,8 @@ export interface ConvexAgent {
   role: string;
   model?: string;
   status: string;
+  roleDescription?: string;
+  additionalInstructions?: string;
 }
 
 interface GatewayAgentConfig {
