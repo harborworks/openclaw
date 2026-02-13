@@ -126,21 +126,29 @@ function AgentForm({
         </label>
         <label className="agent-field">
           <span className="agent-field-label">Role</span>
-          <select
-            className="agent-input"
-            value={role}
-            onChange={(e) => setRole(e.target.value)}
-            required
-          >
-            <option value="">Select Role</option>
-            {ROLE_OPTIONS.map((group) => (
-              <optgroup key={group.group} label={group.group}>
-                {group.roles.map((r) => (
-                  <option key={r} value={roleToValue(r)}>{r}</option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
+          {isEdit ? (
+            <input
+              className="agent-input agent-input-readonly"
+              value={roleToDisplay(role)}
+              readOnly
+            />
+          ) : (
+            <select
+              className="agent-input"
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              required
+            >
+              <option value="">Select Role</option>
+              {ROLE_OPTIONS.map((group) => (
+                <optgroup key={group.group} label={group.group}>
+                  {group.roles.map((r) => (
+                    <option key={r} value={roleToValue(r)}>{r}</option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+          )}
         </label>
         <label className="agent-field">
           <span className="agent-field-label">Model</span>
@@ -189,7 +197,6 @@ function AgentRow({
         <span className="agent-row-detail">{agent.model ? modelToDisplay(agent.model) : "—"}</span>
       </div>
       <div className="agent-row-right">
-        <span className={`agent-status agent-status-${agent.status}`}>{agent.status}</span>
         <button className="admin-btn admin-btn-sm" onClick={onEdit} disabled={saving}>Edit</button>
         <button
           className="admin-btn admin-btn-sm agent-btn-danger"
