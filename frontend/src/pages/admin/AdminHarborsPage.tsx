@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { BackButton } from "../../components/BackButton";
 import { usePaginatedQuery, useMutation } from "convex/react";
 import { api } from "@convex/api";
 import type { Id } from "@convex/dataModel";
@@ -19,7 +19,6 @@ type Harbor = {
 const PAGE_SIZE = 25;
 
 export function AdminHarborsPage() {
-  const navigate = useNavigate();
   const { user: authUser } = useAuth();
   const cognitoSub = authUser?.userId;
   const { results, status, loadMore } = usePaginatedQuery(
@@ -103,7 +102,7 @@ export function AdminHarborsPage() {
     <div>
       <div className="admin-header">
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <button className="admin-back" onClick={() => navigate("/admin")}><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M12 5L7 10L12 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg></button>
+          <BackButton to="/admin" />
           <h1>Harbors</h1>
         </div>
         <button className="admin-btn admin-btn-primary" onClick={openCreate}>

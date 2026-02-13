@@ -3,6 +3,7 @@ import { useQuery } from "convex/react";
 import { api } from "@convex/api";
 import { useAuth } from "../auth";
 import { useOptionalHarborContext } from "../contexts/HarborContext";
+import { useCurrentUser } from "../hooks/useCurrentUser";
 import { Dropdown, ChevronDown } from "./Dropdown";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -25,8 +26,10 @@ interface OrgWithHarbors {
 export function OrgHarborSwitcher() {
   const { user } = useAuth();
   const harbor = useOptionalHarborContext();
+  const dbUser = useCurrentUser();
   const navigate = useNavigate();
   const location = useLocation();
+  const isAdmin = location.pathname.startsWith("/admin");
 
   // Extract the current sub-page (e.g. "agents", "secrets") from the URL
   const currentPage = harbor
@@ -40,6 +43,22 @@ export function OrgHarborSwitcher() {
   ) as OrgWithHarbors[] | undefined;
 
   if (!orgs || orgs.length === 0) return null;
+
+  // On admin pages, show last harbor as disabled label
+  if (isAdmin) {
+    const lastOrg = orgs.find((o) => o.slug === dbUser?.lastOrgSlug);
+    const lastHarbor = lastOrg?.harbors.find((h) => h.slug === dbUser?.lastHarborSlug);
+    if (lastOrg && lastHarbor) {
+      return (
+        <div className="switcher">
+          <span className="switcher-label switcher-label-muted">
+            {lastOrg.name} <span className="switcher-sep">/</span> {lastHarbor.name}
+          </span>
+        </div>
+      );
+    }
+    return null;
+  }
 
   const totalHarbors = orgs.reduce((n, o) => n + o.harbors.length, 0);
   const multiOrg = orgs.length > 1;

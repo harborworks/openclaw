@@ -65,6 +65,7 @@ export const update = mutation({
     id: v.id("users"),
     email: v.optional(v.string()),
     isSuperAdmin: v.optional(v.boolean()),
+    isStaff: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const caller = await requireSuperAdmin(ctx, args.cognitoSub);
@@ -79,6 +80,7 @@ export const update = mutation({
     const patch: Record<string, unknown> = {};
     if (args.email !== undefined) patch.email = args.email;
     if (args.isSuperAdmin !== undefined) patch.isSuperAdmin = args.isSuperAdmin;
+    if (args.isStaff !== undefined) patch.isStaff = args.isStaff;
     await ctx.db.patch(args.id, patch);
   },
 });

@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { BackButton } from "../../components/BackButton";
 import { usePaginatedQuery, useMutation, useAction } from "convex/react";
 
 import { api } from "@convex/api";
@@ -13,12 +13,12 @@ type User = {
   email: string;
   cognitoSub: string;
   isSuperAdmin?: boolean;
+  isStaff?: boolean;
 };
 
 const PAGE_SIZE = 25;
 
 export function AdminUsersPage() {
-  const navigate = useNavigate();
   const { user: authUser } = useAuth();
   const cognitoSub = authUser?.userId;
   const { results, status, loadMore } = usePaginatedQuery(
@@ -33,19 +33,19 @@ export function AdminUsersPage() {
 
   const [modal, setModal] = useState<"invite" | "edit" | null>(null);
   const [editing, setEditing] = useState<User | null>(null);
-  const [form, setForm] = useState({ email: "", isSuperAdmin: false });
+  const [form, setForm] = useState({ email: "", isSuperAdmin: false, isStaff: false });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
   const openInvite = () => {
-    setForm({ email: "", isSuperAdmin: false });
+    setForm({ email: "", isSuperAdmin: false, isStaff: false });
     setError("");
     setModal("invite");
   };
 
   const openEdit = (row: User) => {
     setEditing(row);
-    setForm({ email: row.email, isSuperAdmin: !!row.isSuperAdmin });
+    setForm({ email: row.email, isSuperAdmin: !!row.isSuperAdmin, isStaff: !!row.isStaff });
     setError("");
     setModal("edit");
   };
@@ -69,6 +69,7 @@ export function AdminUsersPage() {
           id: editing._id,
           email: form.email,
           isSuperAdmin: form.isSuperAdmin,
+          isStaff: form.isStaff,
         });
       }
       setModal(null);
@@ -105,6 +106,8 @@ export function AdminUsersPage() {
       render: (r) =>
         r.isSuperAdmin ? (
           <span className="badge badge-amber">Super Admin</span>
+        ) : r.isStaff ? (
+          <span className="badge badge-sky">Staff</span>
         ) : (
           <span className="badge badge-blue">User</span>
         ),
@@ -115,7 +118,7 @@ export function AdminUsersPage() {
     <div>
       <div className="admin-header">
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <button className="admin-back" onClick={() => navigate("/admin")}><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M12 5L7 10L12 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg></button>
+          <BackButton to="/admin" />
           <h1>Users</h1>
         </div>
         <button className="admin-btn admin-btn-primary" onClick={openInvite}>
@@ -158,12 +161,23 @@ export function AdminUsersPage() {
           <label className="form-check">
             <input
               type="checkbox"
-              checked={form.isSuperAdmin}
-              onChange={(e) => setForm({ ...form, isSuperAdmin: e.target.checked })}
+              checked={form.isStaff}
+              onChange={(e) => setForm({ ...form, isStaff: e.target.checked })}
               disabled={modal === "edit" && editing != null && isSelf(editing)}
             />
-            Super Admin
+            Staff
           </label>
+          {modal === "edit" && (
+            <label className="form-check">
+              <input
+                type="checkbox"
+                checked={form.isSuperAdmin}
+                onChange={(e) => setForm({ ...form, isSuperAdmin: e.target.checked })}
+                disabled={editing != null && isSelf(editing)}
+              />
+              Super Admin
+            </label>
+          )}
           {modal === "edit" && editing != null && isSelf(editing) && (
             <p style={{ color: "var(--text-muted)", fontSize: "0.8rem", marginTop: 4 }}>
               You cannot change your own admin status

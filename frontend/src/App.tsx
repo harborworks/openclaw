@@ -5,15 +5,17 @@ import { LoginPage } from "./pages/LoginPage";
 import { ConfirmPage } from "./pages/ConfirmPage";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { Layout } from "./components/Layout";
-import { AdminRoute } from "./components/AdminRoute";
+import { AdminRoute, SuperAdminRoute } from "./components/AdminRoute";
 import { AdminPage } from "./pages/AdminPage";
 import { AdminUsersPage } from "./pages/admin/AdminUsersPage";
 import { AdminOrgsPage } from "./pages/admin/AdminOrgsPage";
 import { AdminMembersPage } from "./pages/admin/AdminMembersPage";
 import { AdminHarborsPage } from "./pages/admin/AdminHarborsPage";
 import { AdminPromptsPage } from "./pages/admin/AdminPromptsPage";
+import { AdminPromptEditPage } from "./pages/admin/AdminPromptEditPage";
 import { SecretsPage } from "./pages/SecretsPage";
 import { AgentsPage } from "./pages/AgentsPage";
+import { PromptsPage } from "./pages/PromptsPage";
 import { HarborProvider } from "./contexts/HarborContext";
 import { HarborRedirect } from "./components/HarborRedirect";
 import { CONVEX_URL } from "./convex";
@@ -108,9 +110,25 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <AdminRoute>
-              <Layout>
-                <AdminPromptsPage />
-              </Layout>
+              <SuperAdminRoute>
+                <Layout>
+                  <AdminPromptsPage />
+                </Layout>
+              </SuperAdminRoute>
+            </AdminRoute>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/prompts/:fileKey"
+        element={
+          <ProtectedRoute>
+            <AdminRoute>
+              <SuperAdminRoute>
+                <Layout>
+                  <AdminPromptEditPage />
+                </Layout>
+              </SuperAdminRoute>
             </AdminRoute>
           </ProtectedRoute>
         }
@@ -153,6 +171,7 @@ function HarborRoutes() {
   return (
     <Routes>
       <Route path="agents" element={<AgentsPage />} />
+      <Route path="prompts" element={<PromptsPage />} />
       <Route path="secrets" element={<SecretsPage />} />
       <Route index element={<Navigate to="agents" replace />} />
       <Route path="*" element={<Navigate to="agents" replace />} />
