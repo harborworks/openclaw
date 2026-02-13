@@ -261,6 +261,28 @@ export default defineSchema({
   })
     .index("by_harbor", ["harborId"]),
 
+  // ── Channel Pairing ─────────────────────────────────────────────────
+  // Pending and approved pairing requests for channel DMs.
+  // Synced from gateway pairing files by the daemon.
+  pairingRequests: defineTable({
+    channel: v.string(), // "telegram"
+    senderId: v.string(), // e.g. telegram user id
+    code: v.string(), // pairing code
+    senderMeta: v.optional(v.any()), // { username, firstName, etc. }
+    status: v.union(
+      v.literal("pending"),
+      v.literal("approved"),
+      v.literal("rejected"),
+    ),
+    createdAt: v.string(), // ISO timestamp from gateway
+    resolvedAt: v.optional(v.number()), // when approved/rejected in UI
+    harborId: v.id("harbors"),
+    accountId: v.optional(v.string()), // telegram account id (agent sessionKey)
+  })
+    .index("by_harbor", ["harborId"])
+    .index("by_harbor_channel", ["harborId", "channel"])
+    .index("by_harbor_status", ["harborId", "status"]),
+
   // ── Subscriptions ──────────────────────────────────────────────────
   // Agents subscribed to task threads for notifications.
   subscriptions: defineTable({

@@ -12,6 +12,7 @@ import type { ConvexApiConfig } from "./secrets.js";
 import { GatewayClient, configApi } from "./gateway-client.js";
 import { syncAgents, fetchAgents } from "./agents.js";
 import { syncPrompts } from "./prompts.js";
+import { syncPairing } from "./pairing.js";
 
 // --- Config ---
 const TICK_INTERVAL_MS = parseInt(process.env.TICK_INTERVAL_MS || "5000", 10);
@@ -126,6 +127,13 @@ async function tick() {
     await syncPrompts(convexApi, agents, WORKSPACES_DIR);
   } catch (err) {
     log(`Prompt sync error: ${err instanceof Error ? err.message : err}`);
+  }
+
+  try {
+    const credentialsDir = path.join(path.dirname(ENV_FILE_PATH), "credentials");
+    await syncPairing(convexApi, credentialsDir);
+  } catch (err) {
+    log(`Pairing sync error: ${err instanceof Error ? err.message : err}`);
   }
 
   // TODO: Sync cron jobs

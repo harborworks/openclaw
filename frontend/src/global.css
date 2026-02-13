@@ -1424,6 +1424,80 @@ select.agent-input {
   gap: var(--space-sm);
 }
 
+/* ── Pairing Panel ────────────────────────────────────────── */
+
+.pairing-panel {
+  margin-top: var(--space-lg);
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.pairing-section-title {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-md);
+}
+
+.pairing-group {
+  margin-bottom: var(--space-md);
+}
+
+.pairing-group-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: var(--space-sm);
+}
+
+.pairing-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-sm);
+  background: var(--overlay-subtle);
+  margin-bottom: var(--space-xs);
+}
+
+.pairing-row-pending {
+  border-left: 2px solid #f59e0b;
+}
+
+.pairing-row-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pairing-sender {
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+}
+
+.pairing-code {
+  font-family: monospace;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.pairing-row-actions {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+.pairing-badge-approved {
+  color: #4ade80;
+  font-size: var(--font-size-sm);
+}
+
+.pairing-empty {
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+  font-style: italic;
+}
+
 .agent-row-channel-badge {
   display: inline-flex;
   align-items: center;

@@ -22,6 +22,7 @@ import type * as lib_admin from "../lib/admin.js";
 import type * as lib_agentNames from "../lib/agentNames.js";
 import type * as lib_defaultTemplates from "../lib/defaultTemplates.js";
 import type * as orgs from "../orgs.js";
+import type * as pairing from "../pairing.js";
 import type * as promptTemplates from "../promptTemplates.js";
 import type * as secrets from "../secrets.js";
 import type * as seed from "../seed.js";
@@ -49,6 +50,7 @@ declare const fullApi: ApiFromModules<{
   "lib/agentNames": typeof lib_agentNames;
   "lib/defaultTemplates": typeof lib_defaultTemplates;
   orgs: typeof orgs;
+  pairing: typeof pairing;
   promptTemplates: typeof promptTemplates;
   secrets: typeof secrets;
   seed: typeof seed;

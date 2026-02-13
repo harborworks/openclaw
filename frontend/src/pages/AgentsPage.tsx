@@ -14,6 +14,8 @@ import type { SecretInfo } from "../lib/secrets";
 const agentsApi = (api as any).agents;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const telegramApi = (api as any).telegram;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const pairingApi = (api as any).pairing;
 
 /** Role categories and options */
 const ROLE_OPTIONS = [
@@ -184,11 +186,116 @@ function AgentForm({
   );
 }
 
+interface PairingRequestDoc {
+  _id: Id<"pairingRequests">;
+  senderId: string;
+  code: string;
+  senderMeta?: { username?: string; first_name?: string; last_name?: string };
+  status: "pending" | "approved" | "rejected";
+  createdAt: string;
+  accountId?: string;
+}
+
+function PairingPanel({ harborId }: { harborId: string }) {
+  const requests = useQuery(pairingApi.list, {
+    harborId,
+    channel: "telegram",
+  }) as PairingRequestDoc[] | undefined;
+  const approveMut = useMutation(pairingApi.approve);
+  const rejectMut = useMutation(pairingApi.reject);
+  const [acting, setActing] = useState<string | null>(null);
+
+  const pending = (requests ?? []).filter((r) => r.status === "pending");
+  const approved = (requests ?? []).filter((r) => r.status === "approved");
+
+  const handleApprove = async (id: Id<"pairingRequests">) => {
+    setActing(id);
+    try {
+      await approveMut({ id });
+    } finally {
+      setActing(null);
+    }
+  };
+
+  const handleReject = async (id: Id<"pairingRequests">) => {
+    setActing(id);
+    try {
+      await rejectMut({ id });
+    } finally {
+      setActing(null);
+    }
+  };
+
+  const senderLabel = (r: PairingRequestDoc) => {
+    const parts: string[] = [];
+    if (r.senderMeta?.first_name) parts.push(r.senderMeta.first_name);
+    if (r.senderMeta?.username) parts.push(`@${r.senderMeta.username}`);
+    if (parts.length === 0) parts.push(r.senderId);
+    return parts.join(" ");
+  };
+
+  return (
+    <div className="pairing-panel">
+      <div className="pairing-section-title">Paired Users</div>
+
+      {pending.length > 0 && (
+        <div className="pairing-group">
+          <div className="pairing-group-label">Pending Approval</div>
+          {pending.map((r) => (
+            <div key={r._id} className="pairing-row pairing-row-pending">
+              <div className="pairing-row-info">
+                <span className="pairing-sender">{senderLabel(r)}</span>
+                <span className="pairing-code">Code: {r.code}</span>
+              </div>
+              <div className="pairing-row-actions">
+                <button
+                  className="admin-btn admin-btn-sm admin-btn-accent"
+                  onClick={() => handleApprove(r._id)}
+                  disabled={acting === r._id}
+                >
+                  Approve
+                </button>
+                <button
+                  className="admin-btn admin-btn-sm agent-btn-danger"
+                  onClick={() => handleReject(r._id)}
+                  disabled={acting === r._id}
+                >
+                  Reject
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {approved.length > 0 && (
+        <div className="pairing-group">
+          <div className="pairing-group-label">Approved</div>
+          {approved.map((r) => (
+            <div key={r._id} className="pairing-row">
+              <span className="pairing-sender">{senderLabel(r)}</span>
+              <span className="pairing-badge-approved">✓</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {pending.length === 0 && approved.length === 0 && (
+        <p className="pairing-empty">
+          No paired users yet. Send a message to the bot on Telegram to start pairing.
+        </p>
+      )}
+    </div>
+  );
+}
+
 function TelegramConfig({
   agentId,
+  harborId,
   currentToken,
 }: {
   agentId: Id<"agents">;
+  harborId: string;
   currentToken?: string;
 }) {
   const updateAgent = useMutation(agentsApi.update);
@@ -256,27 +363,30 @@ function TelegramConfig({
       </div>
 
       {hasToken && !showToken ? (
-        <div className="telegram-connected">
-          <div className="telegram-connected-info">
-            <span className="telegram-token-masked">Token: •••••{currentToken!.slice(-8)}</span>
+        <>
+          <div className="telegram-connected">
+            <div className="telegram-connected-info">
+              <span className="telegram-token-masked">Token: •••••{currentToken!.slice(-8)}</span>
+            </div>
+            <div className="telegram-connected-actions">
+              <button
+                className="admin-btn admin-btn-sm"
+                onClick={() => setShowToken(true)}
+                disabled={saving}
+              >
+                Change
+              </button>
+              <button
+                className="admin-btn admin-btn-sm agent-btn-danger"
+                onClick={handleRemove}
+                disabled={saving}
+              >
+                Remove
+              </button>
+            </div>
           </div>
-          <div className="telegram-connected-actions">
-            <button
-              className="admin-btn admin-btn-sm"
-              onClick={() => setShowToken(true)}
-              disabled={saving}
-            >
-              Change
-            </button>
-            <button
-              className="admin-btn admin-btn-sm agent-btn-danger"
-              onClick={handleRemove}
-              disabled={saving}
-            >
-              Remove
-            </button>
-          </div>
-        </div>
+          <PairingPanel harborId={harborId} />
+        </>
       ) : (
         <div className="telegram-setup">
           <p className="telegram-help">
@@ -511,6 +621,7 @@ export function AgentsPage() {
               <h3 className="agent-edit-section-title">Channels</h3>
               <TelegramConfig
                 agentId={agent._id}
+                harborId={harborId}
                 currentToken={agent.telegramBotToken}
               />
             </>
