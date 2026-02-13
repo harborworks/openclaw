@@ -43,10 +43,16 @@ const DEFAULT_SECTIONS: Sections = {
 - Timezone: (your timezone, e.g. America/Chicago)
 - Preferences: (communication style, formatting preferences, etc.)
 
+### Business
+
+- I run Acme, Inc. (acme.com)
+- We sell widgets wholesale to retailers
+
 ### Goals
 
-- Grow revenue by 30%
-- Decrease churn by 10%`,
+- Ship the new catalog by Q3
+- Automate 50% of customer support inquiries
+- Finally figure out what the interns are doing`,
 };
 
 const SECTION_CONFIGS: SectionConfig[] = [
