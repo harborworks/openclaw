@@ -175,6 +175,10 @@ body {
   color: var(--text-secondary);
 }
 
+.switcher-label-muted {
+  opacity: 0.5;
+}
+
 .switcher-sep {
   color: var(--text-muted);
   margin: 0 2px;
