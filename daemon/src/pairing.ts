@@ -147,6 +147,41 @@ function approveCode(
   return { senderId: entry.id, meta: entry.meta };
 }
 
+// --- Allow list sync ---
+
+async function fetchApprovedSenders(
+  api: ConvexApiConfig,
+  channel: string,
+): Promise<string[]> {
+  const url = `${api.convexUrl}/api/daemon/pairing/senders?channel=${channel}`;
+  const res = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${api.apiKey}`,
+      "X-Harbor-ID": api.harborId,
+    },
+  });
+  if (!res.ok) throw new Error(`Fetch approved senders failed: ${res.status}`);
+  return res.json();
+}
+
+let lastAllowFromState = "";
+
+function syncAllowFrom(
+  approvedSenders: string[],
+  allowFromPath: string,
+): void {
+  const fingerprint = JSON.stringify(approvedSenders.sort());
+  if (fingerprint === lastAllowFromState) return;
+
+  const store: AllowFromStore = {
+    version: 1,
+    allowFrom: approvedSenders,
+  };
+  writeJsonFile(allowFromPath, store);
+  lastAllowFromState = fingerprint;
+  log(`Synced allowFrom: ${approvedSenders.length} sender(s)`);
+}
+
 // --- Main sync ---
 
 export async function syncPairing(
@@ -172,5 +207,11 @@ export async function syncPairing(
         log(`Pairing code ${req.code} not found or expired`);
       }
     }
+
+    // Reconcile allowFrom file with Convex approved senders
+    // This handles revocations: if a record is deleted in the UI,
+    // the sender is removed from allowFrom on the next tick.
+    const approvedSenders = await fetchApprovedSenders(api, channel);
+    syncAllowFrom(approvedSenders, allowFromPath);
   }
 }

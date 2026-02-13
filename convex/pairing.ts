@@ -98,6 +98,25 @@ export const markApprovedInternal = internalMutation({
   },
 });
 
+/** Get all approved sender IDs for a channel (daemon writes allowFrom). */
+export const listApprovedSendersInternal = internalQuery({
+  args: {
+    harborId: v.id("harbors"),
+    channel: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const all = await ctx.db
+      .query("pairingRequests")
+      .withIndex("by_harbor_channel", (q) =>
+        q.eq("harborId", args.harborId).eq("channel", args.channel),
+      )
+      .collect();
+    return all
+      .filter((r) => r.status === "approved" && r.senderId)
+      .map((r) => r.senderId);
+  },
+});
+
 /** Daemon marks a code as failed (not found or expired). */
 export const markFailedInternal = internalMutation({
   args: {

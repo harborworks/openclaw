@@ -217,6 +217,26 @@ http.route({
         return json(pending);
     }),
 });
+// GET /api/daemon/pairing/senders — get all approved sender IDs for allowFrom sync
+http.route({
+    path: "/api/daemon/pairing/senders",
+    method: "GET",
+    handler: httpAction(async (ctx, request) => {
+        const auth = await authenticate(ctx, request);
+        if (!auth.ok)
+            return auth.response;
+        const url = new URL(request.url);
+        const channel = url.searchParams.get("channel");
+        if (!channel) {
+            return json({ error: "Missing channel param" }, 400);
+        }
+        const senders = await ctx.runQuery(internal.pairing.listApprovedSendersInternal, {
+            harborId: auth.harborId,
+            channel,
+        });
+        return json(senders);
+    }),
+});
 // POST /api/daemon/pairing/approved — daemon reports a code was approved
 http.route({
     path: "/api/daemon/pairing/approved",
