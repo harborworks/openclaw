@@ -191,12 +191,11 @@ export async function syncPairing(
   const channels = ["telegram"];
 
   for (const channel of channels) {
-    const pending = await fetchPendingCodes(api, channel);
-    if (pending.length === 0) continue;
-
     const pairingPath = path.join(credentialsDir, `${channel}-pairing.json`);
     const allowFromPath = path.join(credentialsDir, `${channel}-allowFrom.json`);
 
+    // 1. Process any pending codes submitted by admins
+    const pending = await fetchPendingCodes(api, channel);
     for (const req of pending) {
       const result = approveCode(req.code, pairingPath, allowFromPath);
       if (result) {
@@ -208,7 +207,7 @@ export async function syncPairing(
       }
     }
 
-    // Reconcile allowFrom file with Convex approved senders
+    // 2. Reconcile allowFrom file with Convex approved senders.
     // This handles revocations: if a record is deleted in the UI,
     // the sender is removed from allowFrom on the next tick.
     const approvedSenders = await fetchApprovedSenders(api, channel);
