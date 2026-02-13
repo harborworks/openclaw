@@ -42,5 +42,12 @@ node -e "
   watch();
 " &
 
+# Source .env if it exists so secrets are in the process environment
+if [ -f "$ENV_FILE" ]; then
+  set -a
+  . "$ENV_FILE"
+  set +a
+fi
+
 # Run the gateway
 exec openclaw gateway "$@"
