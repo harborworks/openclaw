@@ -200,6 +200,24 @@ export default defineSchema({
         updatedAt: v.number(),
     })
         .index("by_harbor", ["harborId"]),
+    // ── Channel Pairing ─────────────────────────────────────────────────
+    // Code-based DM approval. Admin submits a pairing code from the UI,
+    // daemon resolves it against gateway pairing files.
+    pairingRequests: defineTable({
+        channel: v.string(), // "telegram"
+        senderId: v.string(), // resolved by daemon after approval
+        code: v.string(), // pairing code from the bot
+        senderMeta: v.optional(v.any()), // { username, firstName, etc. }
+        status: v.union(v.literal("pending"), // submitted by admin, waiting for daemon
+        v.literal("approved"), // daemon confirmed
+        v.literal("rejected")),
+        createdAt: v.string(),
+        resolvedAt: v.optional(v.number()),
+        harborId: v.id("harbors"),
+    })
+        .index("by_harbor", ["harborId"])
+        .index("by_harbor_channel", ["harborId", "channel"])
+        .index("by_harbor_status", ["harborId", "status"]),
     // ── Subscriptions ──────────────────────────────────────────────────
     // Agents subscribed to task threads for notifications.
     subscriptions: defineTable({

@@ -43,6 +43,7 @@ export const update = mutation({
         model: v.optional(v.string()),
         roleDescription: v.optional(v.string()),
         additionalInstructions: v.optional(v.string()),
+        telegramBotToken: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
         const agent = await ctx.db.get(args.id);
@@ -59,6 +60,8 @@ export const update = mutation({
             patch.roleDescription = args.roleDescription;
         if (args.additionalInstructions !== undefined)
             patch.additionalInstructions = args.additionalInstructions;
+        if (args.telegramBotToken !== undefined)
+            patch.telegramBotToken = args.telegramBotToken || undefined;
         await ctx.db.patch(args.id, patch);
     },
 });
@@ -86,6 +89,7 @@ export const listInternal = internalQuery({
             status: a.status,
             roleDescription: a.roleDescription,
             additionalInstructions: a.additionalInstructions,
+            telegramBotToken: a.telegramBotToken,
         }));
     },
 });

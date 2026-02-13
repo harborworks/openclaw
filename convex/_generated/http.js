@@ -197,4 +197,82 @@ http.route({
         });
     }),
 });
+// GET /api/daemon/pairing/pending — get codes submitted by admins for daemon to resolve
+http.route({
+    path: "/api/daemon/pairing/pending",
+    method: "GET",
+    handler: httpAction(async (ctx, request) => {
+        const auth = await authenticate(ctx, request);
+        if (!auth.ok)
+            return auth.response;
+        const url = new URL(request.url);
+        const channel = url.searchParams.get("channel");
+        if (!channel) {
+            return json({ error: "Missing channel param" }, 400);
+        }
+        const pending = await ctx.runQuery(internal.pairing.listPendingInternal, {
+            harborId: auth.harborId,
+            channel,
+        });
+        return json(pending);
+    }),
+});
+// GET /api/daemon/pairing/senders — get all approved sender IDs for allowFrom sync
+http.route({
+    path: "/api/daemon/pairing/senders",
+    method: "GET",
+    handler: httpAction(async (ctx, request) => {
+        const auth = await authenticate(ctx, request);
+        if (!auth.ok)
+            return auth.response;
+        const url = new URL(request.url);
+        const channel = url.searchParams.get("channel");
+        if (!channel) {
+            return json({ error: "Missing channel param" }, 400);
+        }
+        const senders = await ctx.runQuery(internal.pairing.listApprovedSendersInternal, {
+            harborId: auth.harborId,
+            channel,
+        });
+        return json(senders);
+    }),
+});
+// POST /api/daemon/pairing/approved — daemon reports a code was approved
+http.route({
+    path: "/api/daemon/pairing/approved",
+    method: "POST",
+    handler: httpAction(async (ctx, request) => {
+        const auth = await authenticate(ctx, request);
+        if (!auth.ok)
+            return auth.response;
+        const body = (await request.json());
+        if (!body.id || !body.senderId) {
+            return json({ error: "Missing id or senderId" }, 400);
+        }
+        await ctx.runMutation(internal.pairing.markApprovedInternal, {
+            id: body.id,
+            senderId: body.senderId,
+            senderMeta: body.senderMeta,
+        });
+        return json({ ok: true });
+    }),
+});
+// POST /api/daemon/pairing/failed — daemon reports a code was not found
+http.route({
+    path: "/api/daemon/pairing/failed",
+    method: "POST",
+    handler: httpAction(async (ctx, request) => {
+        const auth = await authenticate(ctx, request);
+        if (!auth.ok)
+            return auth.response;
+        const body = (await request.json());
+        if (!body.id) {
+            return json({ error: "Missing id" }, 400);
+        }
+        await ctx.runMutation(internal.pairing.markFailedInternal, {
+            id: body.id,
+        });
+        return json({ ok: true });
+    }),
+});
 export default http;

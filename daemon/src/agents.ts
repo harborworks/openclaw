@@ -11,6 +11,7 @@ import * as fs from "fs";
 import * as path from "path";
 import type { ConvexApiConfig } from "./secrets.js";
 import { GatewayClient, configApi } from "./gateway-client.js";
+import { convexGet } from "./utils.js";
 
 function log(msg: string) {
   console.log(`[agents] ${new Date().toISOString()} ${msg}`);
@@ -27,6 +28,7 @@ export interface ConvexAgent {
   status: string;
   roleDescription?: string;
   additionalInstructions?: string;
+  telegramBotToken?: string;
 }
 
 interface GatewayAgentConfig {
@@ -48,15 +50,7 @@ const MODEL_MAP: Record<string, { ref: string; alias: string }> = {
 // --- Convex API ---
 
 export async function fetchAgents(api: ConvexApiConfig): Promise<ConvexAgent[]> {
-  const url = `${api.convexUrl}/api/daemon/agents`;
-  const res = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${api.apiKey}`,
-      "X-Harbor-ID": api.harborId,
-    },
-  });
-  if (!res.ok) throw new Error(`Failed to fetch agents: ${res.status}`);
-  return res.json();
+  return convexGet<ConvexAgent[]>(api, "/api/daemon/agents");
 }
 
 // --- Workspace scaffolding ---
@@ -121,7 +115,7 @@ export async function syncAgents(
 
   // 2. Build a fingerprint to detect changes
   const stateFingerprint = JSON.stringify(
-    convexAgents.map((a) => ({ id: a.sessionKey, name: a.name, role: a.role, model: a.model }))
+    convexAgents.map((a) => ({ id: a.sessionKey, name: a.name, role: a.role, model: a.model, tg: a.telegramBotToken ?? null }))
       .sort((a, b) => a.id.localeCompare(b.id))
   );
 
@@ -170,7 +164,25 @@ export async function syncAgents(
   // 8. Build new agent list for gateway config
   const newList = convexAgents.map((a) => buildAgentListEntry(a, workspacesDir));
 
-  // 9. Build the config patch
+  // 9. Build Telegram accounts + bindings for agents with bot tokens
+  const telegramAccounts: Record<string, unknown> = {};
+  const bindings: Array<Record<string, unknown>> = [];
+  for (const agent of convexAgents) {
+    if (agent.telegramBotToken) {
+      telegramAccounts[agent.sessionKey] = {
+        name: agent.name,
+        botToken: agent.telegramBotToken,
+      };
+      bindings.push({
+        agentId: agent.sessionKey,
+        match: { channel: "telegram", accountId: agent.sessionKey },
+      });
+    }
+  }
+
+  const hasTelegram = Object.keys(telegramAccounts).length > 0;
+
+  // 10. Build the config patch
   // Only manage models catalog + agent list. Leave defaults.model alone
   // (that's the harbor-wide default, set by static config).
   const patch: Record<string, unknown> = {
@@ -181,9 +193,31 @@ export async function syncAgents(
       },
       list: newList,
     },
+    ...(hasTelegram ? {
+      channels: {
+        telegram: {
+          enabled: true,
+          dmPolicy: "pairing",
+          accounts: telegramAccounts,
+        },
+      },
+      plugins: {
+        entries: {
+          telegram: { enabled: true },
+        },
+      },
+      bindings,
+    } : {
+      channels: {
+        telegram: {
+          enabled: false,
+        },
+      },
+      bindings: [],
+    }),
   };
 
-  // 10. Apply config patch
+  // 11. Apply config patch
   try {
     await configApi(gateway).patch(JSON.stringify(patch), current.hash!);
     log(`Gateway config updated (${newList.length} agent(s))`);
