@@ -1454,7 +1454,10 @@ select.agent-input {
 
 .pairing-code-input {
   flex: 1;
-  text-transform: uppercase;
+}
+
+.pairing-code-input::placeholder {
+  text-transform: none;
 }
 
 .pairing-error {

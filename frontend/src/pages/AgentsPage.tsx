@@ -245,7 +245,7 @@ function PairingPanel({ harborId }: { harborId: string }) {
       <form className="pairing-code-form" onSubmit={handleSubmit}>
         <input
           className="agent-input pairing-code-input"
-          placeholder="Enter pairing code"
+          placeholder="Pairing code"
           value={code}
           onChange={(e) => { setCode(e.target.value.toUpperCase()); setError(null); }}
           maxLength={8}
