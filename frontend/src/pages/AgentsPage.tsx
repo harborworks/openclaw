@@ -197,14 +197,14 @@ function AgentRow({
   onDelete: () => void;
 }) {
   return (
-    <div className="agent-row">
+    <div className={`agent-row${modelMisconfigured ? " agent-row-warn" : ""}`}>
       <div className="agent-row-info">
         <span className="agent-row-name">{agent.name}</span>
         <span className="agent-row-meta"><code>{agent.sessionKey}</code></span>
         <span className="agent-row-detail">{roleToDisplay(agent.role)}</span>
         <span className="agent-row-detail">
           {agent.model ? modelToDisplay(agent.model) : "—"}
-          {modelMisconfigured && <span className="agent-model-warning" title="API key not configured for this model"> ⚠️</span>}
+          {modelMisconfigured && <span className="agent-model-warning">&nbsp; ⚠️</span>}
         </span>
       </div>
       <div className="agent-row-right">
@@ -216,6 +216,11 @@ function AgentRow({
           style={canDelete ? undefined : { visibility: "hidden" }}
         >Delete</button>
       </div>
+      {modelMisconfigured && (
+        <div className="agent-row-warning-banner">
+          ⚠️ API key not configured for this model. Add it on the Models page.
+        </div>
+      )}
     </div>
   );
 }

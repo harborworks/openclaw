@@ -825,6 +825,21 @@ body {
   color: var(--text-muted);
 }
 
+.agent-model-warning {
+  margin-left: 0.25rem;
+}
+
+.agent-row-warn {
+  grid-template-rows: auto auto;
+}
+
+.agent-row-warning-banner {
+  grid-column: 1 / -1;
+  font-size: 0.75rem;
+  color: var(--color-amber, #f59e0b);
+  padding: 0.375rem 0 0 0;
+}
+
 /* removed */
 
 .agent-status {
