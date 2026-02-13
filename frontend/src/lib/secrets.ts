@@ -12,6 +12,7 @@ export const REQUIRED_KEYS: readonly { name: string; description: string }[] = [
 
 /** Recommended keys — unlock important capabilities. */
 export const RECOMMENDED_KEYS = [
+  { name: "OPENAI_API_KEY", description: "OpenAI API key for embeddings" },
   { name: "BRAVE_SEARCH_API_KEY", description: "Brave Search API for web search" },
 ] as const;
 

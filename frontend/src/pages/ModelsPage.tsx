@@ -18,12 +18,6 @@ const MODEL_PROVIDERS = [
     description: "Powers Claude models for agent reasoning",
     placeholder: "sk-ant-api03-…",
   },
-  {
-    key: "OPENAI_API_KEY",
-    name: "OpenAI",
-    description: "Powers OpenAI models and embeddings",
-    placeholder: "sk-…",
-  },
 ] as const;
 
 function ProviderCard({
