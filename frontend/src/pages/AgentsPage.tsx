@@ -204,7 +204,7 @@ function AgentRow({
         <span className="agent-row-detail">{roleToDisplay(agent.role)}</span>
         <span className="agent-row-detail">
           {agent.model ? modelToDisplay(agent.model) : "—"}
-          {modelMisconfigured && <span className="agent-model-warning">&nbsp; ⚠️</span>}
+
         </span>
       </div>
       <div className="agent-row-right">
