@@ -40,7 +40,9 @@ interface GatewayAgentConfig {
 
 /** Map our model values to OpenClaw model refs and aliases. */
 const MODEL_MAP: Record<string, { ref: string; alias: string }> = {
-  "opus4.6": { ref: "anthropic/claude-opus-4-6", alias: "Opus 4.6" },
+  "opus4.6": { ref: "anthropic/claude-opus-4-6", alias: "Opus" },
+  "sonnet4.5": { ref: "anthropic/claude-sonnet-4-5", alias: "Sonnet" },
+  "haiku4.5": { ref: "anthropic/claude-haiku-4-5", alias: "Haiku" },
 };
 
 // --- Convex API ---

@@ -7,6 +7,8 @@ import { Modal } from "../components/Modal";
 import { useHarborContext } from "../contexts/HarborContext";
 import { randomAgentName } from "../lib/agentNames";
 import { toSlug } from "../lib/slug";
+import { ALL_MODELS, modelToDisplay, modelRequiredKey } from "../lib/models";
+import type { SecretInfo } from "../lib/secrets";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const agentsApi = (api as any).agents;
@@ -35,14 +37,8 @@ function roleToDisplay(value: string): string {
   return value;
 }
 
-/** Model options */
-const MODEL_OPTIONS = [
-  { value: "opus4.6", label: "Opus 4.6" },
-] as const;
-
-function modelToDisplay(value: string): string {
-  return MODEL_OPTIONS.find((m) => m.value === value)?.label ?? value;
-}
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const secretsApi = (api as any).secrets;
 
 interface AgentDoc {
   _id: Id<"agents">;
@@ -58,6 +54,7 @@ function AgentForm({
   initial,
   isEdit,
   existingNames = [],
+  availableModels,
   saving,
   onSave,
   onCancel,
@@ -65,6 +62,7 @@ function AgentForm({
   initial?: { name: string; sessionKey: string; role: string; model?: string };
   isEdit?: boolean;
   existingNames?: string[];
+  availableModels: typeof ALL_MODELS;
   saving: boolean;
   onSave: (data: { name: string; sessionKey: string; role: string; model?: string }) => void;
   onCancel: () => void;
@@ -74,7 +72,7 @@ function AgentForm({
   const [sessionKey, setSessionKey] = useState(initial?.sessionKey ?? (isEdit ? "" : toSlug(defaultName)));
   const [idTouched, setIdTouched] = useState(!!isEdit);
   const [role, setRole] = useState(initial?.role ?? "");
-  const [model, setModel] = useState(initial?.model ?? "opus4.6");
+  const [model, setModel] = useState(initial?.model ?? availableModels[0]?.value ?? "");
 
   const handleNameChange = (newName: string) => {
     setName(newName);
@@ -152,15 +150,23 @@ function AgentForm({
         </label>
         <label className="agent-field">
           <span className="agent-field-label">Model</span>
-          <select
-            className="agent-input"
-            value={model}
-            onChange={(e) => setModel(e.target.value)}
-          >
-            {MODEL_OPTIONS.map((m) => (
-              <option key={m.value} value={m.value}>{m.label}</option>
-            ))}
-          </select>
+          {availableModels.length === 0 ? (
+            <input
+              className="agent-input agent-input-readonly"
+              value="No model providers configured"
+              readOnly
+            />
+          ) : (
+            <select
+              className="agent-input"
+              value={model}
+              onChange={(e) => setModel(e.target.value)}
+            >
+              {availableModels.map((m) => (
+                <option key={m.value} value={m.value}>{m.label}</option>
+              ))}
+            </select>
+          )}
         </label>
       </div>
       <div className="agent-form-actions">
@@ -179,22 +185,27 @@ function AgentRow({
   agent,
   saving,
   canDelete,
+  modelMisconfigured,
   onEdit,
   onDelete,
 }: {
   agent: AgentDoc;
   saving: boolean;
   canDelete: boolean;
+  modelMisconfigured: boolean;
   onEdit: () => void;
   onDelete: () => void;
 }) {
   return (
-    <div className="agent-row">
+    <div className={`agent-row${modelMisconfigured ? " agent-row-warn" : ""}`}>
       <div className="agent-row-info">
         <span className="agent-row-name">{agent.name}</span>
         <span className="agent-row-meta"><code>{agent.sessionKey}</code></span>
         <span className="agent-row-detail">{roleToDisplay(agent.role)}</span>
-        <span className="agent-row-detail">{agent.model ? modelToDisplay(agent.model) : "—"}</span>
+        <span className="agent-row-detail">
+          {agent.model ? modelToDisplay(agent.model) : "—"}
+
+        </span>
       </div>
       <div className="agent-row-right">
         <button className="admin-btn admin-btn-sm" onClick={onEdit} disabled={saving}>Edit</button>
@@ -205,6 +216,11 @@ function AgentRow({
           style={canDelete ? undefined : { visibility: "hidden" }}
         >Delete</button>
       </div>
+      {modelMisconfigured && (
+        <div className="agent-row-warning-banner">
+          ⚠️ API key not configured for this model. Add it on the Models page.
+        </div>
+      )}
     </div>
   );
 }
@@ -212,9 +228,21 @@ function AgentRow({
 export function AgentsPage() {
   const { harborId } = useHarborContext();
   const agents = useQuery(agentsApi.list, harborId ? { harborId } : "skip") as AgentDoc[] | undefined;
+  const secrets = useQuery(secretsApi.list, harborId ? { harborId } : "skip") as SecretInfo[] | undefined;
   const createAgent = useMutation(agentsApi.create);
   const updateAgent = useMutation(agentsApi.update);
   const removeAgent = useMutation(agentsApi.remove);
+
+  const configuredKeys = new Set(
+    (secrets ?? []).filter((s) => s.isSet).map((s) => s.name),
+  );
+  const availableModels = ALL_MODELS.filter((m) => configuredKeys.has(m.requiredKey));
+
+  const isModelMisconfigured = (model?: string) => {
+    if (!model) return false;
+    const key = modelRequiredKey(model);
+    return key ? !configuredKeys.has(key) : false;
+  };
 
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState<Id<"agents"> | null>(null);
@@ -270,6 +298,7 @@ export function AgentsPage() {
             agent={agent}
             saving={saving}
             canDelete={agent.sessionKey !== "main"}
+            modelMisconfigured={isModelMisconfigured(agent.model)}
             onEdit={() => setEditingId(agent._id)}
             onDelete={() => setDeletingId(agent._id)}
           />
@@ -287,6 +316,7 @@ export function AgentsPage() {
       <Modal open={adding} onClose={() => setAdding(false)} title="Add Agent">
         <AgentForm
           existingNames={existingNames}
+          availableModels={availableModels}
           saving={saving}
           onSave={handleCreate}
           onCancel={() => setAdding(false)}
@@ -306,6 +336,7 @@ export function AgentsPage() {
               initial={agent}
               isEdit
               existingNames={existingNames}
+              availableModels={availableModels}
               saving={saving}
               onSave={(data) => handleUpdate(agent._id, data)}
               onCancel={() => setEditingId(null)}
