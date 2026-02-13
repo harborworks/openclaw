@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@convex/api";
 import { encryptWithPublicKey } from "../lib/crypto";
-import type { SecretInfo } from "../lib/secrets";
+import { ENCRYPTION_NOTICE, type SecretInfo } from "../lib/secrets";
 import { PageHeader } from "../components/PageHeader";
 import { useHarborContext } from "../contexts/HarborContext";
 
@@ -164,10 +164,7 @@ export function ModelsPage() {
       </div>
 
       <div className="secrets-info-box">
-        <p>
-          🔒 API keys are encrypted in your browser before leaving this device.
-          They are never stored in plaintext and cannot be revealed after saving.
-        </p>
+        <p>🔒 {ENCRYPTION_NOTICE}</p>
       </div>
     </div>
   );

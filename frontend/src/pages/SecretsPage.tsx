@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@convex/api";
 import type { Id } from "@convex/dataModel";
 import { encryptWithPublicKey } from "../lib/crypto";
-import { RECOMMENDED_KEYS, type SecretInfo } from "../lib/secrets";
+import { ENCRYPTION_NOTICE, RECOMMENDED_KEYS, type SecretInfo } from "../lib/secrets";
 import { SecretRow, AddSecretForm } from "../components/secrets";
 import { useHarborContext } from "../contexts/HarborContext";
 
@@ -153,11 +153,7 @@ export function SecretsPage() {
       </section>
 
       <div className="secrets-info-box">
-        <p>
-          🔒 Secrets are encrypted in your browser with your host's public key
-          before leaving this device. They are never stored in plaintext in the
-          cloud and cannot be revealed after saving.
-        </p>
+        <p>🔒 {ENCRYPTION_NOTICE}</p>
       </div>
     </div>
   );

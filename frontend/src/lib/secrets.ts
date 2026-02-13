@@ -15,6 +15,10 @@ export const RECOMMENDED_KEYS = [
   { name: "BRAVE_SEARCH_API_KEY", description: "Brave Search API for web search" },
 ] as const;
 
+/** Shared encryption notice used on Models and Secrets pages. */
+export const ENCRYPTION_NOTICE =
+  "Values are encrypted in your browser before leaving this device and stored encrypted in the cloud. They are decrypted only on your host where they're needed.";
+
 export type SecretCategory = "required" | "recommended" | "custom";
 
 export interface SecretInfo {
