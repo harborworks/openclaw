@@ -150,6 +150,16 @@ export async function registerPublicKey(
  * When these secrets are set, the corresponding config is patched into the
  * gateway so it knows how to use the env var.
  */
+/**
+ * Secrets that should be injected into the gateway config's `env` block
+ * so they're available in process.env after SIGUSR1 in-process restarts
+ * (which don't re-exec the entrypoint and thus don't re-source .env).
+ */
+export const ENV_SECRETS = new Set([
+  "ANTHROPIC_API_KEY",
+  "OPENAI_API_KEY",
+]);
+
 export const CONFIG_PATCHES: Record<string, Record<string, unknown>> = {
   BRAVE_SEARCH_API_KEY: {
     tools: {
@@ -264,17 +274,30 @@ export async function syncSecrets(
   // Apply config patches for config-linked secrets
   if (onConfigPatch) {
     const mergedPatch: Record<string, unknown> = {};
+
+    // Inject env secrets directly into config.env so they survive SIGUSR1
+    // in-process restarts (which don't re-exec the entrypoint / re-source .env)
+    const envEntries: Record<string, string> = {};
     for (const name of written) {
+      if (ENV_SECRETS.has(name)) {
+        envEntries[name] = env.get(name)!;
+        console.log(`[secrets]   Env config for: ${name}`);
+      }
       const patch = CONFIG_PATCHES[name];
       if (patch) {
         console.log(`[secrets]   Config patch for: ${name}`);
         deepMerge(mergedPatch, patch);
       }
     }
+    if (Object.keys(envEntries).length > 0) {
+      deepMerge(mergedPatch, { env: envEntries });
+    }
+
     if (Object.keys(mergedPatch).length > 0) {
       try {
         await onConfigPatch(mergedPatch);
-        console.log(`[secrets] Applied config patches for: ${written.filter((n) => CONFIG_PATCHES[n]).join(", ")}`);
+        const patchedNames = written.filter((n) => CONFIG_PATCHES[n] || ENV_SECRETS.has(n));
+        console.log(`[secrets] Applied config patches for: ${patchedNames.join(", ")}`);
       } catch (err) {
         console.error(`[secrets] Failed to apply config patches:`, err);
       }
