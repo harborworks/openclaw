@@ -14,6 +14,7 @@ import { AdminHarborsPage } from "./pages/admin/AdminHarborsPage";
 import { AdminPromptsPage } from "./pages/admin/AdminPromptsPage";
 import { SecretsPage } from "./pages/SecretsPage";
 import { AgentsPage } from "./pages/AgentsPage";
+import { PromptsPage } from "./pages/PromptsPage";
 import { HarborProvider } from "./contexts/HarborContext";
 import { HarborRedirect } from "./components/HarborRedirect";
 import { CONVEX_URL } from "./convex";
@@ -153,6 +154,7 @@ function HarborRoutes() {
   return (
     <Routes>
       <Route path="agents" element={<AgentsPage />} />
+      <Route path="prompts" element={<PromptsPage />} />
       <Route path="secrets" element={<SecretsPage />} />
       <Route index element={<Navigate to="agents" replace />} />
       <Route path="*" element={<Navigate to="agents" replace />} />

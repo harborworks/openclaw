@@ -3,6 +3,7 @@ import { useOptionalHarborContext } from "../contexts/HarborContext";
 
 const navItems = [
   { path: "agents", label: "Agents", icon: "🤖" },
+  { path: "prompts", label: "Prompts", icon: "📝" },
   { path: "secrets", label: "Secrets", icon: "🔑" },
 ];
 
