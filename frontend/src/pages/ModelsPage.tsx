@@ -16,14 +16,12 @@ const MODEL_PROVIDERS = [
     name: "Anthropic",
     description: "Powers Claude models for agent reasoning",
     placeholder: "sk-ant-api03-…",
-    required: true,
   },
   {
     key: "OPENAI_API_KEY",
     name: "OpenAI",
     description: "Used for embeddings and image generation",
     placeholder: "sk-…",
-    required: false,
   },
 ] as const;
 
@@ -57,7 +55,6 @@ function ProviderCard({
       <div className="model-card-header">
         <div className="model-card-info">
           <span className="model-card-name">{provider.name}</span>
-          {provider.required && <span className="model-card-badge">Required</span>}
         </div>
         <span className={`secret-status ${isSet ? "secret-status-set" : "secret-status-unset"}`}>
           {isSet ? "✓ Connected" : "Not configured"}
