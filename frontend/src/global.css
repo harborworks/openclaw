@@ -585,6 +585,11 @@ body {
   color: #fbbf24;
 }
 
+.badge-sky {
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+}
+
 /* Page header (shared) */
 .page-title {
   font-size: 1.5rem;

@@ -17,3 +17,20 @@ export async function requireSuperAdmin(
   }
   return user;
 }
+
+/**
+ * Verify the caller is a superAdmin or staff. Throws if not.
+ */
+export async function requireAdmin(
+  ctx: QueryCtx | MutationCtx,
+  cognitoSub: string
+) {
+  const user = await ctx.db
+    .query("users")
+    .withIndex("by_cognito_sub", (q) => q.eq("cognitoSub", cognitoSub))
+    .unique();
+  if (!user || (!user.isSuperAdmin && !user.isStaff)) {
+    throw new Error("Forbidden: admin access required");
+  }
+  return user;
+}

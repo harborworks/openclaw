@@ -13,6 +13,7 @@ type User = {
   email: string;
   cognitoSub: string;
   isSuperAdmin?: boolean;
+  isStaff?: boolean;
 };
 
 const PAGE_SIZE = 25;
@@ -33,19 +34,19 @@ export function AdminUsersPage() {
 
   const [modal, setModal] = useState<"invite" | "edit" | null>(null);
   const [editing, setEditing] = useState<User | null>(null);
-  const [form, setForm] = useState({ email: "", isSuperAdmin: false });
+  const [form, setForm] = useState({ email: "", isSuperAdmin: false, isStaff: false });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
   const openInvite = () => {
-    setForm({ email: "", isSuperAdmin: false });
+    setForm({ email: "", isSuperAdmin: false, isStaff: false });
     setError("");
     setModal("invite");
   };
 
   const openEdit = (row: User) => {
     setEditing(row);
-    setForm({ email: row.email, isSuperAdmin: !!row.isSuperAdmin });
+    setForm({ email: row.email, isSuperAdmin: !!row.isSuperAdmin, isStaff: !!row.isStaff });
     setError("");
     setModal("edit");
   };
@@ -69,6 +70,7 @@ export function AdminUsersPage() {
           id: editing._id,
           email: form.email,
           isSuperAdmin: form.isSuperAdmin,
+          isStaff: form.isStaff,
         });
       }
       setModal(null);
@@ -105,6 +107,8 @@ export function AdminUsersPage() {
       render: (r) =>
         r.isSuperAdmin ? (
           <span className="badge badge-amber">Super Admin</span>
+        ) : r.isStaff ? (
+          <span className="badge badge-sky">Staff</span>
         ) : (
           <span className="badge badge-blue">User</span>
         ),
@@ -155,6 +159,15 @@ export function AdminUsersPage() {
           />
         </div>
         <div className="form-group">
+          <label className="form-check">
+            <input
+              type="checkbox"
+              checked={form.isStaff}
+              onChange={(e) => setForm({ ...form, isStaff: e.target.checked })}
+              disabled={modal === "edit" && editing != null && isSelf(editing)}
+            />
+            Staff
+          </label>
           <label className="form-check">
             <input
               type="checkbox"

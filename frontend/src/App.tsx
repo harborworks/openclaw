@@ -5,7 +5,7 @@ import { LoginPage } from "./pages/LoginPage";
 import { ConfirmPage } from "./pages/ConfirmPage";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { Layout } from "./components/Layout";
-import { AdminRoute } from "./components/AdminRoute";
+import { AdminRoute, SuperAdminRoute } from "./components/AdminRoute";
 import { AdminPage } from "./pages/AdminPage";
 import { AdminUsersPage } from "./pages/admin/AdminUsersPage";
 import { AdminOrgsPage } from "./pages/admin/AdminOrgsPage";
@@ -110,9 +110,11 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <AdminRoute>
-              <Layout>
-                <AdminPromptsPage />
-              </Layout>
+              <SuperAdminRoute>
+                <Layout>
+                  <AdminPromptsPage />
+                </Layout>
+              </SuperAdminRoute>
             </AdminRoute>
           </ProtectedRoute>
         }
@@ -122,9 +124,11 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <AdminRoute>
-              <Layout>
-                <AdminPromptEditPage />
-              </Layout>
+              <SuperAdminRoute>
+                <Layout>
+                  <AdminPromptEditPage />
+                </Layout>
+              </SuperAdminRoute>
             </AdminRoute>
           </ProtectedRoute>
         }

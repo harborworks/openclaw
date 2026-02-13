@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { useCurrentUser } from "../hooks/useCurrentUser";
 
 const adminSections = [
   {
@@ -35,6 +36,12 @@ const adminSections = [
 
 export function AdminPage() {
   const navigate = useNavigate();
+  const dbUser = useCurrentUser();
+  const isSuperAdmin = dbUser?.isSuperAdmin === true;
+
+  const visibleSections = adminSections.filter(
+    (s) => s.path !== "/admin/prompts" || isSuperAdmin
+  );
 
   return (
     <div>
@@ -43,7 +50,7 @@ export function AdminPage() {
         Manage your workspace from here.
       </p>
       <div className="admin-cards">
-        {adminSections.map((section) => (
+        {visibleSections.map((section) => (
           <button
             key={section.path}
             className="admin-card"
