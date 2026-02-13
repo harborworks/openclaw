@@ -1294,3 +1294,139 @@ select.agent-input {
   display: flex;
   gap: 0.5rem;
 }
+
+/* ── Agent Edit Sections ─────────────────────────────────── */
+
+.agent-edit-divider {
+  border-top: 1px solid var(--border-subtle);
+  margin: var(--space-lg) 0;
+}
+
+.agent-edit-section-title {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-md);
+}
+
+/* ── Telegram Config ─────────────────────────────────────── */
+
+.telegram-config {
+  background: var(--overlay-subtle);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+}
+
+.telegram-config-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+.telegram-icon {
+  color: #29b6f6;
+}
+
+.telegram-config-title {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+}
+
+.telegram-badge {
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 500;
+  margin-left: auto;
+}
+
+.telegram-badge-connected {
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+}
+
+.telegram-connected {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+
+.telegram-connected-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.telegram-token-masked {
+  font-family: monospace;
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+}
+
+.telegram-connected-actions {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.telegram-setup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.telegram-help {
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.telegram-help a {
+  color: var(--color-sky);
+  text-decoration: none;
+}
+
+.telegram-help a:hover {
+  text-decoration: underline;
+}
+
+.telegram-token-row {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: center;
+}
+
+.telegram-token-input {
+  flex: 1;
+  font-family: monospace;
+}
+
+.telegram-validation {
+  font-size: var(--font-size-sm);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-sm);
+}
+
+.telegram-validation-ok {
+  background: rgba(34, 197, 94, 0.1);
+  color: #4ade80;
+}
+
+.telegram-validation-err {
+  background: rgba(239, 68, 68, 0.1);
+  color: #f87171;
+}
+
+.telegram-setup-actions {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.agent-row-channel-badge {
+  display: inline-flex;
+  align-items: center;
+  color: #29b6f6;
+  margin-left: var(--space-xs);
+}

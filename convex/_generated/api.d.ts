@@ -25,6 +25,7 @@ import type * as orgs from "../orgs.js";
 import type * as promptTemplates from "../promptTemplates.js";
 import type * as secrets from "../secrets.js";
 import type * as seed from "../seed.js";
+import type * as telegram from "../telegram.js";
 import type * as users from "../users.js";
 
 import type {
@@ -51,6 +52,7 @@ declare const fullApi: ApiFromModules<{
   promptTemplates: typeof promptTemplates;
   secrets: typeof secrets;
   seed: typeof seed;
+  telegram: typeof telegram;
   users: typeof users;
 }>;
 
