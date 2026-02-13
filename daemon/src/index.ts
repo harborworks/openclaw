@@ -23,13 +23,12 @@ const GATEWAY_URL = process.env.GATEWAY_URL || "http://localhost:18789";
 const GATEWAY_TOKEN = process.env.GATEWAY_TOKEN || "";
 const DAEMON_PORT = parseInt(process.env.DAEMON_PORT || "4747", 10);
 
-const ENV_FILE_PATH = process.env.ENV_FILE_PATH ?? path.join(
-  process.env.HOME ?? "/home/ubuntu", ".openclaw", ".env"
-);
 const WORKSPACES_DIR = process.env.WORKSPACES_DIR ?? path.join(
   process.env.HOME ?? "/home/ubuntu", "workspaces"
 );
-const KEY_DIR = path.dirname(ENV_FILE_PATH);
+const CONFIG_DIR = process.env.OPENCLAW_CONFIG_DIR ?? path.join(
+  process.env.HOME ?? "/home/ubuntu", ".openclaw"
+);
 
 // Path to default config that gets merged into gateway config on startup
 const DEFAULT_CONFIG_PATH = process.env.DEFAULT_CONFIG_PATH
@@ -91,26 +90,11 @@ async function patchGatewayConfig(patch: Record<string, unknown>): Promise<void>
   }
 }
 
-/**
- * Wait for the gateway to restart after .env changes.
- * The gateway container has a file watcher that self-restarts when .env changes,
- * so the daemon just needs to wait for the reconnect.
- */
-export async function waitForGatewayRestart(): Promise<void> {
-  log("Waiting for gateway to restart (env watcher will trigger it)...");
-  try {
-    await gateway.waitForConnection(30_000);
-    log("Gateway reconnected after restart");
-  } catch {
-    log("Gateway reconnect timed out — will retry on next tick");
-  }
-}
-
 async function tick() {
   if (!gateway.isConnected) return;
 
   try {
-    await syncSecrets(convexApi, ENV_FILE_PATH, waitForGatewayRestart, patchGatewayConfig);
+    await syncSecrets(convexApi, patchGatewayConfig);
   } catch (err) {
     log(`Secrets sync error: ${err instanceof Error ? err.message : err}`);
   }
@@ -130,7 +114,7 @@ async function tick() {
   }
 
   try {
-    const credentialsDir = path.join(path.dirname(ENV_FILE_PATH), "credentials");
+    const credentialsDir = path.join(CONFIG_DIR, "credentials");
     await syncPairing(convexApi, credentialsDir);
   } catch (err) {
     log(`Pairing sync error: ${err instanceof Error ? err.message : err}`);
@@ -166,7 +150,7 @@ async function main() {
   log(`  HARBOR_ID=${HARBOR_ID || "(not set)"}`);
   log(`  HARBOR_API_KEY=${HARBOR_API_KEY ? "(set)" : "(not set)"}`);
   log(`  GATEWAY_URL=${GATEWAY_URL}`);
-  log(`  ENV_FILE_PATH=${ENV_FILE_PATH}`);
+  log(`  CONFIG_DIR=${CONFIG_DIR}`);
   log(`  WORKSPACES_DIR=${WORKSPACES_DIR}`);
   log(`  TICK_INTERVAL_MS=${TICK_INTERVAL_MS}`);
 
@@ -179,7 +163,7 @@ async function main() {
   log(`  CONVEX_SITE_URL=${siteUrl}`);
 
   // Init keypair and publish public key via HTTP API
-  const publicKeyJwk = initKeypair(KEY_DIR);
+  const publicKeyJwk = initKeypair(CONFIG_DIR);
   await registerPublicKey(convexApi, publicKeyJwk);
   log("Published public key to Convex");
 
