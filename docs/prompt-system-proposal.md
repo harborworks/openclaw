@@ -81,13 +81,13 @@ Harbor members configure **sections** — named blocks of markdown that get inje
 
 Each section has a sensible default shown as placeholder text. If left empty, the template default is used.
 
-### Layer 3: Agent-Level Overrides
+### Layer 3: Agent-Level Overrides (Future Improvement)
 
-Per-agent customization for things that differ between agents in the same harbor. Stored in Convex per-agent.
+Per-agent customization for things that differ between agents in the same harbor. Currently only **model override** is supported (already exists). Additional overrides deferred to a future iteration.
 
-- **Role description** — custom job description (defaults come from role template)
-- **Additional instructions** — free-form markdown appended to the agent's files
 - **Model override** — already exists
+- ~~**Role description** — custom job description (defaults come from role template)~~ *deferred*
+- ~~**Additional instructions** — free-form markdown appended to the agent's files~~ *deferred*
 
 ## Convex Schema
 
