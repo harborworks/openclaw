@@ -1325,6 +1325,10 @@ select.agent-input {
   margin-bottom: var(--space-md);
 }
 
+.telegram-config-header .secret-status {
+  margin-left: auto;
+}
+
 .telegram-icon {
   color: #29b6f6;
 }
@@ -1332,19 +1336,6 @@ select.agent-input {
 .telegram-config-title {
   font-size: var(--font-size-base);
   font-weight: 600;
-}
-
-.telegram-badge {
-  font-size: 0.75rem;
-  padding: 2px 8px;
-  border-radius: 10px;
-  font-weight: 500;
-  margin-left: auto;
-}
-
-.telegram-badge-connected {
-  background: rgba(34, 197, 94, 0.15);
-  color: #4ade80;
 }
 
 .telegram-connected {

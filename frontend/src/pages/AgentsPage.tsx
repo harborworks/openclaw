@@ -9,6 +9,7 @@ import { randomAgentName } from "../lib/agentNames";
 import { toSlug } from "../lib/slug";
 import { ALL_MODELS, modelToDisplay, modelRequiredKey } from "../lib/models";
 import type { SecretInfo } from "../lib/secrets";
+import { StatusBadge } from "../components/StatusBadge";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const agentsApi = (api as any).agents;
@@ -383,7 +384,7 @@ function TelegramConfig({
         </svg>
         <span className="telegram-config-title">Telegram</span>
         {hasToken && !showToken && (
-          <span className="telegram-badge telegram-badge-connected">Connected</span>
+          <StatusBadge label="Connected" variant="set" />
         )}
       </div>
 

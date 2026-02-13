@@ -1,4 +1,5 @@
 import type { SecretInfo } from "../../lib/secrets";
+import { StatusBadge } from "../StatusBadge";
 
 interface SecretStatusProps {
   secret?: SecretInfo;
@@ -12,13 +13,13 @@ export function SecretStatus({ secret, labels }: SecretStatusProps) {
   const pending = labels?.pending ?? "⏳ Syncing…";
 
   if (!secret) {
-    return <span className="secret-status secret-status-unset">{unset}</span>;
+    return <StatusBadge label={unset} variant="unset" />;
   }
   if (secret.hasPending) {
-    return <span className="secret-status secret-status-pending">{pending}</span>;
+    return <StatusBadge label={pending} variant="pending" />;
   }
   if (secret.isSet) {
-    return <span className="secret-status secret-status-set">{set}</span>;
+    return <StatusBadge label={set} variant="set" />;
   }
-  return <span className="secret-status secret-status-unset">{unset}</span>;
+  return <StatusBadge label={unset} variant="unset" />;
 }
