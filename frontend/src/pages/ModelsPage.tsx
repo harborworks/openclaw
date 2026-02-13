@@ -21,7 +21,7 @@ const MODEL_PROVIDERS = [
   {
     key: "OPENAI_API_KEY",
     name: "OpenAI",
-    description: "Used for embeddings and image generation",
+    description: "Powers OpenAI models and embeddings",
     placeholder: "sk-…",
   },
 ] as const;
