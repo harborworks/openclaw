@@ -139,6 +139,10 @@ export function ModelsPage() {
   const secretsList = (secrets ?? []) as SecretInfo[];
   const secretsByName = new Map(secretsList.map((s) => [s.name, s]));
 
+  const hasAnyProvider = MODEL_PROVIDERS.some(
+    (p) => secretsByName.get(p.key)?.isSet,
+  );
+
   return (
     <div className="models-page">
       <PageHeader title="Models" />
@@ -147,6 +151,12 @@ export function ModelsPage() {
         <div className="secrets-warning">
           ⚠️ No encryption key found. Start the daemon to generate a keypair
           before configuring model providers.
+        </div>
+      )}
+
+      {hasPublicKey && secrets && !hasAnyProvider && (
+        <div className="secrets-warning">
+          ⚠️ At least one model provider is required for agents to function.
         </div>
       )}
 
