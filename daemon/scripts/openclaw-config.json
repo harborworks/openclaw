@@ -22,7 +22,7 @@
         "every": "0m"
       },
       "model": {
-        "primary": "Opus 4.6"
+        "primary": "anthropic/claude-opus-4-6"
       }
     }
   },

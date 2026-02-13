@@ -104,7 +104,7 @@ function buildAgentListEntry(agent: ConvexAgent, workspacesDir: string): Gateway
     workspace: path.join(workspacesDir, agent.sessionKey),
   };
   if (agent.model && MODEL_MAP[agent.model]) {
-    entry.model = { primary: MODEL_MAP[agent.model].alias };
+    entry.model = { primary: MODEL_MAP[agent.model].ref };
   }
   return entry;
 }
