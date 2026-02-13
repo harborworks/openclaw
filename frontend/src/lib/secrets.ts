@@ -8,14 +8,11 @@ export function isReservedName(name: string): boolean {
 }
 
 /** Required keys — nothing works without these. */
-export const REQUIRED_KEYS = [
-  { name: "ANTHROPIC_API_KEY", description: "Claude API key for agent reasoning" },
-] as const;
+export const REQUIRED_KEYS: readonly { name: string; description: string }[] = [];
 
 /** Recommended keys — unlock important capabilities. */
 export const RECOMMENDED_KEYS = [
   { name: "BRAVE_SEARCH_API_KEY", description: "Brave Search API for web search" },
-  { name: "OPENAI_API_KEY", description: "OpenAI API key for embeddings and image generation" },
 ] as const;
 
 export type SecretCategory = "required" | "recommended" | "custom";

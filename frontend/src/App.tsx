@@ -15,6 +15,7 @@ import { AdminPromptsPage } from "./pages/admin/AdminPromptsPage";
 import { AdminPromptEditPage } from "./pages/admin/AdminPromptEditPage";
 import { SecretsPage } from "./pages/SecretsPage";
 import { AgentsPage } from "./pages/AgentsPage";
+import { ModelsPage } from "./pages/ModelsPage";
 import { PromptsPage } from "./pages/PromptsPage";
 import { HarborProvider } from "./contexts/HarborContext";
 import { HarborRedirect } from "./components/HarborRedirect";
@@ -171,6 +172,7 @@ function HarborRoutes() {
   return (
     <Routes>
       <Route path="agents" element={<AgentsPage />} />
+      <Route path="models" element={<ModelsPage />} />
       <Route path="prompts" element={<PromptsPage />} />
       <Route path="secrets" element={<SecretsPage />} />
       <Route index element={<Navigate to="agents" replace />} />
