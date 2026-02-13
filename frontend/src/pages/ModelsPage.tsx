@@ -57,7 +57,7 @@ function ProviderCard({
         <div className="model-card-info">
           <span className="model-card-name">{provider.name}</span>
         </div>
-        <SecretStatus secret={secret} />
+        <SecretStatus secret={secret} labels={{ unset: "Not configured", set: "✓ Connected" }} />
       </div>
       <p className="model-card-desc">{provider.description}</p>
       {!editing && (
