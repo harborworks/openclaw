@@ -24,6 +24,7 @@ interface HarborContextValue {
 
 const HarborContext = createContext<HarborContextValue | null>(null);
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useHarborContext(): HarborContextValue {
   const ctx = useContext(HarborContext);
   if (!ctx) throw new Error("useHarborContext must be used within HarborProvider");
@@ -31,6 +32,7 @@ export function useHarborContext(): HarborContextValue {
 }
 
 /** Returns harbor context or null if outside HarborProvider. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useOptionalHarborContext(): HarborContextValue | null {
   return useContext(HarborContext);
 }
