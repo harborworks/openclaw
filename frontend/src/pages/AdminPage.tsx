@@ -38,7 +38,14 @@ export function AdminPage() {
 
   return (
     <div>
-      <h1 style={{ fontSize: "1.5rem", fontWeight: 700, marginBottom: 4 }}>Admin</h1>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 4 }}>
+        <button className="admin-back" onClick={() => navigate("/")}>
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <path d="M12 5L7 10L12 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+        <h1 style={{ fontSize: "1.5rem", fontWeight: 700, margin: 0 }}>Admin</h1>
+      </div>
       <p style={{ color: "var(--text-muted)", fontSize: "var(--font-size-base)", marginBottom: 24 }}>
         Manage your workspace from here.
       </p>
