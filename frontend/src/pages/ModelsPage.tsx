@@ -4,6 +4,7 @@ import { api } from "@convex/api";
 import { encryptWithPublicKey } from "../lib/crypto";
 import { ENCRYPTION_NOTICE, type SecretInfo } from "../lib/secrets";
 import { PageHeader } from "../components/PageHeader";
+import { SecretStatus } from "../components/secrets/SecretStatus";
 import { useHarborContext } from "../contexts/HarborContext";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -56,12 +57,10 @@ function ProviderCard({
         <div className="model-card-info">
           <span className="model-card-name">{provider.name}</span>
         </div>
-        <span className={`secret-status ${isSet ? "secret-status-set" : "secret-status-unset"}`}>
-          {isSet ? "✓ Connected" : "Not configured"}
-        </span>
+        <SecretStatus secret={secret} />
       </div>
       <p className="model-card-desc">{provider.description}</p>
-      {!editing ? (
+      {!editing && (
         <button
           className="admin-btn"
           disabled={disabled}
@@ -69,7 +68,8 @@ function ProviderCard({
         >
           {isSet ? "Replace API Key" : "Add API Key"}
         </button>
-      ) : (
+      )}
+      {editing && (
         <div className="model-card-form">
           <input
             className="agent-input"
