@@ -168,15 +168,17 @@ export function AdminUsersPage() {
             />
             Staff
           </label>
-          <label className="form-check">
-            <input
-              type="checkbox"
-              checked={form.isSuperAdmin}
-              onChange={(e) => setForm({ ...form, isSuperAdmin: e.target.checked })}
-              disabled={modal === "edit" && editing != null && isSelf(editing)}
-            />
-            Super Admin
-          </label>
+          {modal === "edit" && (
+            <label className="form-check">
+              <input
+                type="checkbox"
+                checked={form.isSuperAdmin}
+                onChange={(e) => setForm({ ...form, isSuperAdmin: e.target.checked })}
+                disabled={editing != null && isSelf(editing)}
+              />
+              Super Admin
+            </label>
+          )}
           {modal === "edit" && editing != null && isSelf(editing) && (
             <p style={{ color: "var(--text-muted)", fontSize: "0.8rem", marginTop: 4 }}>
               You cannot change your own admin status

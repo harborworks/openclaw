@@ -15,6 +15,7 @@ export default defineSchema({
         email: v.string(),
         cognitoSub: v.string(), // Cognito User Pool "sub" (unique identifier)
         isSuperAdmin: v.optional(v.boolean()),
+        isStaff: v.optional(v.boolean()),
         lastOrgSlug: v.optional(v.string()),
         lastHarborSlug: v.optional(v.string()),
     })
