@@ -1436,6 +1436,30 @@ select.agent-input {
   font-size: var(--font-size-sm);
   font-weight: 600;
   color: var(--text-secondary);
+  margin-bottom: var(--space-xs);
+}
+
+.pairing-help {
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+  margin-bottom: var(--space-md);
+  line-height: 1.5;
+}
+
+.pairing-code-form {
+  display: flex;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+.pairing-code-input {
+  flex: 1;
+  text-transform: uppercase;
+}
+
+.pairing-error {
+  font-size: var(--font-size-sm);
+  color: #f87171;
   margin-bottom: var(--space-md);
 }
 
@@ -1454,7 +1478,7 @@ select.agent-input {
 .pairing-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: var(--space-md);
   padding: var(--space-sm) var(--space-md);
   border-radius: var(--radius-sm);
   background: var(--overlay-subtle);
@@ -1465,37 +1489,37 @@ select.agent-input {
   border-left: 2px solid #f59e0b;
 }
 
-.pairing-row-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+.pairing-row-failed {
+  border-left: 2px solid #f87171;
+}
+
+.pairing-code-display {
+  font-family: monospace;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  letter-spacing: 0.1em;
+}
+
+.pairing-status-pending {
+  font-size: var(--font-size-sm);
+  color: #f59e0b;
+}
+
+.pairing-status-failed {
+  font-size: var(--font-size-sm);
+  color: #f87171;
+  flex: 1;
 }
 
 .pairing-sender {
   font-size: var(--font-size-sm);
   color: var(--text-primary);
-}
-
-.pairing-code {
-  font-family: monospace;
-  font-size: 0.75rem;
-  color: var(--text-muted);
-}
-
-.pairing-row-actions {
-  display: flex;
-  gap: var(--space-xs);
+  flex: 1;
 }
 
 .pairing-badge-approved {
   color: #4ade80;
   font-size: var(--font-size-sm);
-}
-
-.pairing-empty {
-  font-size: var(--font-size-sm);
-  color: var(--text-muted);
-  font-style: italic;
 }
 
 .agent-row-channel-badge {

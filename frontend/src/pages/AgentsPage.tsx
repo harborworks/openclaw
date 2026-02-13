@@ -193,76 +193,100 @@ interface PairingRequestDoc {
   senderMeta?: { username?: string; first_name?: string; last_name?: string };
   status: "pending" | "approved" | "rejected";
   createdAt: string;
-  accountId?: string;
 }
 
 function PairingPanel({ harborId }: { harborId: string }) {
-  const requests = useQuery(pairingApi.list, {
-    harborId,
-    channel: "telegram",
-  }) as PairingRequestDoc[] | undefined;
-  const approveMut = useMutation(pairingApi.approve);
-  const rejectMut = useMutation(pairingApi.reject);
-  const [acting, setActing] = useState<string | null>(null);
+  const requests = useQuery(pairingApi.list, { harborId }) as PairingRequestDoc[] | undefined;
+  const submitCode = useMutation(pairingApi.submitCode);
+  const removeMut = useMutation(pairingApi.remove);
+
+  const [code, setCode] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const pending = (requests ?? []).filter((r) => r.status === "pending");
   const approved = (requests ?? []).filter((r) => r.status === "approved");
+  const rejected = (requests ?? []).filter((r) => r.status === "rejected");
 
-  const handleApprove = async (id: Id<"pairingRequests">) => {
-    setActing(id);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!code.trim()) return;
+    setSubmitting(true);
+    setError(null);
     try {
-      await approveMut({ id });
+      await submitCode({ harborId: harborId as Id<"harbors">, channel: "telegram", code: code.trim() });
+      setCode("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to submit code");
     } finally {
-      setActing(null);
+      setSubmitting(false);
     }
   };
 
-  const handleReject = async (id: Id<"pairingRequests">) => {
-    setActing(id);
-    try {
-      await rejectMut({ id });
-    } finally {
-      setActing(null);
-    }
+  const handleRemove = async (id: Id<"pairingRequests">) => {
+    await removeMut({ id });
   };
 
   const senderLabel = (r: PairingRequestDoc) => {
     const parts: string[] = [];
     if (r.senderMeta?.first_name) parts.push(r.senderMeta.first_name);
     if (r.senderMeta?.username) parts.push(`@${r.senderMeta.username}`);
-    if (parts.length === 0) parts.push(r.senderId);
-    return parts.join(" ");
+    if (parts.length === 0 && r.senderId) parts.push(r.senderId);
+    return parts.join(" ") || "Unknown";
   };
 
   return (
     <div className="pairing-panel">
       <div className="pairing-section-title">Paired Users</div>
+      <p className="pairing-help">
+        When someone messages this bot, they'll receive a pairing code. Paste it here to grant access.
+      </p>
+
+      <form className="pairing-code-form" onSubmit={handleSubmit}>
+        <input
+          className="agent-input pairing-code-input"
+          placeholder="Enter pairing code"
+          value={code}
+          onChange={(e) => { setCode(e.target.value.toUpperCase()); setError(null); }}
+          maxLength={8}
+          style={{ fontFamily: "monospace", letterSpacing: "0.1em" }}
+        />
+        <button
+          className="admin-btn admin-btn-accent"
+          type="submit"
+          disabled={!code.trim() || submitting}
+        >
+          {submitting ? "Approving…" : "Approve"}
+        </button>
+      </form>
+
+      {error && <div className="pairing-error">{error}</div>}
 
       {pending.length > 0 && (
         <div className="pairing-group">
-          <div className="pairing-group-label">Pending Approval</div>
+          <div className="pairing-group-label">Processing</div>
           {pending.map((r) => (
             <div key={r._id} className="pairing-row pairing-row-pending">
-              <div className="pairing-row-info">
-                <span className="pairing-sender">{senderLabel(r)}</span>
-                <span className="pairing-code">Code: {r.code}</span>
-              </div>
-              <div className="pairing-row-actions">
-                <button
-                  className="admin-btn admin-btn-sm admin-btn-accent"
-                  onClick={() => handleApprove(r._id)}
-                  disabled={acting === r._id}
-                >
-                  Approve
-                </button>
-                <button
-                  className="admin-btn admin-btn-sm agent-btn-danger"
-                  onClick={() => handleReject(r._id)}
-                  disabled={acting === r._id}
-                >
-                  Reject
-                </button>
-              </div>
+              <span className="pairing-code-display">{r.code}</span>
+              <span className="pairing-status-pending">⏳ Waiting for confirmation…</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {rejected.length > 0 && (
+        <div className="pairing-group">
+          <div className="pairing-group-label">Failed</div>
+          {rejected.map((r) => (
+            <div key={r._id} className="pairing-row pairing-row-failed">
+              <span className="pairing-code-display">{r.code}</span>
+              <span className="pairing-status-failed">Code not found or expired</span>
+              <button
+                className="admin-btn admin-btn-sm"
+                onClick={() => handleRemove(r._id)}
+              >
+                Dismiss
+              </button>
             </div>
           ))}
         </div>
@@ -275,15 +299,16 @@ function PairingPanel({ harborId }: { harborId: string }) {
             <div key={r._id} className="pairing-row">
               <span className="pairing-sender">{senderLabel(r)}</span>
               <span className="pairing-badge-approved">✓</span>
+              <button
+                className="admin-btn admin-btn-sm agent-btn-danger"
+                onClick={() => handleRemove(r._id)}
+                title="Revoke access"
+              >
+                Revoke
+              </button>
             </div>
           ))}
         </div>
-      )}
-
-      {pending.length === 0 && approved.length === 0 && (
-        <p className="pairing-empty">
-          No paired users yet. Send a message to the bot on Telegram to start pairing.
-        </p>
       )}
     </div>
   );

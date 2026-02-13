@@ -234,41 +234,9 @@ http.route({
   }),
 });
 
-// POST /api/daemon/pairing/sync — push pending pairing requests from gateway files
+// GET /api/daemon/pairing/pending — get codes submitted by admins for daemon to resolve
 http.route({
-  path: "/api/daemon/pairing/sync",
-  method: "POST",
-  handler: httpAction(async (ctx, request) => {
-    const auth = await authenticate(ctx, request);
-    if (!auth.ok) return auth.response;
-
-    const body = (await request.json()) as {
-      channel?: string;
-      requests?: Array<{
-        senderId: string;
-        code: string;
-        senderMeta?: unknown;
-        createdAt: string;
-        accountId?: string;
-      }>;
-    };
-    if (!body.channel || !body.requests) {
-      return json({ error: "Missing channel or requests" }, 400);
-    }
-
-    await ctx.runMutation(internal.pairing.syncFromDaemon, {
-      harborId: auth.harborId as any,
-      channel: body.channel,
-      requests: body.requests,
-    });
-
-    return json({ ok: true });
-  }),
-});
-
-// GET /api/daemon/pairing/approved — get approved requests for daemon to write to allowFrom
-http.route({
-  path: "/api/daemon/pairing/approved",
+  path: "/api/daemon/pairing/pending",
   method: "GET",
   handler: httpAction(async (ctx, request) => {
     const auth = await authenticate(ctx, request);
@@ -280,12 +248,60 @@ http.route({
       return json({ error: "Missing channel param" }, 400);
     }
 
-    const approved = await ctx.runQuery(internal.pairing.listApprovedInternal, {
+    const pending = await ctx.runQuery(internal.pairing.listPendingInternal, {
       harborId: auth.harborId as any,
       channel,
     });
 
-    return json(approved);
+    return json(pending);
+  }),
+});
+
+// POST /api/daemon/pairing/approved — daemon reports a code was approved
+http.route({
+  path: "/api/daemon/pairing/approved",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const auth = await authenticate(ctx, request);
+    if (!auth.ok) return auth.response;
+
+    const body = (await request.json()) as {
+      id?: string;
+      senderId?: string;
+      senderMeta?: unknown;
+    };
+    if (!body.id || !body.senderId) {
+      return json({ error: "Missing id or senderId" }, 400);
+    }
+
+    await ctx.runMutation(internal.pairing.markApprovedInternal, {
+      id: body.id as any,
+      senderId: body.senderId,
+      senderMeta: body.senderMeta,
+    });
+
+    return json({ ok: true });
+  }),
+});
+
+// POST /api/daemon/pairing/failed — daemon reports a code was not found
+http.route({
+  path: "/api/daemon/pairing/failed",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const auth = await authenticate(ctx, request);
+    if (!auth.ok) return auth.response;
+
+    const body = (await request.json()) as { id?: string };
+    if (!body.id) {
+      return json({ error: "Missing id" }, 400);
+    }
+
+    await ctx.runMutation(internal.pairing.markFailedInternal, {
+      id: body.id as any,
+    });
+
+    return json({ ok: true });
   }),
 });
 

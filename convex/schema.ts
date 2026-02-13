@@ -262,22 +262,21 @@ export default defineSchema({
     .index("by_harbor", ["harborId"]),
 
   // ── Channel Pairing ─────────────────────────────────────────────────
-  // Pending and approved pairing requests for channel DMs.
-  // Synced from gateway pairing files by the daemon.
+  // Code-based DM approval. Admin submits a pairing code from the UI,
+  // daemon resolves it against gateway pairing files.
   pairingRequests: defineTable({
     channel: v.string(), // "telegram"
-    senderId: v.string(), // e.g. telegram user id
-    code: v.string(), // pairing code
+    senderId: v.string(), // resolved by daemon after approval
+    code: v.string(), // pairing code from the bot
     senderMeta: v.optional(v.any()), // { username, firstName, etc. }
     status: v.union(
-      v.literal("pending"),
-      v.literal("approved"),
-      v.literal("rejected"),
+      v.literal("pending"), // submitted by admin, waiting for daemon
+      v.literal("approved"), // daemon confirmed
+      v.literal("rejected"), // code not found or expired
     ),
-    createdAt: v.string(), // ISO timestamp from gateway
-    resolvedAt: v.optional(v.number()), // when approved/rejected in UI
+    createdAt: v.string(),
+    resolvedAt: v.optional(v.number()),
     harborId: v.id("harbors"),
-    accountId: v.optional(v.string()), // telegram account id (agent sessionKey)
   })
     .index("by_harbor", ["harborId"])
     .index("by_harbor_channel", ["harborId", "channel"])
