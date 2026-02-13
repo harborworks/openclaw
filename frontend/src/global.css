@@ -1196,3 +1196,9 @@ select.agent-input {
   color: var(--text-muted);
   opacity: 0.5;
 }
+
+.prompt-section-hint {
+  margin: 0.5rem 0 0 0;
+  font-size: 0.75rem;
+  color: var(--color-amber, #f59e0b);
+}

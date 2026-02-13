@@ -120,6 +120,9 @@ function SectionCard({
             onChange={(e) => onChange(e.target.value)}
             rows={6}
           />
+          {/^# [^#]/m.test(value) && (
+            <p className="prompt-section-hint">💡 Tip: use <code>##</code> for sections — <code>#</code> headings are reserved for the file title.</p>
+          )}
         </div>
       )}
     </div>
