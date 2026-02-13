@@ -31,7 +31,7 @@ GATEWAY_TOKEN=""
 DAEMON_VERSION="latest"
 GATEWAY_VERSION="latest"
 GATEWAY_PORT="18789"
-DEPLOY_DIR="/root/.harbor"
+DEPLOY_DIR="/home/ubuntu/harbor"
 HARBOR_ID=""
 API_KEY=""
 DRY_RUN=false
@@ -138,6 +138,12 @@ ssm_run() {
     --output text
 }
 
+# --- Helper to run commands on remote as ubuntu ---
+ssm_run_as() {
+  local cmd="$1"
+  ssm_run "runuser -u ubuntu -- bash -c '$cmd'"
+}
+
 # --- Helper to write a file on remote via SSM ---
 ssm_write_file() {
   local remote_path="$1"
@@ -147,7 +153,7 @@ ssm_write_file() {
   local encoded
   encoded=$(echo "$content" | base64 -w0)
 
-  ssm_run "echo '$encoded' | base64 -d > $remote_path"
+  ssm_run "echo '$encoded' | base64 -d > $remote_path && chown ubuntu:ubuntu $remote_path"
 }
 
 # --- Validate ---
@@ -169,12 +175,12 @@ fi
 
 # --- Step 1: Ensure deploy directory exists with correct ownership ---
 log "Creating deploy directory..."
-ssm_run "mkdir -p ${DEPLOY_DIR}/config ${DEPLOY_DIR}/workspaces && chown -R 1000:1000 ${DEPLOY_DIR}/config ${DEPLOY_DIR}/workspaces"
+ssm_run "mkdir -p ${DEPLOY_DIR}/config ${DEPLOY_DIR}/workspaces && chown ubuntu:ubuntu ${DEPLOY_DIR} && chown -R 1000:1000 ${DEPLOY_DIR}/config ${DEPLOY_DIR}/workspaces"
 
-# Migrate from old layout if present
-OLD_DEPLOY="/home/ubuntu/harbor"
+# Migrate from old /root/.harbor layout if present
+OLD_DEPLOY="/root/.harbor"
 log "Checking for legacy layout..."
-ssm_run "if [ -d ${OLD_DEPLOY}/.harbor-host/config ] && [ ! -f ${DEPLOY_DIR}/config/.migrated ]; then cp -a ${OLD_DEPLOY}/.harbor-host/config/. ${DEPLOY_DIR}/config/ 2>/dev/null; cp -a ${OLD_DEPLOY}/.harbor-host/workspace/. ${DEPLOY_DIR}/workspaces/ 2>/dev/null; rm -rf ${DEPLOY_DIR}/workspaces/.git; touch ${DEPLOY_DIR}/config/.migrated; chown -R 1000:1000 ${DEPLOY_DIR}; echo MIGRATED; else echo SKIP; fi"
+ssm_run "if [ -d ${OLD_DEPLOY}/config ] && [ ! -f ${DEPLOY_DIR}/config/.migrated ]; then cp -a ${OLD_DEPLOY}/config/. ${DEPLOY_DIR}/config/ 2>/dev/null; cp -a ${OLD_DEPLOY}/workspaces/. ${DEPLOY_DIR}/workspaces/ 2>/dev/null; rm -rf ${DEPLOY_DIR}/workspaces/.git; touch ${DEPLOY_DIR}/config/.migrated; chown ubuntu:ubuntu ${DEPLOY_DIR}; chown -R 1000:1000 ${DEPLOY_DIR}/config ${DEPLOY_DIR}/workspaces; echo MIGRATED; else echo SKIP; fi"
 
 # --- Step 2: Copy docker-compose.host.yml ---
 log "Copying docker-compose.yml..."
@@ -196,11 +202,11 @@ else
   # Update versions in existing .env.host
   if [[ "$DAEMON_VERSION" != "latest" || "$GATEWAY_VERSION" != "latest" ]]; then
     log "Updating image versions..."
-    ssm_run "cd ${DEPLOY_DIR} && sed -i 's/^DAEMON_VERSION=.*/DAEMON_VERSION=${DAEMON_VERSION}/' .env.host && sed -i 's/^GATEWAY_VERSION=.*/GATEWAY_VERSION=${GATEWAY_VERSION}/' .env.host"
+    ssm_run_as "cd ${DEPLOY_DIR} && sed -i 's/^DAEMON_VERSION=.*/DAEMON_VERSION=${DAEMON_VERSION}/' .env.host && sed -i 's/^GATEWAY_VERSION=.*/GATEWAY_VERSION=${GATEWAY_VERSION}/' .env.host"
   fi
   # Ensure config/workspace dirs point to new layout
   log "Updating config/workspace paths..."
-  ssm_run "cd ${DEPLOY_DIR} && grep -q OPENCLAW_CONFIG_DIR .env.host && sed -i 's|^OPENCLAW_CONFIG_DIR=.*|OPENCLAW_CONFIG_DIR=${DEPLOY_DIR}/config|' .env.host || echo 'OPENCLAW_CONFIG_DIR=${DEPLOY_DIR}/config' >> .env.host && grep -q OPENCLAW_WORKSPACE_DIR .env.host && sed -i 's|^OPENCLAW_WORKSPACE_DIR=.*|OPENCLAW_WORKSPACE_DIR=${DEPLOY_DIR}/workspaces|' .env.host || echo 'OPENCLAW_WORKSPACE_DIR=${DEPLOY_DIR}/workspaces' >> .env.host"
+  ssm_run_as "cd ${DEPLOY_DIR} && grep -q OPENCLAW_CONFIG_DIR .env.host && sed -i 's|^OPENCLAW_CONFIG_DIR=.*|OPENCLAW_CONFIG_DIR=${DEPLOY_DIR}/config|' .env.host || echo 'OPENCLAW_CONFIG_DIR=${DEPLOY_DIR}/config' >> .env.host && grep -q OPENCLAW_WORKSPACE_DIR .env.host && sed -i 's|^OPENCLAW_WORKSPACE_DIR=.*|OPENCLAW_WORKSPACE_DIR=${DEPLOY_DIR}/workspaces|' .env.host || echo 'OPENCLAW_WORKSPACE_DIR=${DEPLOY_DIR}/workspaces' >> .env.host"
 fi
 
 # --- Step 4: Copy cli.sh ---
@@ -215,16 +221,16 @@ ssm_run "chmod +x ${DEPLOY_DIR}/cli.sh"
 log "Clearing stale gateway config..."
 ssm_run "rm -f ${DEPLOY_DIR}/config/openclaw.json"
 
-# --- Step 6: ECR login on remote host ---
+# --- Step 6: ECR login on remote host (as ubuntu so docker config lands in ~ubuntu) ---
 log "Logging into ECR..."
-ssm_run "aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}"
+ssm_run_as "aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}"
 
-# --- Step 7: Pull and start ---
+# --- Step 7: Pull and start (as ubuntu) ---
 log "Pulling images..."
-ssm_run "cd ${DEPLOY_DIR} && docker compose --env-file .env.host pull"
+ssm_run_as "cd ${DEPLOY_DIR} && docker compose --env-file .env.host pull"
 
 log "Starting stack..."
-ssm_run "cd ${DEPLOY_DIR} && docker compose --env-file .env.host up -d"
+ssm_run_as "cd ${DEPLOY_DIR} && docker compose --env-file .env.host up -d"
 
 log "Done! Stack deployed to harbor-host-${HOST_NAME} (${INSTANCE_ID})"
 log ""
