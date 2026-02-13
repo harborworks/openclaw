@@ -11,6 +11,7 @@ import * as fs from "fs";
 import * as path from "path";
 import type { ConvexApiConfig } from "./secrets.js";
 import { GatewayClient, configApi } from "./gateway-client.js";
+import { convexGet } from "./utils.js";
 
 function log(msg: string) {
   console.log(`[agents] ${new Date().toISOString()} ${msg}`);
@@ -49,15 +50,7 @@ const MODEL_MAP: Record<string, { ref: string; alias: string }> = {
 // --- Convex API ---
 
 export async function fetchAgents(api: ConvexApiConfig): Promise<ConvexAgent[]> {
-  const url = `${api.convexUrl}/api/daemon/agents`;
-  const res = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${api.apiKey}`,
-      "X-Harbor-ID": api.harborId,
-    },
-  });
-  if (!res.ok) throw new Error(`Failed to fetch agents: ${res.status}`);
-  return res.json();
+  return convexGet<ConvexAgent[]>(api, "/api/daemon/agents");
 }
 
 // --- Workspace scaffolding ---

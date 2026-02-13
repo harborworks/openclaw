@@ -5,11 +5,12 @@
  * 1. Fetch pending codes from Convex (submitted by admin in UI)
  * 2. Try to approve each code against the gateway pairing file
  * 3. Report results back to Convex (approved with sender info, or failed)
+ * 4. Reconcile allowFrom file with Convex-approved senders (handles revocations)
  */
 
-import * as fs from "fs";
 import * as path from "path";
 import type { ConvexApiConfig } from "./secrets.js";
+import { readJsonFile, writeJsonFile, convexGet, convexPost } from "./utils.js";
 
 function log(msg: string) {
   console.log(`[pairing] ${new Date().toISOString()} ${msg}`);
@@ -17,7 +18,7 @@ function log(msg: string) {
 
 // --- Types ---
 
-interface PairingRequest {
+export interface PairingRequest {
   id: string;
   code: string;
   createdAt: string;
@@ -25,12 +26,12 @@ interface PairingRequest {
   meta?: Record<string, string>;
 }
 
-interface PairingStore {
+export interface PairingStore {
   version: number;
   requests: PairingRequest[];
 }
 
-interface AllowFromStore {
+export interface AllowFromStore {
   version: number;
   allowFrom: string[];
 }
@@ -41,130 +42,68 @@ interface PendingCode {
   channel: string;
 }
 
-// --- File helpers ---
+// --- Pure logic (exported for testing) ---
 
-function readJsonFile<T>(filePath: string, fallback: T): T {
-  try {
-    const raw = fs.readFileSync(filePath, "utf-8");
-    return JSON.parse(raw) as T;
-  } catch {
-    return fallback;
-  }
-}
+export const PAIRING_TTL_MS = 60 * 60 * 1000; // 1 hour
 
-function writeJsonFile(filePath: string, data: unknown): void {
-  const dir = path.dirname(filePath);
-  fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
-}
-
-// --- Convex API ---
-
-async function fetchPendingCodes(
-  api: ConvexApiConfig,
-  channel: string,
-): Promise<PendingCode[]> {
-  const url = `${api.convexUrl}/api/daemon/pairing/pending?channel=${channel}`;
-  const res = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${api.apiKey}`,
-      "X-Harbor-ID": api.harborId,
-    },
-  });
-  if (!res.ok) throw new Error(`Fetch pending codes failed: ${res.status}`);
-  return res.json();
-}
-
-async function reportApproved(
-  api: ConvexApiConfig,
-  id: string,
-  senderId: string,
-  senderMeta?: Record<string, string>,
-): Promise<void> {
-  const url = `${api.convexUrl}/api/daemon/pairing/approved`;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${api.apiKey}`,
-      "X-Harbor-ID": api.harborId,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ id, senderId, senderMeta }),
-  });
-  if (!res.ok) throw new Error(`Report approved failed: ${res.status}`);
-}
-
-async function reportFailed(api: ConvexApiConfig, id: string): Promise<void> {
-  const url = `${api.convexUrl}/api/daemon/pairing/failed`;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${api.apiKey}`,
-      "X-Harbor-ID": api.harborId,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ id }),
-  });
-  if (!res.ok) throw new Error(`Report failed failed: ${res.status}`);
-}
-
-// --- Core logic ---
-
-const PAIRING_TTL_MS = 60 * 60 * 1000; // 1 hour
-
-function approveCode(
+/**
+ * Find and approve a pairing code in the store.
+ * Returns the matched sender info, or null if not found/expired.
+ * Mutates the stores in place (caller is responsible for persistence).
+ */
+export function resolveCode(
   code: string,
-  pairingPath: string,
-  allowFromPath: string,
+  pairingStore: PairingStore,
+  allowFromStore: AllowFromStore,
+  nowMs: number = Date.now(),
 ): { senderId: string; meta?: Record<string, string> } | null {
-  const store = readJsonFile<PairingStore>(pairingPath, { version: 1, requests: [] });
-  const requests = store.requests || [];
-  const now = Date.now();
+  const requests = pairingStore.requests || [];
+  const upperCode = code.toUpperCase();
 
-  // Find matching non-expired request
   const idx = requests.findIndex((r) => {
-    if (r.code.toUpperCase() !== code.toUpperCase()) return false;
+    if (r.code.toUpperCase() !== upperCode) return false;
     const created = new Date(r.createdAt).getTime();
-    return now - created < PAIRING_TTL_MS;
+    return nowMs - created < PAIRING_TTL_MS;
   });
 
   if (idx < 0) return null;
 
   const entry = requests[idx];
   requests.splice(idx, 1);
-  writeJsonFile(pairingPath, { version: 1, requests });
 
-  // Add to allowFrom
-  const allowStore = readJsonFile<AllowFromStore>(allowFromPath, {
-    version: 1,
-    allowFrom: [],
-  });
-  if (!allowStore.allowFrom.includes(entry.id)) {
-    allowStore.allowFrom.push(entry.id);
-    writeJsonFile(allowFromPath, allowStore);
+  if (!allowFromStore.allowFrom.includes(entry.id)) {
+    allowFromStore.allowFrom.push(entry.id);
   }
 
   return { senderId: entry.id, meta: entry.meta };
 }
 
-// --- Allow list sync ---
+// --- File-backed operations ---
 
-async function fetchApprovedSenders(
-  api: ConvexApiConfig,
-  channel: string,
-): Promise<string[]> {
-  const url = `${api.convexUrl}/api/daemon/pairing/senders?channel=${channel}`;
-  const res = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${api.apiKey}`,
-      "X-Harbor-ID": api.harborId,
-    },
-  });
-  if (!res.ok) throw new Error(`Fetch approved senders failed: ${res.status}`);
-  return res.json();
+function approveCode(
+  code: string,
+  pairingPath: string,
+  allowFromPath: string,
+): { senderId: string; meta?: Record<string, string> } | null {
+  const pairingStore = readJsonFile<PairingStore>(pairingPath, { version: 1, requests: [] });
+  const allowFromStore = readJsonFile<AllowFromStore>(allowFromPath, { version: 1, allowFrom: [] });
+
+  const result = resolveCode(code, pairingStore, allowFromStore);
+  if (!result) return null;
+
+  writeJsonFile(pairingPath, pairingStore);
+  writeJsonFile(allowFromPath, allowFromStore);
+  return result;
 }
 
+// --- Allow list reconciliation ---
+
 let lastAllowFromState = "";
+
+/** Reset the cached state (for testing). */
+export function resetAllowFromCache(): void {
+  lastAllowFromState = "";
+}
 
 function syncAllowFrom(
   approvedSenders: string[],
@@ -173,11 +112,7 @@ function syncAllowFrom(
   const fingerprint = JSON.stringify(approvedSenders.sort());
   if (fingerprint === lastAllowFromState) return;
 
-  const store: AllowFromStore = {
-    version: 1,
-    allowFrom: approvedSenders,
-  };
-  writeJsonFile(allowFromPath, store);
+  writeJsonFile(allowFromPath, { version: 1, allowFrom: approvedSenders } satisfies AllowFromStore);
   lastAllowFromState = fingerprint;
   log(`Synced allowFrom: ${approvedSenders.length} sender(s)`);
 }
@@ -195,22 +130,30 @@ export async function syncPairing(
     const allowFromPath = path.join(credentialsDir, `${channel}-allowFrom.json`);
 
     // 1. Process any pending codes submitted by admins
-    const pending = await fetchPendingCodes(api, channel);
+    const pending = await convexGet<PendingCode[]>(
+      api, `/api/daemon/pairing/pending?channel=${channel}`,
+    );
     for (const req of pending) {
       const result = approveCode(req.code, pairingPath, allowFromPath);
       if (result) {
-        await reportApproved(api, req._id, result.senderId, result.meta);
+        await convexPost(api, "/api/daemon/pairing/approved", {
+          id: req._id,
+          senderId: result.senderId,
+          senderMeta: result.meta,
+        });
         log(`Approved ${channel} pairing code ${req.code} → sender ${result.senderId}`);
       } else {
-        await reportFailed(api, req._id);
+        await convexPost(api, "/api/daemon/pairing/failed", { id: req._id });
         log(`Pairing code ${req.code} not found or expired`);
       }
     }
 
     // 2. Reconcile allowFrom file with Convex approved senders.
-    // This handles revocations: if a record is deleted in the UI,
+    // Handles revocations: if a record is deleted in the UI,
     // the sender is removed from allowFrom on the next tick.
-    const approvedSenders = await fetchApprovedSenders(api, channel);
+    const approvedSenders = await convexGet<string[]>(
+      api, `/api/daemon/pairing/senders?channel=${channel}`,
+    );
     syncAllowFrom(approvedSenders, allowFromPath);
   }
 }
