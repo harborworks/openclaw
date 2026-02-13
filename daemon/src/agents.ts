@@ -25,6 +25,8 @@ export interface ConvexAgent {
   role: string;
   model?: string;
   status: string;
+  roleDescription?: string;
+  additionalInstructions?: string;
 }
 
 interface GatewayAgentConfig {
@@ -56,31 +58,14 @@ export async function fetchAgents(api: ConvexApiConfig): Promise<ConvexAgent[]> 
 }
 
 // --- Workspace scaffolding ---
+// Only creates the directory and MEMORY.md (which the prompt system won't touch).
 
-const WORKSPACE_FILES: Record<string, (agent: ConvexAgent) => string> = {
-  "IDENTITY.md": (a) => `# ${a.name}\n\n**Role:** ${a.role}\n**Agent ID:** ${a.sessionKey}\n`,
-  "MEMORY.md": () => `# MEMORY.md\n`,
-  "AGENTS.md": () => `# AGENTS.md\n`,
-};
-
-function scaffoldWorkspace(dir: string, agent: ConvexAgent): void {
+function scaffoldWorkspace(dir: string): void {
   fs.mkdirSync(dir, { recursive: true });
-  for (const [file, generator] of Object.entries(WORKSPACE_FILES)) {
-    const filePath = path.join(dir, file);
-    if (!fs.existsSync(filePath)) {
-      fs.writeFileSync(filePath, generator(agent));
-      log(`  Created ${file}`);
-    }
-  }
-}
-
-function updateIdentity(dir: string, agent: ConvexAgent): void {
-  const filePath = path.join(dir, "IDENTITY.md");
-  const content = WORKSPACE_FILES["IDENTITY.md"](agent);
-  const existing = fs.existsSync(filePath) ? fs.readFileSync(filePath, "utf-8") : "";
-  if (existing !== content) {
-    fs.writeFileSync(filePath, content);
-    log(`  Updated IDENTITY.md for ${agent.sessionKey}`);
+  const memoryPath = path.join(dir, "MEMORY.md");
+  if (!fs.existsSync(memoryPath)) {
+    fs.writeFileSync(memoryPath, "# MEMORY.md\n");
+    log(`  Created MEMORY.md`);
   }
 }
 
@@ -162,18 +147,15 @@ export async function syncAgents(
   for (const agent of toCreate) {
     log(`Creating agent: ${agent.sessionKey} (${agent.name})`);
     const dir = path.join(workspacesDir, agent.sessionKey);
-    scaffoldWorkspace(dir, agent);
+    scaffoldWorkspace(dir);
   }
 
-  // 6. Handle workspace updates for existing agents
+  // 6. Ensure workspace exists for existing agents
   for (const agent of toUpdate) {
     const dir = path.join(workspacesDir, agent.sessionKey);
-    if (fs.existsSync(dir)) {
-      updateIdentity(dir, agent);
-    } else {
-      // Workspace missing — recreate
+    if (!fs.existsSync(dir)) {
       log(`Recreating workspace for ${agent.sessionKey}`);
-      scaffoldWorkspace(dir, agent);
+      scaffoldWorkspace(dir);
     }
   }
 

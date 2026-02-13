@@ -41,6 +41,8 @@ export const update = mutation({
         name: v.optional(v.string()),
         role: v.optional(v.string()),
         model: v.optional(v.string()),
+        roleDescription: v.optional(v.string()),
+        additionalInstructions: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
         const agent = await ctx.db.get(args.id);
@@ -53,6 +55,10 @@ export const update = mutation({
             patch.role = args.role;
         if (args.model !== undefined)
             patch.model = args.model;
+        if (args.roleDescription !== undefined)
+            patch.roleDescription = args.roleDescription;
+        if (args.additionalInstructions !== undefined)
+            patch.additionalInstructions = args.additionalInstructions;
         await ctx.db.patch(args.id, patch);
     },
 });
@@ -78,6 +84,8 @@ export const listInternal = internalQuery({
             role: a.role,
             model: a.model,
             status: a.status,
+            roleDescription: a.roleDescription,
+            additionalInstructions: a.additionalInstructions,
         }));
     },
 });

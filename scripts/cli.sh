@@ -16,9 +16,19 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DEPLOY_DIR="${SCRIPT_DIR%/scripts}"
 
-# If no scripts dir (deployed to host), use current dir
-if [[ ! -f "$DEPLOY_DIR/docker-compose.yml" ]]; then
-  DEPLOY_DIR="$(pwd)"
+# Deployed hosts have a single docker-compose.yml (copied from host.yml)
+if [[ -f "$DEPLOY_DIR/docker-compose.yml" ]]; then
+  exec docker compose -f "$DEPLOY_DIR/docker-compose.yml" \
+    --env-file "$DEPLOY_DIR/.env.host" run --rm cli "$@"
 fi
 
-exec docker compose -f "$DEPLOY_DIR/docker-compose.yml" --env-file "$DEPLOY_DIR/.env.host" run --rm cli "$@"
+# Local dev: compose with host + dev overlay
+if [[ -f "$DEPLOY_DIR/docker-compose.host.yml" ]]; then
+  exec docker compose \
+    -f "$DEPLOY_DIR/docker-compose.host.yml" \
+    -f "$DEPLOY_DIR/docker-compose.dev.yml" \
+    --env-file "$DEPLOY_DIR/.env.host" run --rm cli "$@"
+fi
+
+echo "Error: No docker-compose file found in $DEPLOY_DIR" >&2
+exit 1
