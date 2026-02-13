@@ -43,7 +43,7 @@ const DEFAULT_SECTIONS: Sections = {
 - Timezone: (your timezone, e.g. America/Chicago)
 - Preferences: (communication style, formatting preferences, etc.)
 
-## Goals
+### Goals
 
 - Grow revenue by 30%
 - Decrease churn by 10%`,
@@ -120,8 +120,8 @@ function SectionCard({
             onChange={(e) => onChange(e.target.value)}
             rows={6}
           />
-          {/^# [^#]/m.test(value) && (
-            <p className="prompt-section-hint">💡 Tip: use <code>##</code> for sections — <code>#</code> headings are reserved for the file title.</p>
+          {/^#{1,2} [^#]/m.test(value) && (
+            <p className="prompt-section-hint">💡 Tip: avoid <code>#</code> and <code>##</code> headings — those are used by the template structure. Use <code>###</code> or bold text for sub-sections.</p>
           )}
         </div>
       )}
