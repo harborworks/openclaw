@@ -40,7 +40,6 @@ const DEFAULT_SECTIONS: Sections = {
 
   userInfo: `- Name: (your name)
 - Location: (your location, e.g. Omaha, NE)
-- Timezone: (your timezone, e.g. America/Chicago)
 
 ### Business
 
