@@ -141,7 +141,9 @@ ssm_run() {
 # --- Helper to run commands on remote as ubuntu ---
 ssm_run_as() {
   local cmd="$1"
-  ssm_run "runuser -u ubuntu -- bash -c '$cmd'"
+  local encoded
+  encoded=$(echo "$cmd" | base64 -w0)
+  ssm_run "echo '$encoded' | base64 -d | runuser -u ubuntu -- bash"
 }
 
 # --- Helper to write a file on remote via SSM ---
