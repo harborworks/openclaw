@@ -39,6 +39,7 @@ const DEFAULT_SECTIONS: Sections = {
 - Match the formality level of the person you're speaking with`,
 
   userInfo: `- Name: (your name)
+- Location: (your location, e.g. Omaha, NE)
 - Timezone: (your timezone, e.g. America/Chicago)
 - Preferences: (communication style, formatting preferences, etc.)
 
@@ -49,6 +50,11 @@ const DEFAULT_SECTIONS: Sections = {
 };
 
 const SECTION_CONFIGS: SectionConfig[] = [
+  {
+    key: "userInfo",
+    label: "User Info",
+    description: "Information about the human owner — name, location, preferences, and goals.",
+  },
   {
     key: "principles",
     label: "Core Principles",
@@ -63,11 +69,6 @@ const SECTION_CONFIGS: SectionConfig[] = [
     key: "tone",
     label: "Tone",
     description: "How your agents should communicate — voice, formality, and style.",
-  },
-  {
-    key: "userInfo",
-    label: "User Info",
-    description: "Information about the human owner — name, preferences, timezone, context.",
   },
 ];
 
