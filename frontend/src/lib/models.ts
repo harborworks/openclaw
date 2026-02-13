@@ -12,6 +12,8 @@ export interface ModelDef {
 /** All available models. */
 export const ALL_MODELS: readonly ModelDef[] = [
   { value: "opus4.6", label: "Opus 4.6", requiredKey: "ANTHROPIC_API_KEY" },
+  { value: "sonnet4.5", label: "Sonnet 4.5", requiredKey: "ANTHROPIC_API_KEY" },
+  { value: "haiku4.5", label: "Haiku 4.5", requiredKey: "ANTHROPIC_API_KEY" },
 ] as const;
 
 /** Lookup display label for a model value. */
