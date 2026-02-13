@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@convex/api";
 import { useAuth } from "../../auth";
+import { BackButton } from "../../components/BackButton";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const promptTemplatesApi = (api as any).promptTemplates;
@@ -56,11 +57,7 @@ export function AdminPromptsPage() {
     <div>
       <div className="admin-header">
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <button className="admin-back" onClick={() => navigate("/admin")}>
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <path d="M12 5L7 10L12 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
+          <BackButton to="/admin" />
           <h1>Prompt Templates</h1>
         </div>
         {templates && templates.length === 0 && (
