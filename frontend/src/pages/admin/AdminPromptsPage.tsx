@@ -26,75 +26,7 @@ const FILE_DESCRIPTIONS: Record<string, string> = {
   "HEARTBEAT.md": "Wake behavior and task flow",
 };
 
-function TemplateEditor({
-  template,
-  cognitoSub,
-  onClose,
-}: {
-  template: PromptTemplate;
-  cognitoSub: string;
-  onClose: () => void;
-}) {
-  const [content, setContent] = useState(template.content);
-  const [saving, setSaving] = useState(false);
-  const updateTemplate = useMutation(promptTemplatesApi.update);
-
-  const isDirty = content !== template.content;
-
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      await updateTemplate({
-        cognitoSub,
-        fileKey: template.fileKey,
-        content,
-      });
-      onClose();
-    } catch (err) {
-      alert(`Save failed: ${err instanceof Error ? err.message : err}`);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <div className="prompt-editor">
-      <div className="prompt-editor-header">
-        <div>
-          <h2 className="prompt-editor-title">{template.fileKey}</h2>
-          <span className="prompt-editor-meta">
-            v{template.version} · Last updated {new Date(template.updatedAt).toLocaleDateString()}
-          </span>
-        </div>
-        <div className="prompt-editor-actions">
-          <button
-            className="admin-btn"
-            onClick={onClose}
-            disabled={saving}
-          >
-            Cancel
-          </button>
-          <button
-            className="admin-btn admin-btn-primary"
-            onClick={handleSave}
-            disabled={saving || !isDirty}
-          >
-            {saving ? "Saving…" : "Save"}
-          </button>
-        </div>
-      </div>
-      <textarea
-        className="prompt-editor-textarea"
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-        spellCheck={false}
-      />
-      <div className="prompt-editor-hint">
-        Handlebars placeholders: <code>{"{{agent.name}}"}</code>, <code>{"{{sections.principles}}"}</code>, <code>{"{{{raw_markdown}}}"}</code>, <code>{"{{#if}}...{{/if}}"}</code>, <code>{"{{#eq agent.role \"value\"}}...{{/eq}}"}</code>
-      </div>
-    </div>
-  );
-}
+const FILE_ORDER = ["SOUL.md", "IDENTITY.md", "USER.md", "TOOLS.md", "AGENTS.md", "HEARTBEAT.md"];
 
 export function AdminPromptsPage() {
   const navigate = useNavigate();
@@ -107,11 +39,7 @@ export function AdminPromptsPage() {
   ) as PromptTemplate[] | undefined;
 
   const seedTemplates = useMutation(adminPromptsApi.seed);
-
-  const [editingKey, setEditingKey] = useState<string | null>(null);
   const [seeding, setSeeding] = useState(false);
-
-  const editingTemplate = templates?.find((t) => t.fileKey === editingKey);
 
   const handleSeed = async () => {
     if (!cognitoSub) return;
@@ -123,19 +51,6 @@ export function AdminPromptsPage() {
       setSeeding(false);
     }
   };
-
-  if (editingTemplate && cognitoSub) {
-    return (
-      <div>
-        <TemplateEditor
-          key={editingTemplate._id}
-          template={editingTemplate}
-          cognitoSub={cognitoSub}
-          onClose={() => setEditingKey(null)}
-        />
-      </div>
-    );
-  }
 
   return (
     <div>
@@ -164,15 +79,12 @@ export function AdminPromptsPage() {
       {templates && templates.length > 0 && (
         <div className="prompt-list">
           {templates
-            .sort((a, b) => {
-              const order = ["SOUL.md", "IDENTITY.md", "USER.md", "TOOLS.md", "AGENTS.md", "HEARTBEAT.md"];
-              return (order.indexOf(a.fileKey) ?? 99) - (order.indexOf(b.fileKey) ?? 99);
-            })
+            .sort((a, b) => (FILE_ORDER.indexOf(a.fileKey) ?? 99) - (FILE_ORDER.indexOf(b.fileKey) ?? 99))
             .map((t) => (
               <button
                 key={t._id}
                 className="prompt-card"
-                onClick={() => setEditingKey(t.fileKey)}
+                onClick={() => navigate(`/admin/prompts/${encodeURIComponent(t.fileKey)}`)}
               >
                 <div className="prompt-card-header">
                   <code className="prompt-card-file">{t.fileKey}</code>

@@ -12,6 +12,7 @@ import { AdminOrgsPage } from "./pages/admin/AdminOrgsPage";
 import { AdminMembersPage } from "./pages/admin/AdminMembersPage";
 import { AdminHarborsPage } from "./pages/admin/AdminHarborsPage";
 import { AdminPromptsPage } from "./pages/admin/AdminPromptsPage";
+import { AdminPromptEditPage } from "./pages/admin/AdminPromptEditPage";
 import { SecretsPage } from "./pages/SecretsPage";
 import { AgentsPage } from "./pages/AgentsPage";
 import { PromptsPage } from "./pages/PromptsPage";
@@ -111,6 +112,18 @@ function AppRoutes() {
             <AdminRoute>
               <Layout>
                 <AdminPromptsPage />
+              </Layout>
+            </AdminRoute>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/prompts/:fileKey"
+        element={
+          <ProtectedRoute>
+            <AdminRoute>
+              <Layout>
+                <AdminPromptEditPage />
               </Layout>
             </AdminRoute>
           </ProtectedRoute>
