@@ -384,7 +384,7 @@ function TelegramConfig({
         </svg>
         <span className="telegram-config-title">Telegram</span>
         {hasToken && !showToken && (
-          <StatusBadge label="Connected" variant="set" />
+          <StatusBadge label="✓ Connected" variant="set" />
         )}
       </div>
 
