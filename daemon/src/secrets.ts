@@ -1,6 +1,13 @@
 /**
- * Secrets sync: pull pending secrets from Convex HTTP API, decrypt, write to
- * env file, mark as consumed.
+ * Secrets sync: pull pending secrets from Convex HTTP API, decrypt,
+ * inject into gateway config, mark as consumed.
+ *
+ * All secrets are injected into the gateway's `config.env` section via the
+ * config patch API. OpenClaw's `applyConfigEnv()` writes them into
+ * `process.env` on every config load (including SIGUSR1 in-process restarts).
+ *
+ * Structural config patches (e.g. enabling Telegram when a bot token is set)
+ * are applied alongside the env injection.
  */
 
 import * as fs from "fs";
@@ -76,43 +83,6 @@ function decryptOrPassthrough(value: string): string {
   }
 }
 
-/** Read an existing env file into a Map. */
-function readEnvFile(filePath: string): Map<string, string> {
-  const env = new Map<string, string>();
-  try {
-    const content = fs.readFileSync(filePath, "utf-8");
-    for (const line of content.split("\n")) {
-      const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith("#")) continue;
-      const eqIdx = trimmed.indexOf("=");
-      if (eqIdx > 0) {
-        let val = trimmed.substring(eqIdx + 1);
-        // Strip surrounding double quotes and unescape
-        if (val.startsWith('"') && val.endsWith('"')) {
-          val = val.slice(1, -1).replace(/\\"/g, '"').replace(/\\\\/g, '\\');
-        } else if (val.startsWith("'") && val.endsWith("'")) {
-          val = val.slice(1, -1);
-        }
-        env.set(trimmed.substring(0, eqIdx), val);
-      }
-    }
-  } catch {
-    // File doesn't exist yet
-  }
-  return env;
-}
-
-/** Write env Map to file. */
-function writeEnvFile(filePath: string, env: Map<string, string>): void {
-  const dir = path.dirname(filePath);
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  const lines = ["# Managed by Harbor daemon — do not edit manually"];
-  for (const [key, val] of [...env.entries()].sort()) {
-    lines.push(`${key}="${val.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`);
-  }
-  fs.writeFileSync(filePath, lines.join("\n") + "\n", { mode: 0o600 });
-}
-
 /** Make an authenticated request to Convex HTTP API. */
 async function convexApi(
   api: ConvexApiConfig,
@@ -146,20 +116,9 @@ export async function registerPublicKey(
 }
 
 /**
- * Config patches for known secret keys.
- * When these secrets are set, the corresponding config is patched into the
- * gateway so it knows how to use the env var.
+ * Structural config patches applied when specific secrets are set.
+ * These configure gateway features beyond just making the env var available.
  */
-/**
- * Secrets that should be injected into the gateway config's `env` block
- * so they're available in process.env after SIGUSR1 in-process restarts
- * (which don't re-exec the entrypoint and thus don't re-source .env).
- */
-export const ENV_SECRETS = new Set([
-  "ANTHROPIC_API_KEY",
-  "OPENAI_API_KEY",
-]);
-
 export const CONFIG_PATCHES: Record<string, Record<string, unknown>> = {
   BRAVE_SEARCH_API_KEY: {
     tools: {
@@ -192,8 +151,8 @@ export const CONFIG_PATCHES: Record<string, Record<string, unknown>> = {
 };
 
 /**
- * Config patches to REMOVE when a config-linked secret is deleted.
- * Sets the values to empty/disabled so the gateway doesn't crash on missing env vars.
+ * Structural config patches applied when specific secrets are deleted.
+ * Disables features that depend on the removed secret.
  */
 const CONFIG_REMOVALS: Record<string, Record<string, unknown>> = {
   BRAVE_SEARCH_API_KEY: {
@@ -223,14 +182,12 @@ const CONFIG_REMOVALS: Record<string, Record<string, unknown>> = {
 };
 
 /**
- * Poll Convex HTTP API for pending secrets, decrypt, write to env file,
- * mark consumed. Also handles pending deletions.
+ * Poll Convex HTTP API for pending secrets, decrypt, inject into gateway
+ * config, mark consumed. Also handles pending deletions.
  * Returns names of secrets that were written.
  */
 export async function syncSecrets(
   api: ConvexApiConfig,
-  envFilePath: string,
-  onRestart?: () => Promise<void>,
   onConfigPatch?: (patch: Record<string, unknown>) => Promise<void>,
 ): Promise<string[]> {
   const pendingSecrets = (await convexApi(api, "GET", "/api/daemon/secrets")) as Array<{
@@ -247,8 +204,8 @@ export async function syncSecrets(
 
   console.log(`[secrets] ${pendingSecrets.length} pending secret(s) detected`);
 
-  const env = readEnvFile(envFilePath);
   const written: string[] = [];
+  const envEntries: Record<string, string> = {};
 
   for (const secret of pendingSecrets) {
     if (SYSTEM_BLOCKLIST.has(secret.name)) {
@@ -256,7 +213,7 @@ export async function syncSecrets(
       continue;
     }
     const plaintext = decryptOrPassthrough(secret.pendingValue);
-    env.set(secret.name, plaintext);
+    envEntries[secret.name] = plaintext;
     written.push(secret.name);
     console.log(`[secrets]   Decrypted: ${secret.name}`);
 
@@ -268,39 +225,23 @@ export async function syncSecrets(
     }
   }
 
-  writeEnvFile(envFilePath, env);
-  console.log(`[secrets] Env file updated: ${envFilePath} (${env.size} vars)`);
+  // Build config patch: env vars + structural patches
+  if (onConfigPatch && written.length > 0) {
+    const mergedPatch: Record<string, unknown> = { env: envEntries };
 
-  // Apply config patches for config-linked secrets
-  if (onConfigPatch) {
-    const mergedPatch: Record<string, unknown> = {};
-
-    // Inject env secrets directly into config.env so they survive SIGUSR1
-    // in-process restarts (which don't re-exec the entrypoint / re-source .env)
-    const envEntries: Record<string, string> = {};
     for (const name of written) {
-      if (ENV_SECRETS.has(name)) {
-        envEntries[name] = env.get(name)!;
-        console.log(`[secrets]   Env config for: ${name}`);
-      }
       const patch = CONFIG_PATCHES[name];
       if (patch) {
         console.log(`[secrets]   Config patch for: ${name}`);
         deepMerge(mergedPatch, patch);
       }
     }
-    if (Object.keys(envEntries).length > 0) {
-      deepMerge(mergedPatch, { env: envEntries });
-    }
 
-    if (Object.keys(mergedPatch).length > 0) {
-      try {
-        await onConfigPatch(mergedPatch);
-        const patchedNames = written.filter((n) => CONFIG_PATCHES[n] || ENV_SECRETS.has(n));
-        console.log(`[secrets] Applied config patches for: ${patchedNames.join(", ")}`);
-      } catch (err) {
-        console.error(`[secrets] Failed to apply config patches:`, err);
-      }
+    try {
+      await onConfigPatch(mergedPatch);
+      console.log(`[secrets] Applied config for: ${written.join(", ")}`);
+    } catch (err) {
+      console.error(`[secrets] Failed to apply config patches:`, err);
     }
   }
 
@@ -312,20 +253,22 @@ export async function syncSecrets(
 
   if (pendingDeletes.length > 0) {
     console.log(`[secrets] ${pendingDeletes.length} pending deletion(s) detected`);
-    const env = written.length > 0 ? readEnvFile(envFilePath) : readEnvFile(envFilePath);
 
-    let envChanged = false;
     for (const del of pendingDeletes) {
-      if (env.has(del.name)) {
-        env.delete(del.name);
-        envChanged = true;
-        console.log(`[secrets]   Removed from env: ${del.name}`);
-      }
+      console.log(`[secrets]   Removing: ${del.name}`);
 
-      // Apply config removal patch if config-linked
-      if (onConfigPatch && CONFIG_REMOVALS[del.name]) {
+      // Build removal patch: clear from config.env + apply structural removals
+      if (onConfigPatch) {
+        const removalPatch: Record<string, unknown> = {
+          env: { [del.name]: "" },
+        };
+
+        if (CONFIG_REMOVALS[del.name]) {
+          deepMerge(removalPatch, CONFIG_REMOVALS[del.name]);
+        }
+
         try {
-          await onConfigPatch(CONFIG_REMOVALS[del.name]);
+          await onConfigPatch(removalPatch);
           console.log(`[secrets]   Removed config for: ${del.name}`);
         } catch (err) {
           console.error(`[secrets]   Failed to remove config for: ${del.name}`, err);
@@ -339,16 +282,6 @@ export async function syncSecrets(
         console.error(`[secrets]   Failed to confirm deletion: ${del.name}`, err);
       }
     }
-
-    if (envChanged) {
-      writeEnvFile(envFilePath, env);
-      console.log(`[secrets] Env file updated: ${envFilePath} (${env.size} vars)`);
-    }
-  }
-
-  const needsRestart = written.length > 0 || pendingDeletes.length > 0;
-  if (needsRestart && onRestart) {
-    await onRestart();
   }
 
   return written;

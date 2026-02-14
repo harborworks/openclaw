@@ -17,7 +17,7 @@ services:
       GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN:-}
       DAEMON_PORT: "4747"
       TICK_INTERVAL_MS: "5000"
-      ENV_FILE_PATH: /home/node/.openclaw/.env
+      OPENCLAW_CONFIG_DIR: /home/node/.openclaw
       WORKSPACES_DIR: /home/node/workspaces
       HOME: /home/node
     ports:
