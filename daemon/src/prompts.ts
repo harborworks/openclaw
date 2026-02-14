@@ -163,7 +163,7 @@ export async function syncPrompts(
   const fingerprint = JSON.stringify({
     versions: data.templates.map((t) => `${t.fileKey}:${t.version}`).sort(),
     sections: data.harborPrompts.updatedAt,
-    agents: agents.map((a) => `${a.sessionKey}:${a.role}:${a.roleDescription ?? ""}:${a.additionalInstructions ?? ""}`).sort(),
+    agents: agents.map((a) => `${a.sessionKey}:${a.name}:${a.role}:${a.roleDescription ?? ""}:${a.additionalInstructions ?? ""}`).sort(),
   });
 
   if (fingerprint === lastSyncFingerprint) return;
