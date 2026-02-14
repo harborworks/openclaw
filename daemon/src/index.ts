@@ -66,6 +66,24 @@ async function applyDefaultConfig(): Promise<void> {
 
   if (Object.keys(defaults).length === 0) return;
 
+  // Inject host-path bind mounts for sandbox containers.
+  // HOST_WORKSPACE_DIR is the actual host path (e.g. /home/ubuntu/harbor/workspaces).
+  // Docker bind mounts always reference host paths, even when invoked from a container.
+  const hostWorkspaceDir = process.env.HOST_WORKSPACE_DIR || WORKSPACES_DIR;
+  const hostHarborRoot = path.dirname(hostWorkspaceDir);
+  const agents = (defaults.agents ?? {}) as Record<string, unknown>;
+  const defs = (agents.defaults ?? {}) as Record<string, unknown>;
+  const sandbox = (defs.sandbox ?? {}) as Record<string, unknown>;
+  const docker = (sandbox.docker ?? {}) as Record<string, unknown>;
+  docker.binds = [
+    `${hostHarborRoot}/vault:/workspace/vault:rw`,
+    `${hostHarborRoot}/knowledge:/workspace/knowledge:rw`,
+  ];
+  sandbox.docker = docker;
+  defs.sandbox = sandbox;
+  agents.defaults = defs;
+  defaults.agents = agents;
+
   try {
     const current = await configApi(gateway).get();
     await configApi(gateway).patch(JSON.stringify(defaults), current.hash!);

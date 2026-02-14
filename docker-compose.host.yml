@@ -9,6 +9,11 @@
 services:
   daemon:
     image: 429056709468.dkr.ecr.us-east-1.amazonaws.com/harbor-daemon:${DAEMON_VERSION:-latest}
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:noexec,nosuid,size=64m
     environment:
       CONVEX_URL: ${CONVEX_URL:-}
       HARBOR_ID: ${HARBOR_ID:-}
@@ -19,9 +24,10 @@ services:
       TICK_INTERVAL_MS: "5000"
       OPENCLAW_CONFIG_DIR: /home/node/.openclaw
       WORKSPACES_DIR: /home/node/workspaces
+      HOST_WORKSPACE_DIR: ${OPENCLAW_WORKSPACE_DIR:-./.harbor-host/workspace}
       HOME: /home/node
     ports:
-      - "${DAEMON_PORT:-4747}:4747"
+      - "127.0.0.1:${DAEMON_PORT:-4747}:4747"
     volumes:
       - ${OPENCLAW_CONFIG_DIR:-./.harbor-host/config}:/home/node/.openclaw
       - ${OPENCLAW_WORKSPACE_DIR:-./.harbor-host/workspace}:/home/node/workspaces
@@ -33,6 +39,8 @@ services:
 
   cli:
     image: 429056709468.dkr.ecr.us-east-1.amazonaws.com/harbor-gateway:${GATEWAY_VERSION:-latest}
+    security_opt:
+      - no-new-privileges:true
     environment:
       HOME: /home/node
       TERM: xterm-256color
@@ -51,6 +59,10 @@ services:
 
   gateway:
     image: 429056709468.dkr.ecr.us-east-1.amazonaws.com/harbor-gateway:${GATEWAY_VERSION:-latest}
+    security_opt:
+      - no-new-privileges:true
+    group_add:
+      - "${DOCKER_GID}"
     environment:
       HOME: /home/node
       TERM: xterm-256color
@@ -58,8 +70,9 @@ services:
     volumes:
       - ${OPENCLAW_CONFIG_DIR:-./.harbor-host/config}:/home/node/.openclaw
       - ${OPENCLAW_WORKSPACE_DIR:-./.harbor-host/workspace}:/home/node/workspaces
+      - /var/run/docker.sock:/var/run/docker.sock
     ports:
-      - "${GATEWAY_PORT:-18789}:18789"
+      - "127.0.0.1:${GATEWAY_PORT:-18789}:18789"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     init: true

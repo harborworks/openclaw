@@ -174,7 +174,7 @@ fi
 
 # --- Step 1: Ensure deploy directory exists with correct ownership ---
 log "Creating deploy directory..."
-ssm_run "mkdir -p ${DEPLOY_DIR}/config ${DEPLOY_DIR}/workspaces && chown ubuntu:ubuntu ${DEPLOY_DIR} && chown -R 1000:1000 ${DEPLOY_DIR}/config ${DEPLOY_DIR}/workspaces"
+ssm_run "mkdir -p ${DEPLOY_DIR}/config ${DEPLOY_DIR}/workspaces ${DEPLOY_DIR}/vault ${DEPLOY_DIR}/knowledge && chown ubuntu:ubuntu ${DEPLOY_DIR} && chown -R 1000:1000 ${DEPLOY_DIR}/config ${DEPLOY_DIR}/workspaces ${DEPLOY_DIR}/vault ${DEPLOY_DIR}/knowledge"
 
 # Migrate from old /root/.harbor layout if present
 OLD_DEPLOY="/root/.harbor"
@@ -224,12 +224,20 @@ ssm_run "rm -f ${DEPLOY_DIR}/config/openclaw.json"
 log "Logging into ECR..."
 ssm_run_as "aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}"
 
+# --- Step 6b: Detect Docker socket GID for gateway container ---
+log "Detecting Docker socket GID..."
+ssm_run "grep -q DOCKER_GID ${DEPLOY_DIR}/.env.host && sed -i \"s/^DOCKER_GID=.*/DOCKER_GID=\$(stat -c '%g' /var/run/docker.sock)/\" ${DEPLOY_DIR}/.env.host || echo \"DOCKER_GID=\$(stat -c '%g' /var/run/docker.sock)\" >> ${DEPLOY_DIR}/.env.host"
+
 # --- Step 7: Pull and start (as ubuntu) ---
 log "Pulling images..."
 ssm_run_as "cd ${DEPLOY_DIR} && docker compose --env-file .env.host pull"
 
 log "Starting stack..."
 ssm_run_as "cd ${DEPLOY_DIR} && docker compose --env-file .env.host up -d"
+
+# --- Step 8: Recreate sandbox containers to pick up config changes ---
+log "Recreating sandbox containers..."
+ssm_run_as "cd ${DEPLOY_DIR} && docker compose --env-file .env.host run --rm cli sandbox recreate --all --force 2>/dev/null || true"
 
 log "Done! Stack deployed to harbor-host-${HOST_NAME} (${INSTANCE_ID})"
 log ""

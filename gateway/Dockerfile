@@ -5,7 +5,8 @@ ARG OPENCLAW_VERSION=2026.2.13
 WORKDIR /app
 
 # git is needed for some npm dependencies
-RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
+# docker-cli is needed for agent sandboxing (talks to mounted docker.sock)
+RUN apt-get update && apt-get install -y git docker.io && rm -rf /var/lib/apt/lists/*
 
 # Install openclaw globally
 RUN npm install -g openclaw@${OPENCLAW_VERSION}
@@ -18,4 +19,4 @@ ENV NODE_ENV=production
 USER node
 
 ENTRYPOINT ["/app/gateway-entrypoint.sh"]
-CMD ["--allow-unconfigured", "--bind", "lan", "--port", "18789"]
+CMD ["--bind", "lan", "--port", "18789"]
