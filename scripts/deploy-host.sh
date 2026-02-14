@@ -227,7 +227,7 @@ ssm_run_as "aws ecr get-login-password --region ${AWS_REGION} | docker login --u
 
 # --- Step 6b: Detect Docker socket GID for gateway container ---
 log "Detecting Docker socket GID..."
-ssm_run "grep -q DOCKER_GID ${DEPLOY_DIR}/.env.host && sed -i \"s/^DOCKER_GID=.*/DOCKER_GID=\$(stat -c '%g' /var/run/docker.sock)/\" ${DEPLOY_DIR}/.env.host || echo \"DOCKER_GID=\$(stat -c '%g' /var/run/docker.sock)\" >> ${DEPLOY_DIR}/.env.host"
+ssm_run_as "GID=\$(stat -c %g /var/run/docker.sock) && grep -q DOCKER_GID ${DEPLOY_DIR}/.env.host && sed -i \"s/^DOCKER_GID=.*/DOCKER_GID=\$GID/\" ${DEPLOY_DIR}/.env.host || echo \"DOCKER_GID=\$GID\" >> ${DEPLOY_DIR}/.env.host"
 
 # --- Step 7: Pull and start (as ubuntu) ---
 log "Pulling images..."
