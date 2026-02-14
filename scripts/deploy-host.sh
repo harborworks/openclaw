@@ -204,6 +204,9 @@ else
     log "Updating image versions..."
     ssm_run_as "cd ${DEPLOY_DIR} && sed -i 's/^DAEMON_VERSION=.*/DAEMON_VERSION=${VERSION}/' .env.host && sed -i 's/^GATEWAY_VERSION=.*/GATEWAY_VERSION=${VERSION}/' .env.host && sed -i 's|^SANDBOX_IMAGE=.*|SANDBOX_IMAGE=${ECR_REGISTRY}/harbor-sandbox:${VERSION}|' .env.host"
   fi
+  # Ensure SANDBOX_IMAGE is set
+  log "Updating sandbox image..."
+  ssm_run_as "cd ${DEPLOY_DIR} && grep -q '^SANDBOX_IMAGE=' .env.host && sed -i 's|^SANDBOX_IMAGE=.*|SANDBOX_IMAGE=${ECR_REGISTRY}/harbor-sandbox:${VERSION}|' .env.host || echo 'SANDBOX_IMAGE=${ECR_REGISTRY}/harbor-sandbox:${VERSION}' >> .env.host"
   # Ensure config/workspace dirs point to new layout
   log "Updating config/workspace paths..."
   ssm_run_as "cd ${DEPLOY_DIR} && grep -q OPENCLAW_CONFIG_DIR .env.host && sed -i 's|^OPENCLAW_CONFIG_DIR=.*|OPENCLAW_CONFIG_DIR=${DEPLOY_DIR}/config|' .env.host || echo 'OPENCLAW_CONFIG_DIR=${DEPLOY_DIR}/config' >> .env.host && grep -q OPENCLAW_WORKSPACE_DIR .env.host && sed -i 's|^OPENCLAW_WORKSPACE_DIR=.*|OPENCLAW_WORKSPACE_DIR=${DEPLOY_DIR}/workspaces|' .env.host || echo 'OPENCLAW_WORKSPACE_DIR=${DEPLOY_DIR}/workspaces' >> .env.host"
