@@ -14,6 +14,7 @@ env:
   AWS_REGION: us-east-1
   ECR_DAEMON: 429056709468.dkr.ecr.us-east-1.amazonaws.com/harbor-daemon
   ECR_GATEWAY: 429056709468.dkr.ecr.us-east-1.amazonaws.com/harbor-gateway
+  ECR_SANDBOX: 429056709468.dkr.ecr.us-east-1.amazonaws.com/harbor-sandbox
 
 jobs:
   build-and-push:
@@ -53,3 +54,10 @@ jobs:
           context: ./gateway
           push: true
           tags: ${{ env.ECR_GATEWAY }}:${{ steps.tag.outputs.tag }}
+
+      - name: Build and push sandbox
+        uses: docker/build-push-action@v6
+        with:
+          context: ./sandbox
+          push: true
+          tags: ${{ env.ECR_SANDBOX }}:${{ steps.tag.outputs.tag }}

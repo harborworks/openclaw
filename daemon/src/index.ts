@@ -75,6 +75,7 @@ async function applyDefaultConfig(): Promise<void> {
   const defs = (agents.defaults ?? {}) as Record<string, unknown>;
   const sandbox = (defs.sandbox ?? {}) as Record<string, unknown>;
   const docker = (sandbox.docker ?? {}) as Record<string, unknown>;
+  docker.image = process.env.SANDBOX_IMAGE || docker.image || "harbor-sandbox:latest";
   docker.binds = [
     `${hostHarborRoot}/vault:/workspace/vault:rw`,
     `${hostHarborRoot}/knowledge:/workspace/knowledge:rw`,

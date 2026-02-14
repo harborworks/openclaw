@@ -196,12 +196,13 @@ GATEWAY_PORT=${GATEWAY_PORT}
 DAEMON_VERSION=${VERSION}
 GATEWAY_VERSION=${VERSION}
 OPENCLAW_CONFIG_DIR=${DEPLOY_DIR}/config
-OPENCLAW_WORKSPACE_DIR=${DEPLOY_DIR}/workspaces"
+OPENCLAW_WORKSPACE_DIR=${DEPLOY_DIR}/workspaces
+SANDBOX_IMAGE=${ECR_REGISTRY}/harbor-sandbox:${VERSION}"
 else
   # Update versions in existing .env.host
   if [[ "$VERSION" != "latest" ]]; then
     log "Updating image versions..."
-    ssm_run_as "cd ${DEPLOY_DIR} && sed -i 's/^DAEMON_VERSION=.*/DAEMON_VERSION=${VERSION}/' .env.host && sed -i 's/^GATEWAY_VERSION=.*/GATEWAY_VERSION=${VERSION}/' .env.host"
+    ssm_run_as "cd ${DEPLOY_DIR} && sed -i 's/^DAEMON_VERSION=.*/DAEMON_VERSION=${VERSION}/' .env.host && sed -i 's/^GATEWAY_VERSION=.*/GATEWAY_VERSION=${VERSION}/' .env.host && sed -i 's|^SANDBOX_IMAGE=.*|SANDBOX_IMAGE=${ECR_REGISTRY}/harbor-sandbox:${VERSION}|' .env.host"
   fi
   # Ensure config/workspace dirs point to new layout
   log "Updating config/workspace paths..."
@@ -231,6 +232,9 @@ ssm_run "grep -q DOCKER_GID ${DEPLOY_DIR}/.env.host && sed -i \"s/^DOCKER_GID=.*
 # --- Step 7: Pull and start (as ubuntu) ---
 log "Pulling images..."
 ssm_run_as "cd ${DEPLOY_DIR} && docker compose --env-file .env.host pull"
+
+log "Pulling sandbox image..."
+ssm_run_as "docker pull ${ECR_REGISTRY}/harbor-sandbox:${VERSION}"
 
 log "Starting stack..."
 ssm_run_as "cd ${DEPLOY_DIR} && docker compose --env-file .env.host up -d"
