@@ -570,3 +570,154 @@ describe("image tool response validation", () => {
     expect(text).toBe("hello");
   });
 });
+
+describe("image tool multi-image support", () => {
+  const priorFetch = global.fetch;
+
+  beforeEach(() => {
+    vi.stubEnv("OPENAI_API_KEY", "");
+    vi.stubEnv("ANTHROPIC_API_KEY", "");
+    vi.stubEnv("ANTHROPIC_OAUTH_TOKEN", "");
+    vi.stubEnv("MINIMAX_API_KEY", "");
+    vi.stubEnv("ZAI_API_KEY", "");
+    vi.stubEnv("Z_AI_API_KEY", "");
+    vi.stubEnv("COPILOT_GITHUB_TOKEN", "");
+    vi.stubEnv("GH_TOKEN", "");
+    vi.stubEnv("GITHUB_TOKEN", "");
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    // @ts-expect-error global fetch cleanup
+    global.fetch = priorFetch;
+  });
+
+  it("accepts a single string image (backward compat)", async () => {
+    const fetch = stubMinimaxOkFetch();
+    const agentDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-image-multi-"));
+    const cfg = createMinimaxImageConfig();
+    const tool = createImageTool({ config: cfg, agentDir });
+    expect(tool).not.toBeNull();
+
+    const res = await tool!.execute("t1", {
+      prompt: "Describe.",
+      image: `data:image/png;base64,${ONE_PIXEL_PNG_B64}`,
+    });
+
+    expect(fetch).toHaveBeenCalledTimes(1);
+    const text = res.content?.find((b) => b.type === "text")?.text ?? "";
+    expect(text).toBe("ok");
+    // Single image should use singular `image` key in details
+    expect((res.details as Record<string, unknown>).image).toBeDefined();
+    expect((res.details as Record<string, unknown>).images).toBeUndefined();
+  });
+
+  it("accepts a JSON array of image paths as a string", async () => {
+    const fetch = stubMinimaxOkFetch();
+    const agentDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-image-multi-"));
+    const cfg = createMinimaxImageConfig();
+    const tool = createImageTool({ config: cfg, agentDir });
+    expect(tool).not.toBeNull();
+
+    // Two images encoded as a JSON array string (how LLMs would pass multi-image)
+    const jsonArray = JSON.stringify([
+      `data:image/png;base64,${ONE_PIXEL_PNG_B64}`,
+      `data:image/png;base64,${ONE_PIXEL_PNG_B64}`,
+    ]);
+    const res = await tool!.execute("t1", {
+      prompt: "Compare these images.",
+      image: jsonArray,
+    });
+
+    // MiniMax only uses first image, but should still succeed
+    expect(fetch).toHaveBeenCalledTimes(1);
+    const text = res.content?.find((b) => b.type === "text")?.text ?? "";
+    expect(text).toBe("ok");
+  });
+
+  it("returns too_many_images error when exceeding DEFAULT_MAX_IMAGES", async () => {
+    stubMinimaxOkFetch();
+    const agentDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-image-multi-"));
+    const cfg = createMinimaxImageConfig();
+    const tool = createImageTool({ config: cfg, agentDir });
+    expect(tool).not.toBeNull();
+
+    const maxImages = __testing.DEFAULT_MAX_IMAGES;
+    // Build an array with one more than the limit
+    const tooMany = Array.from(
+      { length: maxImages + 1 },
+      () => `data:image/png;base64,${ONE_PIXEL_PNG_B64}`,
+    );
+    const res = await tool!.execute("t1", {
+      prompt: "Analyze all.",
+      image: JSON.stringify(tooMany),
+    });
+
+    expect(res.content?.[0]?.text).toContain("Too many images");
+    const details = res.details as Record<string, unknown>;
+    expect(details.error).toBe("too_many_images");
+    expect(details.count).toBe(maxImages + 1);
+    expect(details.max).toBe(maxImages);
+  });
+
+  it("uses first image only for MiniMax (single-image fallback)", async () => {
+    const fetch = stubMinimaxOkFetch();
+    const agentDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-image-multi-"));
+    const cfg = createMinimaxImageConfig();
+    const tool = createImageTool({ config: cfg, agentDir });
+    expect(tool).not.toBeNull();
+
+    const jsonArray = JSON.stringify([
+      `data:image/png;base64,${ONE_PIXEL_PNG_B64}`,
+      `data:image/png;base64,${ONE_PIXEL_PNG_B64}`,
+    ]);
+    await tool!.execute("t1", { prompt: "Describe.", image: jsonArray });
+
+    expect(fetch).toHaveBeenCalledTimes(1);
+    const body = String(fetch.mock.calls[0][1]?.body);
+    // MiniMax VLM receives a single image_url, not multiple
+    expect(body).toContain('"image_url"');
+    expect(body).toContain('"prompt"');
+  });
+
+  it("handles an array with one item (treated as single image)", async () => {
+    const fetch = stubMinimaxOkFetch();
+    const agentDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-image-multi-"));
+    const cfg = createMinimaxImageConfig();
+    const tool = createImageTool({ config: cfg, agentDir });
+    expect(tool).not.toBeNull();
+
+    const jsonArray = JSON.stringify([`data:image/png;base64,${ONE_PIXEL_PNG_B64}`]);
+    const res = await tool!.execute("t1", { prompt: "Describe.", image: jsonArray });
+
+    expect(fetch).toHaveBeenCalledTimes(1);
+    const text = res.content?.find((b) => b.type === "text")?.text ?? "";
+    expect(text).toBe("ok");
+    // Single image should still use singular `image` key
+    expect((res.details as Record<string, unknown>).image).toBeDefined();
+    expect((res.details as Record<string, unknown>).images).toBeUndefined();
+  });
+
+  it("throws on empty array input", async () => {
+    stubMinimaxOkFetch();
+    const agentDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-image-multi-"));
+    const cfg = createMinimaxImageConfig();
+    const tool = createImageTool({ config: cfg, agentDir });
+    expect(tool).not.toBeNull();
+
+    await expect(tool!.execute("t1", { image: "[]" })).rejects.toThrow(/image required/i);
+  });
+
+  it("treats a non-JSON string starting with [ as a single image path", async () => {
+    // A path like "[weird-dir]/image.png" should not be parsed as JSON
+    stubMinimaxOkFetch();
+    const agentDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-image-multi-"));
+    const cfg = createMinimaxImageConfig();
+    const tool = createImageTool({ config: cfg, agentDir });
+    expect(tool).not.toBeNull();
+
+    // This is a malformed JSON string starting with [ but not valid JSON array
+    // It should fall through to single-image path and fail on file resolution
+    await expect(tool!.execute("t1", { image: "[not-json" })).rejects.toThrow();
+  });
+});

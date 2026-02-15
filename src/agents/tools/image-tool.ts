@@ -32,6 +32,7 @@ export const __testing = {
   decodeDataUrl,
   coerceImageAssistantText,
   resolveImageToolMaxTokens,
+  DEFAULT_MAX_IMAGES,
 } as const;
 
 function resolveImageToolMaxTokens(modelMaxTokens: number | undefined, requestedMaxTokens = 4096) {
@@ -376,18 +377,33 @@ export function createImageTool(options?: {
     description,
     parameters: Type.Object({
       prompt: Type.Optional(Type.String()),
-      image: Type.Union([Type.String(), Type.Array(Type.String())]),
+      image: Type.String(),
       model: Type.Optional(Type.String()),
       maxBytesMb: Type.Optional(Type.Number()),
-      maxImages: Type.Optional(Type.Number()),
     }),
     execute: async (_toolCallId, args) => {
       const record = args && typeof args === "object" ? (args as Record<string, unknown>) : {};
 
-      // MARK: - Normalize image input (string | string[])
+      // Normalize image input: accepts a single path/URL string, or a JSON-encoded
+      // array of strings (e.g. '["a.png","b.png"]'). Using Type.String() in the schema
+      // (instead of Type.Union) keeps all LLM providers happy (Vertex AI, OpenAI reject anyOf).
       const rawImageInput = record.image;
       const imageInputs: string[] = (() => {
         if (typeof rawImageInput === "string") {
+          const trimmed = rawImageInput.trim();
+          if (trimmed.startsWith("[")) {
+            try {
+              const parsed: unknown = JSON.parse(trimmed);
+              if (
+                Array.isArray(parsed) &&
+                parsed.every((v): v is string => typeof v === "string")
+              ) {
+                return parsed;
+              }
+            } catch {
+              // Not valid JSON array, treat as a single image path/URL.
+            }
+          }
           return [rawImageInput];
         }
         if (Array.isArray(rawImageInput)) {
@@ -399,21 +415,20 @@ export function createImageTool(options?: {
         throw new Error("image required");
       }
 
-      // MARK: - Enforce max images cap
-      const maxImagesRaw = typeof record.maxImages === "number" ? record.maxImages : undefined;
-      const maxImages =
-        typeof maxImagesRaw === "number" && Number.isFinite(maxImagesRaw) && maxImagesRaw > 0
-          ? Math.floor(maxImagesRaw)
-          : DEFAULT_MAX_IMAGES;
-      if (imageInputs.length > maxImages) {
+      // Enforce max images cap (internal limit, not exposed to callers).
+      if (imageInputs.length > DEFAULT_MAX_IMAGES) {
         return {
           content: [
             {
               type: "text",
-              text: `Too many images: ${imageInputs.length} provided, maximum is ${maxImages}. Please reduce the number of images.`,
+              text: `Too many images: ${imageInputs.length} provided, maximum is ${DEFAULT_MAX_IMAGES}. Please reduce the number of images.`,
             },
           ],
-          details: { error: "too_many_images", count: imageInputs.length, max: maxImages },
+          details: {
+            error: "too_many_images",
+            count: imageInputs.length,
+            max: DEFAULT_MAX_IMAGES,
+          },
         };
       }
 
@@ -431,7 +446,6 @@ export function createImageTool(options?: {
           ? { root: options.sandbox.root.trim(), bridge: options.sandbox.bridge }
           : null;
 
-      // MARK: - Load and resolve each image
       const loadedImages: Array<{
         base64: string;
         mimeType: string;
@@ -530,7 +544,6 @@ export function createImageTool(options?: {
         });
       }
 
-      // MARK: - Run image prompt with all loaded images
       const result = await runImagePrompt({
         cfg: options?.config,
         agentDir,
