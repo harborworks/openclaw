@@ -13,6 +13,10 @@ import { GatewayClient, configApi } from "./gateway-client.js";
 import { syncAgents, fetchAgents } from "./agents.js";
 import { syncPrompts } from "./prompts.js";
 import { syncPairing } from "./pairing.js";
+import { handleTaskRequest } from "./tasks.js";
+import { syncCronJobs } from "./cron.js";
+import type { ConvexAgent } from "./agents.js";
+import { convexGet } from "./utils.js";
 
 // --- Config ---
 const TICK_INTERVAL_MS = parseInt(process.env.TICK_INTERVAL_MS || "5000", 10);
@@ -51,6 +55,8 @@ function checkConfig() {
 
 let convexApi: ConvexApiConfig;
 let gateway: GatewayClient;
+let cachedAgents: ConvexAgent[] = [];
+let harborHeartbeatIntervalMs: number | undefined;
 
 /** Load default config and patch it into the gateway. */
 async function applyDefaultConfig(): Promise<void> {
@@ -66,22 +72,26 @@ async function applyDefaultConfig(): Promise<void> {
 
   if (Object.keys(defaults).length === 0) return;
 
-  // Inject host-path bind mounts for sandbox containers.
-  // HOST_WORKSPACE_DIR is the actual host path (e.g. /home/ubuntu/harbor/workspaces).
-  // Docker bind mounts always reference host paths, even when invoked from a container.
-  const hostWorkspaceDir = process.env.HOST_WORKSPACE_DIR || WORKSPACES_DIR;
-  const hostHarborRoot = path.dirname(hostWorkspaceDir);
+  // Inject sandbox config only when sandboxing is enabled.
   const agents = (defaults.agents ?? {}) as Record<string, unknown>;
   const defs = (agents.defaults ?? {}) as Record<string, unknown>;
   const sandbox = (defs.sandbox ?? {}) as Record<string, unknown>;
-  const docker = (sandbox.docker ?? {}) as Record<string, unknown>;
-  docker.image = process.env.SANDBOX_IMAGE || docker.image || "harbor-sandbox:latest";
-  docker.binds = [
-    `${hostHarborRoot}/vault:/workspace/vault:rw`,
-    `${hostHarborRoot}/knowledge:/workspace/knowledge:rw`,
-  ];
-  sandbox.docker = docker;
-  defs.sandbox = sandbox;
+  const sandboxMode = (sandbox.mode as string) ?? "off";
+
+  if (sandboxMode !== "off") {
+    // HOST_WORKSPACE_DIR is the actual host path (e.g. /home/ubuntu/harbor/workspaces).
+    // Docker bind mounts always reference host paths, even when invoked from a container.
+    const hostWorkspaceDir = process.env.HOST_WORKSPACE_DIR || WORKSPACES_DIR;
+    const hostHarborRoot = path.dirname(hostWorkspaceDir);
+    const docker = (sandbox.docker ?? {}) as Record<string, unknown>;
+    docker.image = process.env.SANDBOX_IMAGE || docker.image || "harbor-sandbox:latest";
+    docker.binds = [
+      `${hostHarborRoot}/vault:/workspace/vault:rw`,
+      `${hostHarborRoot}/knowledge:/workspace/knowledge:rw`,
+    ];
+    sandbox.docker = docker;
+    defs.sandbox = sandbox;
+  }
   agents.defaults = defs;
   defaults.agents = agents;
 
@@ -113,14 +123,22 @@ async function tick() {
   if (!gateway.isConnected) return;
 
   try {
+    const harborConfig = await convexGet<{ heartbeatIntervalMs?: number }>(convexApi, "/api/daemon/harbor");
+    harborHeartbeatIntervalMs = harborConfig.heartbeatIntervalMs;
+  } catch (err) {
+    log(`Harbor config fetch error: ${err instanceof Error ? err.message : err}`);
+  }
+
+  try {
     await syncSecrets(convexApi, patchGatewayConfig);
   } catch (err) {
     log(`Secrets sync error: ${err instanceof Error ? err.message : err}`);
   }
 
-  let agents: Awaited<ReturnType<typeof fetchAgents>> = [];
+  let agents: ConvexAgent[] = [];
   try {
     agents = await fetchAgents(convexApi);
+    cachedAgents = agents;
     await syncAgents(convexApi, gateway, WORKSPACES_DIR);
   } catch (err) {
     log(`Agent sync error: ${err instanceof Error ? err.message : err}`);
@@ -139,18 +157,33 @@ async function tick() {
     log(`Pairing sync error: ${err instanceof Error ? err.message : err}`);
   }
 
-  // TODO: Sync cron jobs
+  try {
+    await syncCronJobs(gateway, agents, harborHeartbeatIntervalMs);
+  } catch (err) {
+    log(`Cron sync error: ${err instanceof Error ? err.message : err}`);
+  }
 }
 
 async function startHttpServer() {
   const { createServer } = await import("node:http");
 
-  const server = createServer((req, res) => {
+  const server = createServer(async (req, res) => {
     const url = new URL(req.url || "/", `http://localhost:${DAEMON_PORT}`);
 
     if (url.pathname === "/health") {
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ status: "ok" }));
+      return;
+    }
+
+    // Task API routes
+    try {
+      const handled = await handleTaskRequest(req, res, url, convexApi, cachedAgents);
+      if (handled) return;
+    } catch (err) {
+      log(`Task request error: ${err instanceof Error ? err.message : err}`);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Internal server error" }));
       return;
     }
 

@@ -1,12 +1,37 @@
-FROM node:22-bookworm-slim
+##
+## Stage 1: Build openclaw from source (v2026.2.13 + cron sandbox fix)
+##
+FROM node:22-bookworm AS builder
 
-ARG OPENCLAW_VERSION=2026.2.13
+# Install Bun (required for openclaw build scripts)
+RUN curl -fsSL https://bun.sh/install | bash
+ENV PATH="/root/.bun/bin:${PATH}"
+
+RUN corepack enable
+
+WORKDIR /build
+
+# Copy openclaw source (submodule pinned to v2026.2.13 + fix)
+COPY openclaw/package.json openclaw/pnpm-lock.yaml openclaw/pnpm-workspace.yaml openclaw/.npmrc ./
+COPY openclaw/ui/package.json ./ui/package.json
+COPY openclaw/patches ./patches
+COPY openclaw/scripts ./scripts
+
+RUN pnpm install --frozen-lockfile
+
+COPY openclaw/ .
+RUN pnpm build
+ENV OPENCLAW_PREFER_PNPM=1
+RUN pnpm ui:build
+
+##
+## Stage 2: Runtime gateway image
+##
+FROM node:22-bookworm-slim
 
 WORKDIR /app
 
-# git is needed for some npm dependencies
-# docker-cli is needed for agent sandboxing (talks to mounted docker.sock)
-# Install Docker CLI from official repo (debian docker.io package is too old — API v1.41)
+# git + docker-cli
 RUN apt-get update \
     && apt-get install -y git ca-certificates curl gnupg \
     && install -m 0755 -d /etc/apt/keyrings \
@@ -18,11 +43,12 @@ RUN apt-get update \
     && apt-get install -y docker-ce-cli \
     && rm -rf /var/lib/apt/lists/*
 
-# Install openclaw globally
-RUN npm install -g openclaw@${OPENCLAW_VERSION}
+# Copy built openclaw from builder and install globally
+COPY --from=builder /build /app/openclaw
+RUN cd /app/openclaw && npm install -g .
 
-# Copy entrypoint with env watcher
-COPY scripts/gateway-entrypoint.sh /app/gateway-entrypoint.sh
+# Copy entrypoint
+COPY gateway/scripts/gateway-entrypoint.sh /app/gateway-entrypoint.sh
 RUN chmod +x /app/gateway-entrypoint.sh
 
 ENV NODE_ENV=production

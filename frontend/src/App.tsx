@@ -14,6 +14,7 @@ import { AdminHarborsPage } from "./pages/admin/AdminHarborsPage";
 import { AdminPromptsPage } from "./pages/admin/AdminPromptsPage";
 import { AdminPromptEditPage } from "./pages/admin/AdminPromptEditPage";
 import { SecretsPage } from "./pages/SecretsPage";
+import { TasksPage } from "./pages/TasksPage";
 import { AgentsPage } from "./pages/AgentsPage";
 import { ModelsPage } from "./pages/ModelsPage";
 import { PromptsPage } from "./pages/PromptsPage";
@@ -171,6 +172,7 @@ function AppRoutes() {
 function HarborRoutes() {
   return (
     <Routes>
+      <Route path="tasks" element={<TasksPage />} />
       <Route path="agents" element={<AgentsPage />} />
       <Route path="models" element={<ModelsPage />} />
       <Route path="prompts" element={<PromptsPage />} />

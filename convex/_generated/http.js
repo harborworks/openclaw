@@ -76,6 +76,25 @@ function json(data, status = 200) {
     });
 }
 // ── Endpoints ────────────────────────────────────────────────────────
+// GET /api/daemon/harbor — get harbor config
+http.route({
+    path: "/api/daemon/harbor",
+    method: "GET",
+    handler: httpAction(async (ctx, request) => {
+        const auth = await authenticate(ctx, request);
+        if (!auth.ok)
+            return auth.response;
+        const harbor = await ctx.runQuery(internal.harbors.getById, {
+            id: auth.harborId,
+        });
+        if (!harbor)
+            return json({ error: "Harbor not found" }, 404);
+        return json({
+            heartbeatIntervalMs: harbor.heartbeatIntervalMs,
+            browserEnabled: harbor.browserEnabled,
+        });
+    }),
+});
 // POST /api/daemon/register — publish public key
 http.route({
     path: "/api/daemon/register",
@@ -273,6 +292,227 @@ http.route({
             id: body.id,
         });
         return json({ ok: true });
+    }),
+});
+// ── Template endpoints ───────────────────────────────────────────────
+// POST /api/daemon/templates/update — update a prompt template
+http.route({
+    path: "/api/daemon/templates/update",
+    method: "POST",
+    handler: httpAction(async (ctx, request) => {
+        const auth = await authenticate(ctx, request);
+        if (!auth.ok)
+            return auth.response;
+        const body = (await request.json());
+        if (!body.fileKey || !body.content) {
+            return json({ error: "Missing fileKey or content" }, 400);
+        }
+        const result = await ctx.runMutation(internal.promptTemplates.updateInternal, {
+            fileKey: body.fileKey,
+            content: body.content,
+        });
+        return json({ ok: true, id: result });
+    }),
+});
+// ── Task endpoints ───────────────────────────────────────────────────
+// GET /api/daemon/tasks?sessionKey=xxx&status=yyy — list tasks for an agent
+http.route({
+    path: "/api/daemon/tasks",
+    method: "GET",
+    handler: httpAction(async (ctx, request) => {
+        const auth = await authenticate(ctx, request);
+        if (!auth.ok)
+            return auth.response;
+        const url = new URL(request.url);
+        const sessionKey = url.searchParams.get("sessionKey");
+        if (!sessionKey) {
+            return json({ error: "Missing sessionKey param" }, 400);
+        }
+        const status = url.searchParams.get("status") || undefined;
+        const tasks = await ctx.runQuery(internal.tasks.listByAgent, {
+            harborId: auth.harborId,
+            sessionKey,
+            status,
+        });
+        return json(tasks);
+    }),
+});
+// GET /api/daemon/tasks/:id — get task with messages
+http.route({
+    path: "/api/daemon/tasks/get",
+    method: "GET",
+    handler: httpAction(async (ctx, request) => {
+        const auth = await authenticate(ctx, request);
+        if (!auth.ok)
+            return auth.response;
+        const url = new URL(request.url);
+        const taskId = url.searchParams.get("id");
+        if (!taskId) {
+            return json({ error: "Missing id param" }, 400);
+        }
+        const task = await ctx.runQuery(internal.tasks.getWithMessages, {
+            taskId: taskId,
+        });
+        if (!task)
+            return json({ error: "Task not found" }, 404);
+        return json(task);
+    }),
+});
+// POST /api/daemon/tasks/create — create a task (leader roles)
+http.route({
+    path: "/api/daemon/tasks/create",
+    method: "POST",
+    handler: httpAction(async (ctx, request) => {
+        const auth = await authenticate(ctx, request);
+        if (!auth.ok)
+            return auth.response;
+        const body = (await request.json());
+        if (!body.title || !body.description || !body.assigneeSessionKey) {
+            return json({ error: "Missing title, description, or assigneeSessionKey" }, 400);
+        }
+        try {
+            const result = await ctx.runMutation(internal.tasks.internalCreateTask, {
+                harborId: auth.harborId,
+                title: body.title,
+                description: body.description,
+                priority: body.priority ?? "medium",
+                assigneeSessionKey: body.assigneeSessionKey,
+                reviewerSessionKeys: body.reviewerSessionKeys,
+            });
+            return json(result);
+        }
+        catch (err) {
+            return json({ error: err.message }, 400);
+        }
+    }),
+});
+// POST /api/daemon/tasks/pickup — move task to in_progress
+http.route({
+    path: "/api/daemon/tasks/pickup",
+    method: "POST",
+    handler: httpAction(async (ctx, request) => {
+        const auth = await authenticate(ctx, request);
+        if (!auth.ok)
+            return auth.response;
+        const body = (await request.json());
+        if (!body.taskId || !body.sessionKey) {
+            return json({ error: "Missing taskId or sessionKey" }, 400);
+        }
+        try {
+            const result = await ctx.runMutation(internal.tasks.pickup, {
+                taskId: body.taskId,
+                sessionKey: body.sessionKey,
+                harborId: auth.harborId,
+            });
+            return json(result);
+        }
+        catch (err) {
+            return json({ error: err.message }, 400);
+        }
+    }),
+});
+// POST /api/daemon/tasks/message — add a comment to a task
+http.route({
+    path: "/api/daemon/tasks/message",
+    method: "POST",
+    handler: httpAction(async (ctx, request) => {
+        const auth = await authenticate(ctx, request);
+        if (!auth.ok)
+            return auth.response;
+        const body = (await request.json());
+        if (!body.taskId || !body.sessionKey || !body.content) {
+            return json({ error: "Missing taskId, sessionKey, or content" }, 400);
+        }
+        try {
+            const result = await ctx.runMutation(internal.tasks.addMessage, {
+                taskId: body.taskId,
+                sessionKey: body.sessionKey,
+                harborId: auth.harborId,
+                content: body.content,
+            });
+            return json(result);
+        }
+        catch (err) {
+            return json({ error: err.message }, 400);
+        }
+    }),
+});
+// POST /api/daemon/tasks/block — block a task
+http.route({
+    path: "/api/daemon/tasks/block",
+    method: "POST",
+    handler: httpAction(async (ctx, request) => {
+        const auth = await authenticate(ctx, request);
+        if (!auth.ok)
+            return auth.response;
+        const body = (await request.json());
+        if (!body.taskId || !body.sessionKey || !body.reason) {
+            return json({ error: "Missing taskId, sessionKey, or reason" }, 400);
+        }
+        try {
+            const result = await ctx.runMutation(internal.tasks.block, {
+                taskId: body.taskId,
+                sessionKey: body.sessionKey,
+                harborId: auth.harborId,
+                reason: body.reason,
+            });
+            return json(result);
+        }
+        catch (err) {
+            return json({ error: err.message }, 400);
+        }
+    }),
+});
+// POST /api/daemon/tasks/submit — submit task for review
+http.route({
+    path: "/api/daemon/tasks/submit",
+    method: "POST",
+    handler: httpAction(async (ctx, request) => {
+        const auth = await authenticate(ctx, request);
+        if (!auth.ok)
+            return auth.response;
+        const body = (await request.json());
+        if (!body.taskId || !body.sessionKey) {
+            return json({ error: "Missing taskId or sessionKey" }, 400);
+        }
+        try {
+            const result = await ctx.runMutation(internal.tasks.submit, {
+                taskId: body.taskId,
+                sessionKey: body.sessionKey,
+                harborId: auth.harborId,
+            });
+            return json(result);
+        }
+        catch (err) {
+            return json({ error: err.message }, 400);
+        }
+    }),
+});
+// POST /api/daemon/tasks/review — approve or request changes
+http.route({
+    path: "/api/daemon/tasks/review",
+    method: "POST",
+    handler: httpAction(async (ctx, request) => {
+        const auth = await authenticate(ctx, request);
+        if (!auth.ok)
+            return auth.response;
+        const body = (await request.json());
+        if (!body.taskId || !body.sessionKey || !body.verdict) {
+            return json({ error: "Missing taskId, sessionKey, or verdict" }, 400);
+        }
+        try {
+            const result = await ctx.runMutation(internal.tasks.review, {
+                taskId: body.taskId,
+                sessionKey: body.sessionKey,
+                harborId: auth.harborId,
+                verdict: body.verdict,
+                comment: body.comment,
+            });
+            return json(result);
+        }
+        catch (err) {
+            return json({ error: err.message }, 400);
+        }
     }),
 });
 export default http;

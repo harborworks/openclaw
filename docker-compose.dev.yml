@@ -14,12 +14,14 @@ services:
   gateway:
     image: harbor-gateway:local
     build:
-      context: ./gateway
+      context: .
+      dockerfile: gateway/Dockerfile
 
   cli:
     image: harbor-gateway:local
     build:
-      context: ./gateway
+      context: .
+      dockerfile: gateway/Dockerfile
 
   frontend:
     build:

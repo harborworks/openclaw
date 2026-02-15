@@ -339,5 +339,7 @@ export function cronApi(client: GatewayClient) {
       client.request<CronJob>("cron.update", { jobId, patch }),
     remove: (jobId: string) =>
       client.request<{ ok: boolean }>("cron.remove", { jobId }),
+    run: (jobId: string) =>
+      client.request<{ ok: boolean; ran: boolean }>("cron.run", { jobId }),
   };
 }

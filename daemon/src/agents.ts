@@ -87,6 +87,19 @@ function buildAgentListEntry(agent: ConvexAgent, workspacesDir: string): Gateway
   if (agent.model && MODEL_MAP[agent.model]) {
     entry.model = { primary: MODEL_MAP[agent.model].ref };
   }
+
+  // When gateway runs in Docker with sandboxing enabled, sandbox containers need
+  // host paths for bind mounts. Skip when sandboxing is off.
+  const hostWorkspaceDir = process.env.HOST_WORKSPACE_DIR;
+  const sandboxEnabled = process.env.SANDBOX_MODE !== "off";
+  if (hostWorkspaceDir && sandboxEnabled) {
+    entry.sandbox = {
+      docker: {
+        binds: [`${path.join(hostWorkspaceDir, agent.sessionKey)}:${path.join(workspacesDir, agent.sessionKey)}:rw`],
+      },
+    };
+  }
+
   return entry;
 }
 
@@ -161,8 +174,19 @@ export async function syncAgents(
     archiveWorkspace(workspacesDir, agent.id);
   }
 
-  // 8. Build new agent list for gateway config
-  const newList = convexAgents.map((a) => buildAgentListEntry(a, workspacesDir));
+  // 8. Build new agent list for gateway config, preserving per-agent heartbeat settings
+  const currentHeartbeats = new Map<string, unknown>();
+  for (const agent of currentList) {
+    if ((agent as any).heartbeat) {
+      currentHeartbeats.set(agent.id, (agent as any).heartbeat);
+    }
+  }
+  const newList = convexAgents.map((a) => {
+    const entry = buildAgentListEntry(a, workspacesDir);
+    const hb = currentHeartbeats.get(a.sessionKey);
+    if (hb) (entry as any).heartbeat = hb;
+    return entry;
+  });
 
   // 9. Build Telegram accounts + bindings for agents with bot tokens
   const telegramAccounts: Record<string, unknown> = {};

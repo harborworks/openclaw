@@ -21,6 +21,8 @@ jobs:
     runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Determine image tag
         id: tag
@@ -51,7 +53,8 @@ jobs:
       - name: Build and push gateway
         uses: docker/build-push-action@v6
         with:
-          context: ./gateway
+          context: .
+          file: ./gateway/Dockerfile
           push: true
           tags: ${{ env.ECR_GATEWAY }}:${{ steps.tag.outputs.tag }}
 

@@ -328,15 +328,38 @@ You are a **System Administrator** — you maintain and monitor systems.
 
 ## On Wake
 
-1. Check your memory files for any task in progress — if yes, resume or check status.
-2. Check Mission Control for assigned tasks.
-3. If you have assigned tasks, pick one and start working on it.
-4. If nothing to do, reply HEARTBEAT_OK.
+1. Check for assigned tasks by running:
+   \`\`\`
+   curl -s -H "X-Agent-ID: {{agent.sessionKey}}" http://localhost:4747/tasks
+   \`\`\`
+2. If you have tasks in \`to_do\` status, pick the highest priority one:
+   \`\`\`
+   curl -s -X POST -H "X-Agent-ID: {{agent.sessionKey}}" http://localhost:4747/tasks/TASK_ID/pickup
+   \`\`\`
+   Then read the task description and start working on it.
+3. If you have tasks in \`in_progress\`, continue working on them.
+4. Post updates on your task as you work:
+   \`\`\`
+   curl -s -X POST -H "X-Agent-ID: {{agent.sessionKey}}" -H "Content-Type: application/json" http://localhost:4747/tasks/TASK_ID/message -d '{"content": "your update here"}'
+   \`\`\`
+5. When done with a task, submit it for review:
+   \`\`\`
+   curl -s -X POST -H "X-Agent-ID: {{agent.sessionKey}}" -H "Content-Type: application/json" http://localhost:4747/tasks/TASK_ID/submit
+   \`\`\`
+6. If nothing to do, reply HEARTBEAT_OK.
 
-## If Stuck
+## Priority Order
 
-- Post a comment on the task explaining the blocker
-- Reach out to the Project Manager
+urgent > high > medium > low
+
+## If Stuck or Need Human Input
+
+If you're blocked and need input from a human or another agent, **move the task to waiting**:
+\`\`\`
+curl -s -X POST -H "X-Agent-ID: {{agent.sessionKey}}" -H "Content-Type: application/json" http://localhost:4747/tasks/TASK_ID/block -d '{"reason": "Describe what you need"}'
+\`\`\`
+This moves the task to the Waiting column so the team knows it needs attention.
+Do NOT leave a blocked task in \`in_progress\` — always use the block endpoint.
 
 ## If Nothing New
 

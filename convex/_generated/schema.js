@@ -41,6 +41,7 @@ export default defineSchema({
         apiKeyHash: v.optional(v.string()), // bcrypt hash of the daemon API key
         publicKey: v.optional(v.string()), // RSA-OAEP JWK for secret encryption
         heartbeatIntervalMs: v.optional(v.number()),
+        browserEnabled: v.optional(v.boolean()),
     })
         .index("by_org", ["orgId"])
         .index("by_org_slug", ["orgId", "slug"]),
@@ -62,27 +63,33 @@ export default defineSchema({
         .index("by_harbor", ["harborId"]),
     // ── Tasks ──────────────────────────────────────────────────────────
     // Work items with a status lifecycle.
+    // Lifecycle: to_do → in_progress → review → done (+ blocked from any state)
     tasks: defineTable({
         title: v.string(),
         description: v.string(),
-        status: v.union(v.literal("inbox"), v.literal("assigned"), v.literal("in_progress"), v.literal("review"), v.literal("ready_to_deploy"), v.literal("done"), v.literal("blocked")),
-        assigneeIds: v.array(v.id("agents")),
-        createdBy: v.optional(v.id("agents")),
-        priority: v.optional(v.union(v.literal("low"), v.literal("medium"), v.literal("high"), v.literal("urgent"))),
-        dueDate: v.optional(v.number()),
+        status: v.union(v.literal("to_do"), v.literal("in_progress"), v.literal("review"), v.literal("done"), v.literal("blocked")),
+        previousStatus: v.optional(v.string()), // for unblocking back to prior state
+        assigneeId: v.id("agents"), // single assignee, required
+        reviewerIds: v.optional(v.array(v.id("agents"))),
+        // Per-reviewer status: { [agentId]: "pending" | "approved" | "changes_requested" }
+        reviewStatuses: v.optional(v.any()),
+        // Deprecated: old reviewer format, kept for data compat
+        reviewers: v.optional(v.any()),
+        priority: v.union(v.literal("low"), v.literal("medium"), v.literal("high"), v.literal("urgent")),
         tags: v.optional(v.array(v.string())),
+        updatedAt: v.optional(v.number()),
         harborId: v.id("harbors"),
-        qaApprovedBy: v.optional(v.union(v.id("agents"), v.null())),
-        qaApprovedAt: v.optional(v.union(v.number(), v.null())),
     })
         .index("by_status", ["status"])
         .index("by_harbor", ["harborId"])
-        .index("by_harbor_status", ["harborId", "status"]),
+        .index("by_harbor_status", ["harborId", "status"])
+        .index("by_assignee", ["assigneeId"]),
     // ── Messages ───────────────────────────────────────────────────────
     // Comments on tasks.
     messages: defineTable({
         taskId: v.id("tasks"),
         fromAgentId: v.id("agents"),
+        fromLabel: v.optional(v.string()),
         content: v.string(),
         attachments: v.optional(v.array(v.id("documents"))),
         mentions: v.optional(v.array(v.id("agents"))),

@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { query, mutation, internalQuery } from "./_generated/server";
+import { query, mutation, internalQuery, internalMutation } from "./_generated/server";
 import { requireSuperAdmin } from "./lib/admin";
 /** List all prompt templates (super admin). */
 export const list = query({
@@ -64,5 +64,34 @@ export const listInternal = internalQuery({
             content: t.content,
             version: t.version,
         }));
+    },
+});
+/** Internal: Update a template (for daemon/CLI use). */
+export const updateInternal = internalMutation({
+    args: {
+        fileKey: v.string(),
+        content: v.string(),
+    },
+    handler: async (ctx, args) => {
+        const existing = await ctx.db
+            .query("promptTemplates")
+            .withIndex("by_file", (q) => q.eq("fileKey", args.fileKey))
+            .unique();
+        if (existing) {
+            await ctx.db.patch(existing._id, {
+                content: args.content,
+                version: existing.version + 1,
+                updatedAt: Date.now(),
+            });
+            return existing._id;
+        }
+        else {
+            return await ctx.db.insert("promptTemplates", {
+                fileKey: args.fileKey,
+                content: args.content,
+                version: 1,
+                updatedAt: Date.now(),
+            });
+        }
     },
 });
