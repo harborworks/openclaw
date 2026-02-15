@@ -221,6 +221,9 @@ async function main() {
 
   // Connect to gateway via WebSocket
   let defaultsApplied = false;
+  let defaultsReady: () => void;
+  const defaultsPromise = new Promise<void>((resolve) => { defaultsReady = resolve; });
+
   const gwWsUrl = GATEWAY_URL.replace(/^http/, "ws");
   gateway = new GatewayClient({
     url: gwWsUrl,
@@ -230,6 +233,7 @@ async function main() {
       if (!defaultsApplied) {
         defaultsApplied = true;
         await applyDefaultConfig();
+        defaultsReady!();
       }
     },
     onDisconnect: () => log("Gateway WebSocket disconnected (will reconnect)"),
@@ -241,7 +245,13 @@ async function main() {
   } catch (err) {
     log(`Initial gateway connection failed: ${err instanceof Error ? err.message : err}`);
     log("Will retry in background...");
+    // Resolve so tick loop can start even without defaults (sandbox will be off)
+    defaultsReady!();
   }
+
+  // Wait for defaults to be applied before starting the tick loop.
+  // This prevents syncAgents from clobbering sandbox config in a race.
+  await defaultsPromise;
 
   await startHttpServer();
 
