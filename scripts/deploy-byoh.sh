@@ -100,6 +100,12 @@ fi
 log "Setting up ${DEPLOY_DIR}..."
 run mkdir -p "${DEPLOY_DIR}/config" "${DEPLOY_DIR}/workspaces" "${DEPLOY_DIR}/vault" "${DEPLOY_DIR}/knowledge"
 
+# Ensure directories are accessible by both the container user (uid 1000)
+# and the host user. chown to 1000:1000, chmod group-writable.
+log "Fixing permissions..."
+run sudo chown -R 1000:1000 "${DEPLOY_DIR}/config" "${DEPLOY_DIR}/workspaces" "${DEPLOY_DIR}/vault" "${DEPLOY_DIR}/knowledge"
+run sudo chmod -R g+rwX "${DEPLOY_DIR}/config" "${DEPLOY_DIR}/workspaces" "${DEPLOY_DIR}/vault" "${DEPLOY_DIR}/knowledge"
+
 # --- Step 2: Copy docker-compose.host.yml ---
 log "Copying docker-compose.yml..."
 if ! $DRY_RUN; then
