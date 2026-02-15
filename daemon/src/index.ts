@@ -76,7 +76,9 @@ async function applyDefaultConfig(): Promise<void> {
   const agents = (defaults.agents ?? {}) as Record<string, unknown>;
   const defs = (agents.defaults ?? {}) as Record<string, unknown>;
   const sandbox = (defs.sandbox ?? {}) as Record<string, unknown>;
-  const sandboxMode = (sandbox.mode as string) ?? "off";
+  // Allow deploy-time override via SANDBOX_MODE env var (e.g. "off" for unsandboxed hosts)
+  const sandboxMode = process.env.SANDBOX_MODE || (sandbox.mode as string) || "off";
+  sandbox.mode = sandboxMode;
 
   if (sandboxMode !== "off") {
     // HOST_WORKSPACE_DIR is the actual host path (e.g. /home/ubuntu/harbor/workspaces).
@@ -267,6 +269,7 @@ async function main() {
   log(`  CONFIG_DIR=${CONFIG_DIR}`);
   log(`  WORKSPACES_DIR=${WORKSPACES_DIR}`);
   log(`  TICK_INTERVAL_MS=${TICK_INTERVAL_MS}`);
+  log(`  SANDBOX_MODE=${process.env.SANDBOX_MODE || "(from config)"}`);
 
   checkConfig();
 

@@ -25,6 +25,7 @@ services:
       OPENCLAW_CONFIG_DIR: /home/node/.openclaw
       WORKSPACES_DIR: /home/node/workspaces
       HOST_WORKSPACE_DIR: ${OPENCLAW_WORKSPACE_DIR:-./.harbor-host/workspace}
+      SANDBOX_MODE: ${SANDBOX_MODE:-all}
       SANDBOX_IMAGE: ${SANDBOX_IMAGE:-harbor-sandbox:latest}
       HOME: /home/node
     ports:
