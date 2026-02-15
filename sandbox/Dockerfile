@@ -22,7 +22,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN groupadd -g 1000 sandbox && useradd -u 1000 -g 1000 -m -s /bin/bash sandbox
 
 # ClawVault + GitHub CLI
-RUN npm install -g clawvault@2.4.5 \
+RUN npm install -g clawvault@2.4.5 qmd \
   && curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
     -o /usr/share/keyrings/githubcli-archive-keyring.gpg \
   && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \

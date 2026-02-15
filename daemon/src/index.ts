@@ -89,6 +89,46 @@ async function applyDefaultConfig(): Promise<void> {
       `${hostHarborRoot}/vault:/workspace/vault:rw`,
       `${hostHarborRoot}/knowledge:/workspace/knowledge:rw`,
     ];
+
+    // Pass daemon env vars into sandbox containers so agents can access
+    // harbor services. For now all agents get all vars; per-agent filtering
+    // can be added later via Convex config.
+    const envPassthrough: Record<string, string> = {};
+    const passKeys = [
+      "CONVEX_URL",
+      "HARBOR_ID",
+      "HARBOR_API_KEY",
+      "GATEWAY_URL",
+      "GATEWAY_TOKEN",
+      "OPENCLAW_GATEWAY_TOKEN",
+    ];
+    for (const key of passKeys) {
+      if (process.env[key]) {
+        envPassthrough[key] = process.env[key]!;
+      }
+    }
+    // Also pass any HARBOR_* env vars (future-proofing)
+    for (const [key, val] of Object.entries(process.env)) {
+      if (key.startsWith("HARBOR_") && val) {
+        envPassthrough[key] = val;
+      }
+    }
+    if (Object.keys(envPassthrough).length > 0) {
+      docker.env = { ...(docker.env as Record<string, string> ?? {}), ...envPassthrough };
+    }
+
+    // Also inject any existing gateway config.env (user secrets) into sandbox.
+    // On restart, secrets are already in config.env from previous sync.
+    try {
+      const current = await configApi(gateway).get();
+      const configEnv = ((current.config as Record<string, unknown>).env ?? {}) as Record<string, string>;
+      for (const [k, v] of Object.entries(configEnv)) {
+        if (v && !docker.env?.[k as keyof typeof docker.env]) {
+          (docker.env as Record<string, string>)[k] = v;
+        }
+      }
+    } catch { /* gateway may not have config.env yet */ }
+
     sandbox.docker = docker;
     defs.sandbox = sandbox;
   }
@@ -111,6 +151,28 @@ async function patchGatewayConfig(patch: Record<string, unknown>): Promise<void>
     return;
   }
   try {
+    // When secrets are written to config.env, also inject them into
+    // sandbox docker.env so sandboxed agents can access them.
+    const envPatch = patch.env as Record<string, string> | undefined;
+    if (envPatch) {
+      // Filter out empty values (deletions) and system vars
+      const sandboxEnv: Record<string, string> = {};
+      for (const [k, v] of Object.entries(envPatch)) {
+        if (v) sandboxEnv[k] = v;
+      }
+      if (Object.keys(sandboxEnv).length > 0) {
+        patch.agents = {
+          defaults: {
+            sandbox: {
+              docker: {
+                env: sandboxEnv,
+              },
+            },
+          },
+        };
+      }
+    }
+
     const current = await configApi(gateway).get();
     await configApi(gateway).patch(JSON.stringify(patch), current.hash!);
     log(`Patched gateway config: ${Object.keys(patch).join(", ")}`);
