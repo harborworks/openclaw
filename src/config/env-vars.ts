@@ -10,9 +10,10 @@ export function collectConfigEnvVars(cfg?: OpenClawConfig): Record<string, strin
 
   if (envConfig.vars) {
     for (const [key, value] of Object.entries(envConfig.vars)) {
-      if (!value) {
+      if (value === undefined || value === null) {
         continue;
       }
+      // Include empty strings — they signal deletion
       entries[key] = value;
     }
   }
@@ -21,9 +22,10 @@ export function collectConfigEnvVars(cfg?: OpenClawConfig): Record<string, strin
     if (key === "shellEnv" || key === "vars") {
       continue;
     }
-    if (typeof value !== "string" || !value.trim()) {
+    if (typeof value !== "string") {
       continue;
     }
+    // Include empty strings — they signal deletion
     entries[key] = value;
   }
 
@@ -36,9 +38,12 @@ export function applyConfigEnvVars(
 ): void {
   const entries = collectConfigEnvVars(cfg);
   for (const [key, value] of Object.entries(entries)) {
-    if (env[key]?.trim()) {
+    if (!value.trim()) {
+      // Empty value = delete the env var
+      delete env[key];
       continue;
     }
+    // Always apply config.env values (overwrite existing)
     env[key] = value;
   }
 }
