@@ -419,7 +419,9 @@ export function attachGatewayWsMessageHandler(params: {
           close(1008, truncateCloseReason(authMessage));
         };
         if (!device) {
-          if (scopes.length > 0 && !allowControlUiBypass) {
+          // Allow scopes for token/password-authenticated connections (e.g. daemon).
+          // Only strip scopes for truly unauthenticated connections.
+          if (scopes.length > 0 && !allowControlUiBypass && !hasSharedAuth) {
             scopes = [];
             connectParams.scopes = scopes;
           }
