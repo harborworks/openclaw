@@ -1,5 +1,6 @@
 ##
-## Local dev overrides — use local builds instead of ECR images.
+## Local dev overrides — daemon runs in Docker for convenience.
+## Gateway (openclaw) runs directly on the host.
 ##
 ## Usage:
 ##   docker compose -f docker-compose.host.yml -f docker-compose.dev.yml --env-file .env.host up -d
@@ -10,18 +11,6 @@ services:
     image: harbor-daemon:local
     build:
       context: ./daemon
-
-  gateway:
-    image: harbor-gateway:local
-    build:
-      context: .
-      dockerfile: gateway/Dockerfile
-
-  cli:
-    image: harbor-gateway:local
-    build:
-      context: .
-      dockerfile: gateway/Dockerfile
 
   frontend:
     build:

@@ -88,18 +88,6 @@ function buildAgentListEntry(agent: ConvexAgent, workspacesDir: string): Gateway
     entry.model = { primary: MODEL_MAP[agent.model].ref };
   }
 
-  // When gateway runs in Docker with sandboxing enabled, sandbox containers need
-  // host paths for bind mounts. Skip when sandboxing is off.
-  const hostWorkspaceDir = process.env.HOST_WORKSPACE_DIR;
-  const sandboxEnabled = process.env.SANDBOX_MODE !== "off";
-  if (hostWorkspaceDir && sandboxEnabled) {
-    entry.sandbox = {
-      docker: {
-        binds: [`${path.join(hostWorkspaceDir, agent.sessionKey)}:${path.join(workspacesDir, agent.sessionKey)}:rw`],
-      },
-    };
-  }
-
   return entry;
 }
 

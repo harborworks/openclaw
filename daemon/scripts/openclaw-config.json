@@ -23,34 +23,6 @@
       },
       "model": {
         "primary": "anthropic/claude-opus-4-6"
-      },
-      "sandbox": {
-        "mode": "all",
-        "scope": "agent",
-        "workspaceAccess": "rw",
-        "docker": {
-          "image": "harbor-sandbox:latest",
-          "network": "host"
-        }
-      }
-    }
-  },
-  "tools": {
-    "sandbox": {
-      "tools": {
-        "allow": [
-          "exec",
-          "process",
-          "read",
-          "write",
-          "edit",
-          "sessions_list",
-          "sessions_history",
-          "sessions_send",
-          "sessions_spawn",
-          "session_status",
-          "web_search"
-        ]
       }
     }
   }

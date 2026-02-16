@@ -1,4 +1,4 @@
-name: Build and push host images
+name: Build and publish harbor artifacts
 
 on:
   push:
@@ -7,24 +7,26 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Image tag override (defaults to git tag)"
+        description: "Version tag override (defaults to git tag)"
         required: false
 
 env:
   AWS_REGION: us-east-1
-  ECR_DAEMON: 429056709468.dkr.ecr.us-east-1.amazonaws.com/harbor-daemon
-  ECR_GATEWAY: 429056709468.dkr.ecr.us-east-1.amazonaws.com/harbor-gateway
-  ECR_SANDBOX: 429056709468.dkr.ecr.us-east-1.amazonaws.com/harbor-sandbox
+  S3_BUCKET: harbor-artifacts
 
 jobs:
-  build-and-push:
-    runs-on: self-hosted
+  build-and-publish:
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          submodules: recursive
+          submodules: true
 
-      - name: Determine image tag
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Determine version tag
         id: tag
         run: |
           if [ -n "${{ inputs.tag }}" ]; then
@@ -40,27 +42,32 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Login to ECR
-        uses: aws-actions/amazon-ecr-login@v2
+      - name: Build openclaw tarball
+        run: |
+          cd openclaw
+          npm ci
+          npm pack
+          mv openclaw-*.tgz ../openclaw.tgz
 
-      - name: Build and push daemon
-        uses: docker/build-push-action@v6
-        with:
-          context: ./daemon
-          push: true
-          tags: ${{ env.ECR_DAEMON }}:${{ steps.tag.outputs.tag }}
+      - name: Build daemon tarball
+        run: |
+          cd daemon
+          npm ci
+          npm run build
+          # Pack only what's needed for production
+          npm pack
+          mv harbor-daemon-*.tgz ../harbor-daemon.tgz
 
-      - name: Build and push gateway
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ./gateway/Dockerfile
-          push: true
-          tags: ${{ env.ECR_GATEWAY }}:${{ steps.tag.outputs.tag }}
+      - name: Upload artifacts to S3
+        run: |
+          VERSION="${{ steps.tag.outputs.tag }}"
+          aws s3 cp openclaw.tgz "s3://${S3_BUCKET}/${VERSION}/openclaw.tgz"
+          aws s3 cp harbor-daemon.tgz "s3://${S3_BUCKET}/${VERSION}/harbor-daemon.tgz"
+          echo "Published artifacts to s3://${S3_BUCKET}/${VERSION}/"
 
-      - name: Build and push sandbox
-        uses: docker/build-push-action@v6
-        with:
-          context: ./sandbox
-          push: true
-          tags: ${{ env.ECR_SANDBOX }}:${{ steps.tag.outputs.tag }}
+      - name: Upload as latest
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          aws s3 cp openclaw.tgz "s3://${S3_BUCKET}/latest/openclaw.tgz"
+          aws s3 cp harbor-daemon.tgz "s3://${S3_BUCKET}/latest/harbor-daemon.tgz"
+          echo "Published artifacts to s3://${S3_BUCKET}/latest/"

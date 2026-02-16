@@ -2,39 +2,46 @@
 set -euo pipefail
 
 ##
-## Deploy Harbor stack to a remote host via AWS SSM.
+## Deploy Harbor to a remote EC2 host via AWS SSM.
+##
+## Uploads install-harbor.sh and runs it remotely. The install script handles
+## downloading artifacts from S3 and setting up systemd services.
 ##
 ## Usage:
-##   ./scripts/deploy-host.sh <host-name> [options]
+##   ./scripts/deploy-host.sh <host-name> --version <tag> [options]
 ##
 ## Arguments:
 ##   <host-name>   Host name (e.g. "01") — maps to EC2 instance "harbor-host-01"
 ##
+## Required:
+##   --version <tag>          Harbor release version (e.g. v0.7.0)
+##
+## Required (first deploy):
+##   --harbor-id <id>         Convex harbor ID
+##   --api-key <key>          Harbor API key
+##
 ## Options:
-##   --harbor-id <id>         Convex harbor ID (required on first deploy)
-##   --api-key <key>          Harbor API key (required on first deploy)
 ##   --convex-url <url>       Convex deployment URL (default: production)
 ##   --gateway-token <token>  Gateway auth token (auto-generated if not set)
-##   --version <tag>          Image tag for daemon + gateway (default: latest)
-##   --gateway-port <port>    Gateway port on host (default: 18789)
+##   --gateway-port <port>    Gateway port (default: 18789)
+##   --daemon-port <port>     Daemon port (default: 4747)
 ##   --deploy-dir <path>      Remote deploy directory (default: /home/ubuntu/harbor)
 ##   --dry-run                Print what would be done without executing
 ##
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_DIR="$(dirname "$SCRIPT_DIR")"
 
 # Defaults
-CONVEX_URL="https://cool-kingfisher-264.convex.cloud"  # production
+CONVEX_URL="https://cool-kingfisher-264.convex.cloud"
 GATEWAY_TOKEN=""
-VERSION="latest"
+VERSION=""
 GATEWAY_PORT="18789"
+DAEMON_PORT="4747"
 DEPLOY_DIR="/home/ubuntu/harbor"
 HARBOR_ID=""
 API_KEY=""
 DRY_RUN=false
 AWS_REGION="us-east-1"
-ECR_REGISTRY="429056709468.dkr.ecr.us-east-1.amazonaws.com"
 
 usage() {
   sed -n 's/^## //p; s/^##$//p' "$0"
@@ -52,6 +59,7 @@ while [[ $# -gt 0 ]]; do
     --gateway-token)   GATEWAY_TOKEN="$2";    shift 2 ;;
     --version)         VERSION="$2";          shift 2 ;;
     --gateway-port)    GATEWAY_PORT="$2";     shift 2 ;;
+    --daemon-port)     DAEMON_PORT="$2";      shift 2 ;;
     --deploy-dir)      DEPLOY_DIR="$2";       shift 2 ;;
     --dry-run)         DRY_RUN=true;          shift ;;
     -h|--help)         usage ;;
@@ -59,15 +67,14 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-log() { echo "[deploy] $*"; }
+log() { echo "[deploy-host] $*"; }
 
-# Auto-generate gateway token if not provided
-if [[ -z "$GATEWAY_TOKEN" ]]; then
-  GATEWAY_TOKEN=$(openssl rand -hex 32)
-  log "Generated gateway token: ${GATEWAY_TOKEN:0:8}..."
+if [[ -z "$VERSION" ]]; then
+  echo "Error: --version is required"
+  usage
 fi
 
-# --- Resolve instance ID from host name ---
+# --- Resolve instance ID ---
 log "Resolving instance ID for harbor-host-${HOST_NAME}..."
 INSTANCE_ID=$(aws ec2 describe-instances \
   --region "$AWS_REGION" \
@@ -82,11 +89,11 @@ if [[ -z "$INSTANCE_ID" || "$INSTANCE_ID" == "None" ]]; then
 fi
 log "Found instance: $INSTANCE_ID"
 
-# --- Helper to run commands on remote via SSM ---
+# --- SSM helpers ---
 ssm_run() {
   local cmd="$1"
   if $DRY_RUN; then
-    echo "[dry-run] ssm send-command: $cmd"
+    echo "[dry-run] ssm: $cmd"
     return 0
   fi
 
@@ -95,17 +102,16 @@ ssm_run() {
     --region "$AWS_REGION" \
     --instance-ids "$INSTANCE_ID" \
     --document-name "AWS-RunShellScript" \
+    --timeout-seconds 300 \
     --parameters "commands=[\"$cmd\"]" \
     --query "Command.CommandId" \
     --output text)
 
-  # Wait for command to complete
   aws ssm wait command-executed \
     --region "$AWS_REGION" \
     --command-id "$cmd_id" \
     --instance-id "$INSTANCE_ID" 2>/dev/null || true
 
-  # Get output
   local status
   status=$(aws ssm get-command-invocation \
     --region "$AWS_REGION" \
@@ -135,7 +141,6 @@ ssm_run() {
     --output text
 }
 
-# --- Helper to run commands on remote as ubuntu ---
 ssm_run_as() {
   local cmd="$1"
   local encoded
@@ -143,113 +148,41 @@ ssm_run_as() {
   ssm_run "echo '$encoded' | base64 -d | runuser -u ubuntu -- bash"
 }
 
-# --- Helper to write a file on remote via SSM ---
 ssm_write_file() {
   local remote_path="$1"
   local content="$2"
-
-  # Base64 encode to handle special characters safely
   local encoded
   encoded=$(echo "$content" | base64 -w0)
-
-  ssm_run "echo '$encoded' | base64 -d > $remote_path && chown ubuntu:ubuntu $remote_path"
+  ssm_run "echo '$encoded' | base64 -d > $remote_path && chown ubuntu:ubuntu $remote_path && chmod +x $remote_path"
 }
 
-# --- Validate ---
-if [[ -n "$HARBOR_ID" && -z "$API_KEY" ]]; then
-  echo "Error: --api-key is required when --harbor-id is set"
-  exit 1
-fi
+# --- Ensure Node.js is installed ---
+log "Checking Node.js..."
+ssm_run_as "node --version 2>/dev/null || (curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash - && sudo apt-get install -y nodejs)"
 
-if [[ -z "$HARBOR_ID" ]]; then
-  # Check if remote already has .env.host
-  log "Checking for existing deployment..."
-  if ssm_run "test -f ${DEPLOY_DIR}/.env.host && echo EXISTS" 2>/dev/null | grep -q EXISTS; then
-    log "Remote .env.host exists — updating deployment"
-  else
-    echo "Error: --harbor-id is required for first deploy"
-    exit 1
-  fi
-fi
+# --- Upload and run install script ---
+log "Uploading install script..."
+ssm_write_file "/tmp/install-harbor.sh" "$(cat "${SCRIPT_DIR}/install-harbor.sh")"
 
-# --- Step 1: Ensure deploy directory exists with correct ownership ---
-log "Creating deploy directory..."
-ssm_run "mkdir -p ${DEPLOY_DIR}/config ${DEPLOY_DIR}/workspaces ${DEPLOY_DIR}/vault ${DEPLOY_DIR}/knowledge && chown ubuntu:ubuntu ${DEPLOY_DIR} && chown -R 1000:1000 ${DEPLOY_DIR}/config ${DEPLOY_DIR}/workspaces ${DEPLOY_DIR}/vault ${DEPLOY_DIR}/knowledge"
+# Build install command
+INSTALL_CMD="/tmp/install-harbor.sh --version ${VERSION} --deploy-dir ${DEPLOY_DIR} --gateway-port ${GATEWAY_PORT} --daemon-port ${DAEMON_PORT}"
+[[ -n "$HARBOR_ID" ]] && INSTALL_CMD+=" --harbor-id ${HARBOR_ID}"
+[[ -n "$API_KEY" ]] && INSTALL_CMD+=" --api-key ${API_KEY}"
+[[ -n "$GATEWAY_TOKEN" ]] && INSTALL_CMD+=" --gateway-token ${GATEWAY_TOKEN}"
+[[ "$CONVEX_URL" != "https://cool-kingfisher-264.convex.cloud" ]] && INSTALL_CMD+=" --convex-url ${CONVEX_URL}"
 
-# Migrate from old /root/.harbor layout if present
-OLD_DEPLOY="/root/.harbor"
-log "Checking for legacy layout..."
-ssm_run "if [ -d ${OLD_DEPLOY}/config ] && [ ! -f ${DEPLOY_DIR}/config/.migrated ]; then cp -a ${OLD_DEPLOY}/config/. ${DEPLOY_DIR}/config/ 2>/dev/null; cp -a ${OLD_DEPLOY}/workspaces/. ${DEPLOY_DIR}/workspaces/ 2>/dev/null; rm -rf ${DEPLOY_DIR}/workspaces/.git; touch ${DEPLOY_DIR}/config/.migrated; chown ubuntu:ubuntu ${DEPLOY_DIR}; chown -R 1000:1000 ${DEPLOY_DIR}/config ${DEPLOY_DIR}/workspaces; echo MIGRATED; else echo SKIP; fi"
+log "Running install-harbor.sh on harbor-host-${HOST_NAME}..."
+ssm_run_as "$INSTALL_CMD"
 
-# --- Step 2: Copy docker-compose.host.yml ---
-log "Copying docker-compose.yml..."
-ssm_write_file "${DEPLOY_DIR}/docker-compose.yml" "$(cat "$REPO_DIR/docker-compose.host.yml")"
+# Cleanup
+ssm_run "rm -f /tmp/install-harbor.sh"
 
-# --- Step 3: Write .env.host ---
-if [[ -n "$HARBOR_ID" ]]; then
-  log "Writing .env.host..."
-  ssm_write_file "${DEPLOY_DIR}/.env.host" "CONVEX_URL=${CONVEX_URL}
-HARBOR_ID=${HARBOR_ID}
-HARBOR_API_KEY=${API_KEY}
-OPENCLAW_GATEWAY_TOKEN=${GATEWAY_TOKEN}
-GATEWAY_PORT=${GATEWAY_PORT}
-DAEMON_VERSION=${VERSION}
-GATEWAY_VERSION=${VERSION}
-OPENCLAW_CONFIG_DIR=${DEPLOY_DIR}/config
-OPENCLAW_WORKSPACE_DIR=${DEPLOY_DIR}/workspaces
-SANDBOX_IMAGE=${ECR_REGISTRY}/harbor-sandbox:${VERSION}"
-else
-  # Update versions in existing .env.host
-  if [[ "$VERSION" != "latest" ]]; then
-    log "Updating image versions..."
-    ssm_run_as "cd ${DEPLOY_DIR} && sed -i 's/^DAEMON_VERSION=.*/DAEMON_VERSION=${VERSION}/' .env.host && sed -i 's/^GATEWAY_VERSION=.*/GATEWAY_VERSION=${VERSION}/' .env.host && sed -i 's|^SANDBOX_IMAGE=.*|SANDBOX_IMAGE=${ECR_REGISTRY}/harbor-sandbox:${VERSION}|' .env.host"
-  fi
-  # Ensure SANDBOX_IMAGE is set
-  log "Updating sandbox image..."
-  ssm_run_as "cd ${DEPLOY_DIR} && grep -q '^SANDBOX_IMAGE=' .env.host && sed -i 's|^SANDBOX_IMAGE=.*|SANDBOX_IMAGE=${ECR_REGISTRY}/harbor-sandbox:${VERSION}|' .env.host || echo 'SANDBOX_IMAGE=${ECR_REGISTRY}/harbor-sandbox:${VERSION}' >> .env.host"
-  # Ensure config/workspace dirs point to new layout
-  log "Updating config/workspace paths..."
-  ssm_run_as "cd ${DEPLOY_DIR} && grep -q OPENCLAW_CONFIG_DIR .env.host && sed -i 's|^OPENCLAW_CONFIG_DIR=.*|OPENCLAW_CONFIG_DIR=${DEPLOY_DIR}/config|' .env.host || echo 'OPENCLAW_CONFIG_DIR=${DEPLOY_DIR}/config' >> .env.host && grep -q OPENCLAW_WORKSPACE_DIR .env.host && sed -i 's|^OPENCLAW_WORKSPACE_DIR=.*|OPENCLAW_WORKSPACE_DIR=${DEPLOY_DIR}/workspaces|' .env.host || echo 'OPENCLAW_WORKSPACE_DIR=${DEPLOY_DIR}/workspaces' >> .env.host"
-fi
-
-# --- Step 4: Copy cli.sh ---
-log "Copying cli.sh..."
-ssm_write_file "${DEPLOY_DIR}/cli.sh" "$(cat "$REPO_DIR/scripts/cli.sh")"
-ssm_run "chmod +x ${DEPLOY_DIR}/cli.sh"
-
-# --- Step 5: Clear stale gateway config ---
-# The daemon patches config via WS on startup. Stale openclaw.json from a
-# previous version can reference env vars that don't exist yet, crashing the
-# gateway before the daemon can connect. Always start from a clean slate.
-log "Clearing stale gateway config..."
-ssm_run "rm -f ${DEPLOY_DIR}/config/openclaw.json"
-
-# --- Step 6: ECR login on remote host (as ubuntu so docker config lands in ~ubuntu) ---
-log "Logging into ECR..."
-ssm_run_as "aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}"
-
-# --- Step 6b: Detect Docker socket GID for gateway container ---
-log "Detecting Docker socket GID..."
-ssm_run_as "GID=\$(stat -c %g /var/run/docker.sock) && grep -q DOCKER_GID ${DEPLOY_DIR}/.env.host && sed -i \"s/^DOCKER_GID=.*/DOCKER_GID=\$GID/\" ${DEPLOY_DIR}/.env.host || echo \"DOCKER_GID=\$GID\" >> ${DEPLOY_DIR}/.env.host"
-
-# --- Step 7: Pull and start (as ubuntu) ---
-log "Pulling images..."
-ssm_run_as "cd ${DEPLOY_DIR} && docker compose --env-file .env.host pull"
-
-log "Pulling sandbox image..."
-ssm_run_as "docker pull ${ECR_REGISTRY}/harbor-sandbox:${VERSION}"
-
-log "Starting stack..."
-ssm_run_as "cd ${DEPLOY_DIR} && docker compose --env-file .env.host up -d"
-
-# --- Step 8: Recreate sandbox containers to pick up config changes ---
-log "Recreating sandbox containers..."
-ssm_run_as "cd ${DEPLOY_DIR} && docker compose --env-file .env.host run --rm cli sandbox recreate --all --force 2>/dev/null || true"
-
-log "Done! Stack deployed to harbor-host-${HOST_NAME} (${INSTANCE_ID})"
+log ""
+log "Done! Harbor ${VERSION} deployed to harbor-host-${HOST_NAME} (${INSTANCE_ID})"
 log ""
 log "Connect with:"
 log "  aws ssm start-session --target ${INSTANCE_ID}"
 log ""
 log "View logs:"
-log "  cd ${DEPLOY_DIR} && docker compose --env-file .env.host logs -f"
+log "  journalctl -u harbor-gateway -f"
+log "  journalctl -u harbor-daemon -f"

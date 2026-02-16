@@ -1,9 +1,13 @@
 ##
-## Harbor Host stack — runs on each harbor host.
-## Daemon polls Convex; gateway runs local OpenClaw agents.
+## Harbor Host stack — daemon only.
+## Gateway (openclaw) runs directly on the host as a systemd service.
 ##
 ## Usage:
 ##   docker compose -f docker-compose.host.yml --env-file .env.host up -d
+##
+## NOTE: This file exists for backward compatibility with Docker-based daemon
+## deployments. The recommended approach is to run the daemon directly on the
+## host via systemd (see scripts/install-harbor.sh).
 ##
 
 services:
@@ -14,74 +18,23 @@ services:
       - no-new-privileges:true
     tmpfs:
       - /tmp:noexec,nosuid,size=64m
+    network_mode: host
     environment:
       CONVEX_URL: ${CONVEX_URL:-}
       HARBOR_ID: ${HARBOR_ID:-}
       HARBOR_API_KEY: ${HARBOR_API_KEY:-}
-      GATEWAY_URL: http://gateway:18789
+      GATEWAY_URL: http://localhost:${GATEWAY_PORT:-18789}
       GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN:-}
-      DAEMON_PORT: "4747"
+      DAEMON_PORT: "${DAEMON_PORT:-4747}"
       TICK_INTERVAL_MS: "5000"
-      OPENCLAW_CONFIG_DIR: /home/node/.openclaw
-      WORKSPACES_DIR: /home/node/workspaces
-      HOST_WORKSPACE_DIR: ${OPENCLAW_WORKSPACE_DIR:-./.harbor-host/workspace}
-      SANDBOX_MODE: ${SANDBOX_MODE:-all}
-      SANDBOX_IMAGE: ${SANDBOX_IMAGE:-harbor-sandbox:latest}
+      OPENCLAW_CONFIG_DIR: ${OPENCLAW_CONFIG_DIR:-/home/ubuntu/.openclaw}
+      WORKSPACES_DIR: ${OPENCLAW_WORKSPACE_DIR:-/home/ubuntu/harbor/workspaces}
       HOME: /home/node
-    ports:
-      - "127.0.0.1:${DAEMON_PORT:-4747}:4747"
     volumes:
-      - ${OPENCLAW_CONFIG_DIR:-./.harbor-host/config}:/home/node/.openclaw
-      - ${OPENCLAW_WORKSPACE_DIR:-./.harbor-host/workspace}:/home/node/workspaces
+      - ${OPENCLAW_CONFIG_DIR:-/home/ubuntu/.openclaw}:/home/node/.openclaw
+      - ${OPENCLAW_WORKSPACE_DIR:-/home/ubuntu/harbor/workspaces}:/home/node/workspaces
     dns:
       - 8.8.8.8
       - 8.8.4.4
-    depends_on:
-      gateway:
-        condition: service_started
     restart: unless-stopped
     init: true
-
-  cli:
-    image: 429056709468.dkr.ecr.us-east-1.amazonaws.com/harbor-gateway:${GATEWAY_VERSION:-latest}
-    security_opt:
-      - no-new-privileges:true
-    environment:
-      HOME: /home/node
-      TERM: xterm-256color
-      OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN:-}
-      BROWSER: echo
-    volumes:
-      - ${OPENCLAW_CONFIG_DIR:-./.harbor-host/config}:/home/node/.openclaw
-      - ${OPENCLAW_WORKSPACE_DIR:-./.harbor-host/workspace}:/home/node/workspaces
-    network_mode: "service:gateway"
-    stdin_open: true
-    tty: true
-    init: true
-    entrypoint: ["openclaw"]
-    profiles:
-      - cli
-
-  gateway:
-    image: 429056709468.dkr.ecr.us-east-1.amazonaws.com/harbor-gateway:${GATEWAY_VERSION:-latest}
-    security_opt:
-      - no-new-privileges:true
-    group_add:
-      - "${DOCKER_GID}"
-    environment:
-      HOME: /home/node
-      TERM: xterm-256color
-      OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN:-}
-    volumes:
-      - ${OPENCLAW_CONFIG_DIR:-./.harbor-host/config}:/home/node/.openclaw
-      - ${OPENCLAW_WORKSPACE_DIR:-./.harbor-host/workspace}:/home/node/workspaces
-      - /var/run/docker.sock:/var/run/docker.sock
-    ports:
-      - "127.0.0.1:${GATEWAY_PORT:-18789}:18789"
-    dns:
-      - 8.8.8.8
-      - 8.8.4.4
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    init: true
-    restart: unless-stopped
