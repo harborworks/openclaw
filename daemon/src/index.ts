@@ -23,8 +23,9 @@ const TICK_INTERVAL_MS = parseInt(process.env.TICK_INTERVAL_MS || "5000", 10);
 const CONVEX_URL = process.env.CONVEX_URL || "";
 const HARBOR_ID = process.env.HARBOR_ID || "";
 const HARBOR_API_KEY = process.env.HARBOR_API_KEY || "";
+const GATEWAY_HOST = process.env.GATEWAY_HOST || "localhost";
 const GATEWAY_PORT = process.env.GATEWAY_PORT || "18789";
-const GATEWAY_URL = process.env.GATEWAY_URL || `http://localhost:${GATEWAY_PORT}`;
+const GATEWAY_URL = `http://${GATEWAY_HOST}:${GATEWAY_PORT}`;
 const GATEWAY_TOKEN = process.env.GATEWAY_TOKEN || "";
 const DAEMON_PORT = parseInt(process.env.DAEMON_PORT || "4747", 10);
 
@@ -179,8 +180,9 @@ async function main() {
   log(`  CONVEX_URL=${CONVEX_URL || "(not set)"}`);
   log(`  HARBOR_ID=${HARBOR_ID || "(not set)"}`);
   log(`  HARBOR_API_KEY=${HARBOR_API_KEY ? "(set)" : "(not set)"}`);
-  log(`  GATEWAY_URL=${GATEWAY_URL}`);
+  log(`  GATEWAY_HOST=${GATEWAY_HOST}`);
   log(`  GATEWAY_PORT=${GATEWAY_PORT}`);
+  log(`  GATEWAY_URL=${GATEWAY_URL}`);
   log(`  CONFIG_DIR=${CONFIG_DIR}`);
   log(`  WORKSPACES_DIR=${WORKSPACES_DIR}`);
   log(`  TICK_INTERVAL_MS=${TICK_INTERVAL_MS}`);
