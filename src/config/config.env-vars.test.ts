@@ -15,10 +15,17 @@ describe("config env vars", () => {
     });
   });
 
-  it("does not override existing env vars", async () => {
+  it("overwrites existing env vars with config values", async () => {
     await withEnvOverride({ OPENROUTER_API_KEY: "existing-key" }, async () => {
       applyConfigEnvVars({ env: { vars: { OPENROUTER_API_KEY: "config-key" } } } as OpenClawConfig);
-      expect(process.env.OPENROUTER_API_KEY).toBe("existing-key");
+      expect(process.env.OPENROUTER_API_KEY).toBe("config-key");
+    });
+  });
+
+  it("deletes env vars when config value is empty", async () => {
+    await withEnvOverride({ OPENROUTER_API_KEY: "existing-key" }, async () => {
+      applyConfigEnvVars({ env: { vars: { OPENROUTER_API_KEY: "" } } } as OpenClawConfig);
+      expect(process.env.OPENROUTER_API_KEY).toBeUndefined();
     });
   });
 
