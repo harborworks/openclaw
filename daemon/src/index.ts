@@ -23,9 +23,9 @@ const TICK_INTERVAL_MS = parseInt(process.env.TICK_INTERVAL_MS || "5000", 10);
 const CONVEX_URL = process.env.CONVEX_URL || "";
 const HARBOR_ID = process.env.HARBOR_ID || "";
 const HARBOR_API_KEY = process.env.HARBOR_API_KEY || "";
-const GATEWAY_URL = process.env.GATEWAY_URL || "http://localhost:18789";
-const GATEWAY_TOKEN = process.env.GATEWAY_TOKEN || "";
 const GATEWAY_PORT = process.env.GATEWAY_PORT || "18789";
+const GATEWAY_URL = process.env.GATEWAY_URL || `http://localhost:${GATEWAY_PORT}`;
+const GATEWAY_TOKEN = process.env.GATEWAY_TOKEN || "";
 const DAEMON_PORT = parseInt(process.env.DAEMON_PORT || "4747", 10);
 
 const WORKSPACES_DIR = process.env.WORKSPACES_DIR ?? path.join(

@@ -204,7 +204,6 @@ User=${OPENCLAW_USER}
 Environment=HOME=${HOME}
 Environment=NODE_ENV=production
 EnvironmentFile=${ENV_FILE}
-Environment=GATEWAY_URL=http://localhost:${GATEWAY_PORT}
 Environment=GATEWAY_TOKEN=${GATEWAY_TOKEN}
 Environment=DEFAULT_CONFIG_PATH=${DAEMON_DIR}/scripts/openclaw-config.json
 WorkingDirectory=${DAEMON_DIR}
