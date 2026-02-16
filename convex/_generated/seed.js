@@ -37,3 +37,10 @@ export const createTestTask = mutation({
         });
     },
 });
+/** List all harbors. Dev/debug only. */
+export const listHarbors = mutation({
+    args: {},
+    handler: async (ctx) => {
+        return await ctx.db.query("harbors").collect();
+    },
+});

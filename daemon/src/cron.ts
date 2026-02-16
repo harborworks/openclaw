@@ -27,9 +27,9 @@ const HEARTBEAT_INTERVAL_MS = parseInt(
 );
 
 /** Daemon URL reachable from wherever the exec tool runs.
- * Sandbox containers use host networking, so localhost reaches the daemon's
- * published port. DAEMON_INTERNAL_URL env var allows override for other setups. */
-const DAEMON_URL = process.env.DAEMON_INTERNAL_URL || "http://localhost:4747";
+ * Composed from DAEMON_PORT by default. DAEMON_INTERNAL_URL allows full override. */
+const DAEMON_PORT = process.env.DAEMON_PORT || "4747";
+const DAEMON_URL = process.env.DAEMON_INTERNAL_URL || `http://localhost:${DAEMON_PORT}`;
 
 const LEADER_ROLES = new Set(["project-manager", "executive-assistant"]);
 
