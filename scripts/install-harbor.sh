@@ -163,13 +163,14 @@ if [[ ! -f "$GATEWAY_CONFIG" ]]; then
   fi
 fi
 
-# --- Step 7: Install systemd services ---
-log "Installing systemd services..."
+# --- Step 7: Install user systemd services (no sudo required) ---
+log "Installing user systemd services..."
 
-OPENCLAW_USER="${USER}"
+SYSTEMD_DIR="${HOME}/.config/systemd/user"
+mkdir -p "$SYSTEMD_DIR"
 
 if ! $DRY_RUN; then
-  sudo tee /etc/systemd/system/harbor-gateway.service > /dev/null <<EOF
+  cat > "${SYSTEMD_DIR}/harbor-gateway.service" <<EOF
 [Unit]
 Description=Harbor Gateway (OpenClaw)
 After=network-online.target
@@ -177,22 +178,18 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-User=${OPENCLAW_USER}
 Environment=HOME=${HOME}
 Environment=OPENCLAW_GATEWAY_TOKEN=${GATEWAY_TOKEN}
 EnvironmentFile=${ENV_FILE}
 ExecStart=$(which openclaw) gateway --port ${GATEWAY_PORT}
 Restart=on-failure
 RestartSec=5
-StandardOutput=journal
-StandardError=journal
-SyslogIdentifier=harbor-gateway
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target
 EOF
 
-  sudo tee /etc/systemd/system/harbor-daemon.service > /dev/null <<EOF
+  cat > "${SYSTEMD_DIR}/harbor-daemon.service" <<EOF
 [Unit]
 Description=Harbor Daemon
 After=harbor-gateway.service
@@ -200,7 +197,6 @@ Wants=harbor-gateway.service
 
 [Service]
 Type=simple
-User=${OPENCLAW_USER}
 Environment=HOME=${HOME}
 Environment=NODE_ENV=production
 EnvironmentFile=${ENV_FILE}
@@ -210,24 +206,24 @@ WorkingDirectory=${DAEMON_DIR}
 ExecStart=$(which node) ${DAEMON_DIR}/dist/index.js
 Restart=on-failure
 RestartSec=5
-StandardOutput=journal
-StandardError=journal
-SyslogIdentifier=harbor-daemon
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target
 EOF
 
-  sudo systemctl daemon-reload
-  sudo systemctl enable harbor-gateway harbor-daemon
+  systemctl --user daemon-reload
+  systemctl --user enable harbor-gateway harbor-daemon
+
+  # Enable linger so services survive logout
+  loginctl enable-linger "$USER" 2>/dev/null || true
 fi
 
 # --- Step 8: Start/restart services ---
 log "Starting services..."
-run sudo systemctl restart harbor-gateway
+run systemctl --user restart harbor-gateway
 # Give gateway a moment to start before daemon connects
 sleep 2
-run sudo systemctl restart harbor-daemon
+run systemctl --user restart harbor-daemon
 
 # --- Step 9: Cleanup ---
 rm -f "/tmp/harbor-openclaw-${VERSION}.tgz" "/tmp/harbor-daemon-${VERSION}.tgz"
@@ -236,12 +232,12 @@ log ""
 log "Done! Harbor ${VERSION} installed at ${DEPLOY_DIR}"
 log ""
 log "Services:"
-log "  sudo systemctl status harbor-gateway"
-log "  sudo systemctl status harbor-daemon"
+log "  systemctl --user status harbor-gateway"
+log "  systemctl --user status harbor-daemon"
 log ""
 log "Logs:"
-log "  journalctl -u harbor-gateway -f"
-log "  journalctl -u harbor-daemon -f"
+log "  journalctl --user -u harbor-gateway -f"
+log "  journalctl --user -u harbor-daemon -f"
 log ""
 log "CLI:"
 log "  openclaw status"

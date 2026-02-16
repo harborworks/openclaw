@@ -144,7 +144,8 @@ ssm_run() {
 ssm_run_as() {
   local cmd="$1"
   local encoded
-  encoded=$(echo "$cmd" | base64 -w0)
+  # Set XDG_RUNTIME_DIR so systemctl --user works over SSM
+  encoded=$(echo "export XDG_RUNTIME_DIR=/run/user/\$(id -u) && $cmd" | base64 -w0)
   ssm_run "echo '$encoded' | base64 -d | runuser -u ubuntu -- bash"
 }
 
