@@ -227,6 +227,8 @@ export type AgentDefaultsConfig = {
      * Default: false (only the final heartbeat payload is delivered).
      */
     includeReasoning?: boolean;
+    /** If true, suppress tool error warning messages for heartbeat runs. */
+    suppressToolErrorWarnings?: boolean;
   };
   /** Max concurrent agent runs across all conversations. Default: 1 (sequential). */
   maxConcurrent?: number;
