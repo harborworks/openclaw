@@ -24,6 +24,7 @@ export const HeartbeatSchema = z
     model: z.string().optional(),
     session: z.string().optional(),
     includeReasoning: z.boolean().optional(),
+    suppressToolErrorWarnings: z.boolean().optional(),
     target: z.string().optional(),
     to: z.string().optional(),
     accountId: z.string().optional(),
