@@ -84,6 +84,8 @@ export type MessagesConfig = {
   removeAckAfterReply?: boolean;
   /** When true, suppress ⚠️ tool-error warnings from being shown to the user. Default: false. */
   suppressToolErrors?: boolean;
+  /** When true, suppress all ⚠️ tool-error warning messages including mutating tool errors. Default: false. */
+  suppressToolErrorWarnings?: boolean;
   /** Text-to-speech settings for outbound replies. */
   tts?: TtsConfig;
 };
