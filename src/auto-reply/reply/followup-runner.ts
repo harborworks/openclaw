@@ -168,7 +168,6 @@ export function createFollowupRunner(params: {
               reasoningLevel: queued.run.reasoningLevel,
               suppressToolErrorWarnings: opts?.suppressToolErrorWarnings,
               execOverrides: queued.run.execOverrides,
-              suppressToolErrorWarnings: opts?.suppressToolErrorWarnings,
               bashElevated: queued.run.bashElevated,
               timeoutMs: queued.run.timeoutMs,
               runId,
