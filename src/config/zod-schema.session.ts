@@ -115,6 +115,7 @@ export const MessagesSchema = z
     ackReactionScope: z.enum(["group-mentions", "group-all", "direct", "all"]).optional(),
     removeAckAfterReply: z.boolean().optional(),
     suppressToolErrors: z.boolean().optional(),
+    suppressToolErrorWarnings: z.boolean().optional(),
     tts: TtsConfigSchema,
   })
   .strict()
@@ -129,11 +130,11 @@ export const CommandsSchema = z
     bashForegroundMs: z.number().int().min(0).max(30_000).optional(),
     config: z.boolean().optional(),
     debug: z.boolean().optional(),
-    restart: z.boolean().optional(),
+    restart: z.boolean().optional().default(true),
     useAccessGroups: z.boolean().optional(),
     ownerAllowFrom: z.array(z.union([z.string(), z.number()])).optional(),
     allowFrom: ElevatedAllowFromSchema.optional(),
   })
   .strict()
   .optional()
-  .default({ native: "auto", nativeSkills: "auto" });
+  .default({ native: "auto", nativeSkills: "auto", restart: true });
