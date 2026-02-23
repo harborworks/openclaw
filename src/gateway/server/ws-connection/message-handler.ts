@@ -488,7 +488,10 @@ export function attachGatewayWsMessageHandler(params: {
         };
         const handleMissingDeviceIdentity = (): boolean => {
           if (!device) {
-            clearUnboundScopes();
+            const canSkipDevice = sharedAuthOk;
+            if (!canSkipDevice) {
+              clearUnboundScopes();
+            }
           }
           const trustedProxyAuthOk = isTrustedProxyControlUiOperatorAuth({
             isControlUi,
