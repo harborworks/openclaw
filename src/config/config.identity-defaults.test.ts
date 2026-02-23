@@ -57,6 +57,18 @@ describe("config identity defaults", () => {
     });
   });
 
+  it("maps legacy messages.suppressToolErrorWarnings to messages.suppressToolErrors", async () => {
+    await withTempHome("openclaw-config-identity-", async (home) => {
+      const cfg = await writeAndLoadConfig(home, {
+        messages: {
+          suppressToolErrorWarnings: true,
+        },
+      });
+
+      expect(cfg.messages?.suppressToolErrors).toBe(true);
+    });
+  });
+
   it("does not override explicit values", async () => {
     await withTempHome("openclaw-config-identity-", async (home) => {
       const cfg = await writeAndLoadConfig(home, {
