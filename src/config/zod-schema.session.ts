@@ -183,6 +183,8 @@ export const MessagesSchema = z
       .strict()
       .optional(),
     suppressToolErrors: z.boolean().optional(),
+    // Backward compat: old key used by some existing configs.
+    suppressToolErrorWarnings: z.boolean().optional(),
     tts: TtsConfigSchema,
   })
   .strict()
