@@ -1,5 +1,5 @@
-import { isDangerousHostEnvVarName, normalizeEnvVarKey } from "../infra/host-env-security.js";
 import type { OpenClawConfig } from "./types.js";
+import { isDangerousHostEnvVarName, normalizeEnvVarKey } from "../infra/host-env-security.js";
 
 function collectConfigEnvVarsByTarget(cfg?: OpenClawConfig): Record<string, string> {
   const envConfig = cfg?.env;
@@ -62,11 +62,38 @@ export function applyConfigEnvVars(
   cfg: OpenClawConfig,
   env: NodeJS.ProcessEnv = process.env,
 ): void {
-  const entries = collectConfigRuntimeEnvVars(cfg);
-  for (const [key, value] of Object.entries(entries)) {
-    if (env[key]?.trim()) {
+  const envConfig = cfg?.env;
+  if (!envConfig) {
+    return;
+  }
+
+  const applyEntry = (rawKey: string, value: unknown) => {
+    if (typeof value !== "string") {
+      return;
+    }
+    const key = normalizeEnvVarKey(rawKey, { portable: true });
+    if (!key || isDangerousHostEnvVarName(key)) {
+      return;
+    }
+    // Empty string means explicit delete/unset.
+    if (!value.trim()) {
+      delete env[key];
+      return;
+    }
+    // Overwrite existing values so config/env secret updates propagate.
+    env[key] = value;
+  };
+
+  if (envConfig.vars) {
+    for (const [rawKey, value] of Object.entries(envConfig.vars)) {
+      applyEntry(rawKey, value);
+    }
+  }
+
+  for (const [rawKey, value] of Object.entries(envConfig)) {
+    if (rawKey === "shellEnv" || rawKey === "vars") {
       continue;
     }
-    env[key] = value;
+    applyEntry(rawKey, value);
   }
 }
