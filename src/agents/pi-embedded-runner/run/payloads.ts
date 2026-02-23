@@ -60,6 +60,10 @@ function resolveToolErrorWarningPolicy(params: {
   verboseLevel?: VerboseLevel;
 }): ToolErrorWarningPolicy {
   const includeDetails = isVerboseToolDetailEnabled(params.verboseLevel);
+  // Harbor Works: env-level override to suppress all tool error warnings
+  if (process.env.HARBOR_SUPPRESS_TOOL_WARNINGS === "1") {
+    return { showWarning: false, includeDetails };
+  }
   if (params.suppressToolErrorWarnings) {
     return { showWarning: false, includeDetails };
   }
