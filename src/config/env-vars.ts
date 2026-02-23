@@ -19,7 +19,7 @@ function collectConfigEnvVarsByTarget(cfg?: OpenClawConfig): Record<string, stri
 
   if (envConfig.vars) {
     for (const [rawKey, value] of Object.entries(envConfig.vars)) {
-      if (!value) {
+      if (typeof value !== "string") {
         continue;
       }
       const key = normalizeEnvVarKey(rawKey, { portable: true });
@@ -37,7 +37,7 @@ function collectConfigEnvVarsByTarget(cfg?: OpenClawConfig): Record<string, stri
     if (rawKey === "shellEnv" || rawKey === "vars") {
       continue;
     }
-    if (typeof value !== "string" || !value.trim()) {
+    if (typeof value !== "string") {
       continue;
     }
     const key = normalizeEnvVarKey(rawKey, { portable: true });
@@ -71,10 +71,23 @@ export function applyConfigEnvVars(
   env: NodeJS.ProcessEnv = process.env,
 ): void {
   const entries = collectConfigRuntimeEnvVars(cfg);
+  const managedKeys = new Set(Object.keys(entries));
+
   for (const [key, value] of Object.entries(entries)) {
-    if (env[key]?.trim()) {
+    if (value === "") {
+      delete env[key];
       continue;
     }
     env[key] = value;
+  }
+
+  // Remove stale managed config env vars that are no longer present in config.
+  for (const key of Object.keys(env)) {
+    if (!managedKeys.has(key)) {
+      continue;
+    }
+    if (!(key in entries)) {
+      delete env[key];
+    }
   }
 }
