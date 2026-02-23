@@ -119,6 +119,8 @@ export type MessagesConfig = {
   statusReactions?: StatusReactionsConfig;
   /** When true, suppress ⚠️ tool-error warnings from being shown to the user. Default: false. */
   suppressToolErrors?: boolean;
+  /** @deprecated Renamed to messages.suppressToolErrors (accepted for backward compatibility). */
+  suppressToolErrorWarnings?: boolean;
   /** Text-to-speech settings for outbound replies. */
   tts?: TtsConfig;
 };
