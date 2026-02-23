@@ -1,7 +1,7 @@
+import type { Api, Model } from "@mariozechner/pi-ai";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import type { Api, Model } from "@mariozechner/pi-ai";
 import { describe, expect, it } from "vitest";
 import { captureEnv } from "../test-utils/env.js";
 import { ensureAuthProfileStore } from "./auth-profiles.js";
@@ -203,6 +203,17 @@ describe("getApiKeyForModel", () => {
       envSnapshot.restore();
       await fs.rm(tempDir, { recursive: true, force: true });
     }
+  });
+
+  it("resolves openai-codex api key from OPENAI_API_KEY", async () => {
+    await withEnvUpdates({ OPENAI_API_KEY: "openai-test-key" }, async () => {
+      const resolved = await resolveApiKeyForProvider({
+        provider: "openai-codex",
+        store: { version: 1, profiles: {} },
+      });
+      expect(resolved.apiKey).toBe("openai-test-key");
+      expect(resolved.source).toContain("OPENAI_API_KEY");
+    });
   });
 
   it("throws when ZAI API key is missing", async () => {
