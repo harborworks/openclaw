@@ -72,6 +72,34 @@ export const registerTelegramHandlers = ({
     Number.isFinite(opts.testTimings.mediaGroupFlushMs)
       ? Math.max(10, Math.floor(opts.testTimings.mediaGroupFlushMs))
       : MEDIA_GROUP_TIMEOUT_MS;
+  const DEFAULT_MEDIA_RESOLVE_TIMEOUT_MS = 20_000;
+  const mediaResolveTimeoutMs =
+    typeof opts.testTimings?.mediaResolveTimeoutMs === "number" &&
+    Number.isFinite(opts.testTimings.mediaResolveTimeoutMs)
+      ? Math.max(10, Math.floor(opts.testTimings.mediaResolveTimeoutMs))
+      : DEFAULT_MEDIA_RESOLVE_TIMEOUT_MS;
+  const withMediaResolveTimeout = async <T>(fn: () => Promise<T>) => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      return await Promise.race<T>([
+        fn(),
+        new Promise<T>((_, reject) => {
+          timer = setTimeout(() => {
+            reject(
+              new MediaFetchError(
+                "fetch_failed",
+                `telegram media resolution timed out after ${mediaResolveTimeoutMs}ms`,
+              ),
+            );
+          }, mediaResolveTimeoutMs);
+        }),
+      ]);
+    } finally {
+      if (timer) {
+        clearTimeout(timer);
+      }
+    }
+  };
 
   const mediaGroupBuffer = new Map<string, MediaGroupEntry>();
   let mediaGroupProcessing: Promise<void> = Promise.resolve();
@@ -216,7 +244,9 @@ export const registerTelegramHandlers = ({
 
       const allMedia: TelegramMediaRef[] = [];
       for (const { ctx } of entry.messages) {
-        const media = await resolveMedia(ctx, mediaMaxBytes, opts.token, opts.proxyFetch);
+        const media = await withMediaResolveTimeout(() =>
+          resolveMedia(ctx, mediaMaxBytes, opts.token, opts.proxyFetch),
+        );
         if (media) {
           allMedia.push({
             path: media.path,
@@ -890,7 +920,9 @@ export const registerTelegramHandlers = ({
 
       let media: Awaited<ReturnType<typeof resolveMedia>> = null;
       try {
-        media = await resolveMedia(ctx, mediaMaxBytes, opts.token, opts.proxyFetch);
+        media = await withMediaResolveTimeout(() =>
+          resolveMedia(ctx, mediaMaxBytes, opts.token, opts.proxyFetch),
+        );
       } catch (mediaErr) {
         const errMsg = String(mediaErr);
         if (errMsg.includes("exceeds") && errMsg.includes("MB limit")) {

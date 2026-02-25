@@ -321,4 +321,56 @@ describe("createTelegramBot", () => {
 
     expect(sendChatActionSpy).toHaveBeenCalledWith(42, "typing", undefined);
   });
+
+  it("times out stuck media resolution and still processes following inbound messages", async () => {
+    onSpy.mockReset();
+    sendMessageSpy.mockReset();
+    replySpy.mockReset();
+
+    vi.useFakeTimers();
+    try {
+      createTelegramBot({
+        token: "tok",
+        testTimings: { mediaResolveTimeoutMs: 30 },
+      });
+      const handler = getOnHandler("message") as (ctx: Record<string, unknown>) => Promise<void>;
+
+      const stuckUpdate = handler({
+        message: {
+          chat: { id: 1234, type: "private" },
+          message_id: 420,
+          date: 1736380800,
+          photo: [{ file_id: "stuck" }],
+          from: { id: 55, is_bot: false, first_name: "u" },
+        },
+        me: { username: "openclaw_bot" },
+        getFile: async () => await new Promise<never>(() => {}),
+      });
+
+      await vi.advanceTimersByTimeAsync(40);
+      await stuckUpdate;
+
+      expect(sendMessageSpy).toHaveBeenCalledWith(
+        1234,
+        "⚠️ Failed to download media. Please try again.",
+        { reply_to_message_id: 420 },
+      );
+
+      await handler({
+        message: {
+          chat: { id: 1234, type: "private" },
+          message_id: 421,
+          date: 1736380801,
+          text: "still there?",
+          from: { id: 55, is_bot: false, first_name: "u" },
+        },
+        me: { username: "openclaw_bot" },
+        getFile: async () => ({}),
+      });
+
+      expect(replySpy).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
