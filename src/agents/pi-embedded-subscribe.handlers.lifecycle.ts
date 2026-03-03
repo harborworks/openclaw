@@ -1,6 +1,10 @@
 import { emitAgentEvent } from "../infra/agent-events.js";
 import { createInlineCodeState } from "../markdown/code-spans.js";
-import { formatAssistantErrorText } from "./pi-embedded-helpers.js";
+import {
+  formatAssistantErrorText,
+  getApiErrorPayloadFingerprint,
+  parseApiErrorInfo,
+} from "./pi-embedded-helpers.js";
 import type { EmbeddedPiSubscribeContext } from "./pi-embedded-subscribe.handlers.types.js";
 import { isAssistantMessage } from "./pi-embedded-utils.js";
 
@@ -36,7 +40,14 @@ export function handleAgentEnd(ctx: EmbeddedPiSubscribeContext) {
       provider: lastAssistant.provider,
       model: lastAssistant.model,
     });
-    const errorText = (friendlyError || lastAssistant.errorMessage || "LLM request failed.").trim();
+    const rawError = (lastAssistant.errorMessage || "").trim();
+    const parsed = parseApiErrorInfo(rawError);
+    const payloadFingerprint = getApiErrorPayloadFingerprint(rawError);
+    const rawSnippet = rawError.replace(/\s+/g, " ").slice(0, 320);
+    const errorText = (friendlyError || rawError || "LLM request failed.").trim();
+    ctx.log.warn(
+      `embedded run agent diag: runId=${ctx.params.runId} provider=${lastAssistant.provider || "unknown"} model=${lastAssistant.model || "unknown"} api=${lastAssistant.api || "unknown"} parsedHttp=${parsed?.httpCode || "n/a"} parsedType=${parsed?.type || "n/a"} parsedRequestId=${parsed?.requestId || "n/a"} hasApiPayload=${payloadFingerprint ? "yes" : "no"} rawError=${rawSnippet || "<empty>"}`,
+    );
     ctx.log.warn(
       `embedded run agent end: runId=${ctx.params.runId} isError=true error=${errorText}`,
     );
