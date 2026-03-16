@@ -82,7 +82,8 @@ export function applyConfigEnvVars(
 ): void {
   const entries = collectConfigRuntimeEnvVars(cfg);
   for (const [key, value] of Object.entries(entries)) {
-    if (env[key]?.trim()) {
+    if (value === "") {
+      delete env[key];
       continue;
     }
     // Skip values containing unresolved ${VAR} references — applyConfigEnvVars runs
