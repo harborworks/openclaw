@@ -30,7 +30,7 @@ function isWholeObjectSensitivePath(path: string): boolean {
 
 function collectSensitiveStrings(value: unknown, values: string[]): void {
   if (typeof value === "string") {
-    if (!isEnvVarPlaceholder(value)) {
+    if (value !== "" && !isEnvVarPlaceholder(value)) {
       values.push(value);
     }
     return;
