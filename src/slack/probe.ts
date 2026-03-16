@@ -1,4 +1,5 @@
 import type { BaseProbeResult } from "../channels/plugins/types.js";
+import { withTimeout } from "../utils/with-timeout.js";
 import { createSlackWebClient } from "./client.js";
 
 export type SlackProbe = BaseProbeResult & {
@@ -7,21 +8,6 @@ export type SlackProbe = BaseProbeResult & {
   bot?: { id?: string; name?: string };
   team?: { id?: string; name?: string };
 };
-
-function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
-  if (!timeoutMs || timeoutMs <= 0) {
-    return promise;
-  }
-  let timer: NodeJS.Timeout | null = null;
-  const timeout = new Promise<T>((_, reject) => {
-    timer = setTimeout(() => reject(new Error("timeout")), timeoutMs);
-  });
-  return Promise.race([promise, timeout]).finally(() => {
-    if (timer) {
-      clearTimeout(timer);
-    }
-  });
-}
 
 export async function probeSlack(token: string, timeoutMs = 2500): Promise<SlackProbe> {
   const client = createSlackWebClient(token);
@@ -40,8 +26,8 @@ export async function probeSlack(token: string, timeoutMs = 2500): Promise<Slack
       ok: true,
       status: 200,
       elapsedMs: Date.now() - start,
-      bot: { id: result.user_id ?? undefined, name: result.user ?? undefined },
-      team: { id: result.team_id ?? undefined, name: result.team ?? undefined },
+      bot: { id: result.user_id, name: result.user },
+      team: { id: result.team_id, name: result.team },
     };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
